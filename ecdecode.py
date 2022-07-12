@@ -1,4 +1,5 @@
 #!/venv/bin/python3
+#TODO: write bug report concerning memory leak to software.support@ecmwf.int
 
 #decode bufr and save obs to database
 
@@ -28,6 +29,7 @@ import psutil, os, sys
 #writing dictionary to file, read it
 import json
 from write_files import write
+from functions import total_size
 
 #read config file
 #config = configparser.ConfigParser()		
@@ -45,7 +47,7 @@ print( "ecdecode.py started @", date.strftime("%Y/%m/%d %H:%M") )
 # prepare a cursor object using cursor() method
 #cur = db.cursor()
 
-bufr_dir      = "bufr/SYNOP/"
+bufr_dir      = "bufr/"
 processed_dir = bufr_dir + "processed/"
 #files         = glob( bufr_dir + "Z__C*GER*bin" )
 files         = glob( bufr_dir + "*bin" )
@@ -84,10 +86,14 @@ DATA = {}
 
 attrs = ('code', 'units', 'scale', 'reference', 'width')
 
-for FILE in files:
-    
-    time_start = dt.now()
+n_files = 0
+n_loops = 0
 
+for FILE in files:
+
+    time_start = dt.now()
+    keys = []
+    
     """
     #alternative way to put loop:
     with ec.BufrFile(FILE) as bufr:
@@ -100,8 +106,6 @@ for FILE in files:
                 print(key)
                 print(msg[key])
     """
-
-    keys = []
 
     with open(FILE, "rb") as f:
 
@@ -176,8 +180,7 @@ for FILE in files:
                     timecode += code
             except: continue
 
-            if timecode in null_vals:
-                continue
+            if timecode in null_vals: continue
             
             date = timecode[:8]
             hour = timecode[-4:-2]
@@ -231,23 +234,29 @@ for FILE in files:
             #if all keys where empty delete entry
             if DATA[date][station][hour][mins] == {}:
                 del DATA[date][station][hour][mins]
-        
+
         f.close()
+        n_files += 1
+
+    n_loops += 1
 
     time_end = dt.now()
     time_diff = float(str(time_end - time_start )[-9:])
     times.append(float(time_diff))
     
     #move file to processed folder
-    move( FILE, processed_dir + FILE.replace(bufr_dir, "") )
-    
-    #free memory allocated by last bufr file
-    #TODO: FIX MEMORY LEAK!
+    #move( FILE, processed_dir + FILE.replace(bufr_dir, "") )
     ec.codes_release(bufr)
 
+    #free memory allocated by last bufr file
+    #TODO: FIX MEMORY LEAK!
     process = psutil.Process(os.getpid())
-    memory_used = process.memory_info().rss // 1024 // 1024
-    memory_free = psutil.virtual_memory()[1] // 1024 // 1024 
+    memory_used = process.memory_info().rss // 1024**2
+    memory_free = psutil.virtual_memory()[1] // 1024**2 
+    
+    #only in first loop
+    if n_loops == 1:
+        memory_init = np.copy(memory_used)
     
     os.system("clear")
     if len(times) > 0:
@@ -256,8 +265,28 @@ for FILE in files:
         print("min:    %1.3f s" % np.round( np.min(times), 3) )
         print("mean:   %1.3f s" % np.round( np.mean(times), 3) )
         print("median: %1.3f s" % np.round( np.median(times), 3) )    
+    
+    print()
+    print("Memory init: %4d MB" % memory_init )
     print("Memory used: %4d MB" % memory_used )  # in megabytes
     print("Memory free: %4d MB" % memory_free )
+    
+    perc = int(np.round((memory_used / memory_free) * 100))
+    bars = perc // 10
+    square = u"\u25A0"
+    print("|" + square*bars + " " * (10 - bars) + "| [%3d%%]" % perc )
+  
+    n_dates = len(DATA)
+    print()
+    print("Dates prcsd: %6d" % n_dates )
+    print("Files prcsd: %6d" % n_files )
+    print("Loops prcsd: %6d" % n_loops )
+
+    print()
+    print("Size (DATA): %4d MB" % int(round(total_size(DATA) / 1024**2 )) )
+    print("    (times): %4d MB" % int(round(total_size(times) / 1024**2 )) )
+    print("     (keys): %4d MB" % int(round(total_size(keys) / 1024**2 )) )
+    print("     (nums): %4d MB" % int(round(total_size(nums) / 1024**2 )) )
 
     #TODO: remove this workaround after memory leak is fixed!
     #if less than 1 GB free memory: save output and restart program
