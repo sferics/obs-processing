@@ -9,7 +9,7 @@ def write( data, output, mode="csv" ):
     
     to_C = lambda kelvin : str(int(( float(kelvin) - 273.15)*10))
 
-    to_kt = lambda ms : str(int( (900/463) * float(str(ms)) ))
+    to_kt = lambda ms : str(int( (900/463) * float(str(ms)) )) if ms not in null_vals else None
 
     to_hPa = lambda Pa : str(np.round( Pa/100, 1 ))
 

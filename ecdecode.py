@@ -49,14 +49,15 @@ print( "ecdecode.py started @", date.strftime("%Y/%m/%d %H:%M") )
 
 bufr_dir      = "bufr/"
 processed_dir = bufr_dir + "processed/"
-#files         = glob( bufr_dir + "Z__C*GER*bin" )
-files         = glob( bufr_dir + "*bin" )
+files         = glob( bufr_dir + "Z__C_EDZW_*GER*bin" )
+#files         = glob( bufr_dir + "*bin" )
 #files          = glob( bufr_dir + "/GMA/*bin" )
 output        = "output/"
 data_json     = "data.json"
 
 #list of known problematic desriptors (no tables available, not used etc)
 skip      = ["unexpandedDescriptors","stationNumber","blockNumber"]
+#skip      = ["unexpandedDescriptors"]
 null_vals = (2147483647, -1e+100, None, "None", "XXXX", {}, "", [])
 
 
@@ -65,7 +66,7 @@ def save_json(data, output= data_json ):
     with open(output, 'w') as f:
         json.dump(data, f)
 
-def write_output( INPUT= data_json, output_dir=output, mode="csv"):
+def write_output( INPUT=data_json, output_dir=output, mode="csv"):
     #write json data to file (csv or rpl)
     with open( INPUT ) as f:
         INPUT = json.load( f )
@@ -79,33 +80,23 @@ to_key = lambda number, clear_key : "#" + str(number) + "#" + clear_key
 
 
 times = []
-timekeys = ['year', 'month', 'day', 'hour', 'minute', 'timePeriod', 'timeSignificance', 'timeIncrement']
+timekeys = ['year','month','day','hour','minute','timePeriod','timeSignificance','timeIncrement']
 DATA = {}
 
-#files = ["bufr/SYNOP/Z__C_EDZW_20210505181224_bda01,synop_bufr_999999_999999__MW_231.bin"]
+#files = [bufr_dir + "Z__C_EDZW_20220730105700_bda01,synop_bufr_GER_999999_999999__MW_870.bin"]
 
 attrs = ('code', 'units', 'scale', 'reference', 'width')
 
 n_files = 0
 n_loops = 0
 
-for FILE in files:
+stations = []
+station_names = []
+
+for FILE in files[:10]:
 
     time_start = dt.now()
     keys = []
-    
-    """
-    #alternative way to put loop:
-    with ec.BufrFile(FILE) as bufr:
-        # Print number of messages in file
-        len(bufr)
-        # Open all messages in file
-        for msg in bufr:
-            keys = msg.keys()
-            for key in keys:
-                print(key)
-                print(msg[key])
-    """
 
     with open(FILE, "rb") as f:
 
@@ -131,42 +122,56 @@ for FILE in files:
                     nums.append(num)
                 if key not in keys:
                     keys.append(key)
-                
-                #for i in ("num", "key"):
-                #    s = i + "s"
-                #    if eval(i) not in eval(s):
-                #        eval(s).append(i)
+        
+        print(keys)
 
         #free memory
         ec.codes_keys_iterator_delete(iterid)
 
-        filename = FILE[len(bufr_dir):]
-
         for num in nums:
+            
             #we need a station number + block number!
-            #for wn, ck in zip(("station_number","block_number"), skip[-2:]):
-            #    try: exec(wn + "=ec.codes_get(bufr, to_key(num, '"+ck+"'))")
-            #    except: exec(wn + " = None")
+            try:
+                short_station = ec.codes_get(bufr, to_key(num, "shortStationName"))
+            except: short_station = None
 
             try:
                 station_number = ec.codes_get(bufr, to_key(num, "stationNumber"))
-            except: station_number = None
+            except:
+                station_number = None
+            
+            try:
+                station_name = ec.codes_get(bufr, to_key(num, "stationOrSiteName"))
+                if station_name not in station_names:
+                    station_names.append(station_name)
+            except:
+                if station_number in null_vals:
+                    #print("no station name & number!")
+                    print(short_station)
+                else:
+                    #print(f"{station_number} has no station name!")
+                    station_name = np.copy(station_number)
             try:
                 block_number   = ec.codes_get(bufr, to_key(num, "blockNumber"))
             except: block_number = None
-
-            try: short_station = ec.codes_get(bufr, to_key(num, "shortStationName"))
-            except: short_station = None
             
-            if short_station:
-                station = "__" + str(short_station)
+            if short_station not in null_vals:
+                station = "_" + str(short_station)
                 TYPE = "SYNA"
-            elif station_number not in null_vals and block_number not in null_vals:
-                station = str(station_number + block_number * 1000) + "0"
-                while len(station) < 6:
-                    station = "0" +  station
-                TYPE = "SYNO"
-            else: continue
+                print(short_station, station_name)
+            elif station_number not in null_vals:
+                if block_number not in null_vals:
+                    station = str(station_number + block_number * 1000)
+                    while len(station) < 5:
+                        station_number = "0" +  station
+                    TYPE = "SYNO"
+                else:
+                    station = "00" + station_number
+            else:
+                continue
+
+            if station not in null_vals and station not in stations:
+                stations.append(station)
 
             try:
                 timecode = ""
@@ -178,7 +183,9 @@ for FILE in files:
                     if len(code) < 2:
                         code = "0" + code
                     timecode += code
-            except: continue
+            except:
+                print("error with timecode")
+                continue
 
             if timecode in null_vals: continue
             
@@ -199,11 +206,10 @@ for FILE in files:
             except:
                 time = "1h" if mins == "00" else "0"
 
-            #try:
-            #    time_signif = ec.codes_get(bufr, to_key(num, timekeys[-1]))
-            #    if time_signif in null_vals:
-            #        time_signif = 0
-            #except: print("No timeSignificance given"); sys.exit()
+            try:
+                time_signif = ec.codes_get(bufr, to_key(num, timekeys[-2]))
+                if time_signif in null_vals: time_signif = 0
+            except: print("No timeSignificance given")#; sys.exit()
 
             if date not in DATA:
                 DATA[date]                            = {}
@@ -219,17 +225,28 @@ for FILE in files:
             for key in keys:
                 try: val = ec.codes_get(bufr, to_key(num, key))
                 except: continue
-                DATA[date][station][hour][mins][time][key] = val if val not in null_vals else None
+                if val not in null_vals:
+                    DATA[date][station][hour][mins][time][key] = val
+                    if key == "totalPrecipitationOrTotalWaterEquivalent":
+                        print(key, val)
+                        try:
+                            time_period = ec.codes_get(bufr, to_key(num, timekeys[-3]))
+                            if time_period not in null_vals:
+                                time_period = None
+                                print(timekeys[-3], time_period)
+                        except: pass
+                else:
+                    DATA[date][station][hour][mins][time][key] = None
                 DATA[date][station][hour][mins][time]["type"] = TYPE 
                 #try: print( ec.codes_get(bufr, to_key(num, key+"->percentConfidence") ) )
                 #except: print("No percentConfidence!")
 
                 #for attr in attrs:
-                    #try: print( ec.codes_get(bufr, to_key(num, key+"->"+attr)) )
-                    #except: print( attr + " not found!" )
-                    #try:
-                    #    print( ec.codes_get(bufr, to_key(num, key+"->percentConfidence->"+attr)) )
-                    #except: print( "percentConfidence of " + attr + " not found!" )
+                #    try: print( ec.codes_get(bufr, to_key(num, key+"->"+attr)) )
+                #    except: print( attr + " not found!" )
+                #    try:
+                #        print( ec.codes_get(bufr, to_key(num, key+"->percentConfidence->"+attr)) )
+                #    except: print( "percentConfidence of " + attr + " not found!" )
             
             #if all keys where empty delete entry
             if DATA[date][station][hour][mins] == {}:
@@ -257,7 +274,8 @@ for FILE in files:
     #only in first loop
     if n_loops == 1:
         memory_init = np.copy(memory_used)
-    
+  
+    """
     os.system("clear")
     if len(times) > 0:
         print("READING...")
@@ -266,29 +284,28 @@ for FILE in files:
         print("mean:   %1.3f s" % np.round( np.mean(times), 3) )
         print("median: %1.3f s" % np.round( np.median(times), 3) )    
     
-    print()
-    print("Memory init: %4d MB" % memory_init )
+    print("\nMemory init: %4d MB" % memory_init )
     print("Memory used: %4d MB" % memory_used )  # in megabytes
     print("Memory free: %4d MB" % memory_free )
     
     perc = int(np.round((memory_used / memory_free) * 100))
     bars = perc // 10
-    square = u"\u25A0"
+    square = u'\u25A0'
     print("|" + square*bars + " " * (10 - bars) + "| [%3d%%]" % perc )
   
     n_dates = len(DATA)
-    print()
-    print("Dates prcsd: %6d" % n_dates )
-    print("Files prcsd: %6d" % n_files )
-    print("Loops prcsd: %6d" % n_loops )
-
-    print()
-    print("Size (DATA): %4d MB" % int(round(total_size(DATA) / 1024**2 )) )
+    print("\nDates prcsd: %7d" % n_dates )
+    print("Files prcsd: %7d" % n_files )
+    print("Loops prcsd: %7d" % n_loops )
+    
+    
+    print("\nSize (DATA): %4d MB" % int(round(total_size(DATA) / 1024**2 )) )
     print("    (times): %4d MB" % int(round(total_size(times) / 1024**2 )) )
     print("     (keys): %4d MB" % int(round(total_size(keys) / 1024**2 )) )
     print("     (nums): %4d MB" % int(round(total_size(nums) / 1024**2 )) )
+    """
 
-    #TODO: remove this workaround after memory leak is fixed!
+    #TODO: remove this nasty workaround after memory leak is fixed!
     #if less than 1 GB free memory: save output and restart program
     if memory_free <= 1024:
         print("Too much RAM used!")
@@ -303,14 +320,17 @@ for FILE in files:
         sys.exit()
 
 
-print("%d files decoded" % len(files) )
+#print("%d files decoded" % len(files) )
+
+#print(stations)
+#print(station_names)
 
 #save DATA as JSON
 save_json( DATA )
 
-print("writing data...")
-write_output()
-print("writing finished!")
+#print("writing data...")
+#write_output()
+#print("writing finished!")
 
 #db.commit()
 #cur.close()
