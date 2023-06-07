@@ -23,16 +23,16 @@ time_keys     = ['year', 'month', 'day', 'hour', 'minute', 'timePeriod', 'timeSi
 null_vals     = (2147483647, -1e+100, None, "None", "null", "NULL", "MISSING", "XXXX", {}, "", [], ())
 skip_obs      = False
 
-clear      = lambda keyname : re.sub( r"#[0-9]+#", '', keyname )
-number     = lambda keyname : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
+clear      = lambda keyname           : re.sub( r"#[0-9]+#", '', keyname )
+number     = lambda keyname           : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
 to_key     = lambda number, clear_key : "#" + str(number) + "#" + clear_key
-get_bufr   = lambda bufr, num, key : ec.codes_get( bufr, to_key(num, key) )
+get_bufr   = lambda bufr, num, key    : ec.codes_get( bufr, to_key(num, key) )
 sql_update = lambda table, SET, WHERE : r"UPDATE {table} SET {SET} WHERE {WHERE}"
 
 def sql_value_list(params, update=False):
     value_list = ""
     for i in params:
-        if update: value_list += str(i) + " = "
+        if update:                 value_list += str(i) + " = "
         if params[i] in null_vals: value_list += "NULL, "
         else: value_list += "'%s', " % str(params[i])
     return value_list[:-2]
@@ -53,7 +53,7 @@ def sql_insert(table, params, ignore = False, update = None, skip_update = () ):
     return sql
 
 def known_stations():
-    cur.execute("SELECT DISTINCT `stID` FROM `station`")
+    cur.execute( "SELECT DISTINCT `stID` FROM `station`" )
     data = cur.fetchall()
     if data: return (i[0] for i in data)
     else:    return ()
