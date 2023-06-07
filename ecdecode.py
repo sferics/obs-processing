@@ -73,9 +73,7 @@ def write_output( INPUT=data_json, output_dir=output, mode="csv"):
         write( INPUT, output_dir, mode="csv" )
 
 clear = lambda keyname : re.sub( r"#[0-9]+#", '', keyname )
-
 number = lambda keyname : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
-
 to_key = lambda number, clear_key : "#" + str(number) + "#" + clear_key
 
 

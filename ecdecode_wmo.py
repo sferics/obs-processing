@@ -10,8 +10,8 @@ from glob import glob
 import eccodes as ec
 #python MySQL connector
 import MySQLdb
-#regular expressions
-import re
+#regular expressions, sys and os
+import re, sys, os
 #for slicing dicts
 from itertools import islice
 from datetime import datetime as dt
@@ -26,24 +26,65 @@ db = MySQLdb.connect("localhost", "obs", "obs4data", "obs" )
 # prepare a cursor object using cursor() method
 cur = db.cursor()
 
+station_sql = """CREATE TABLE IF NOT EXISTS `station` (
+  `stationID` varchar(6) NOT NULL,
+  `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `stationNumber` int NOT NULL,
+  `blockNumber`int not NULL,
+  `shortStationName`varchar(32) DEFAULT NULL,
+  `stationOrSiteName` varchar(64) DEFAULT NULL,
+  `stationType` int DEFAULT NULL,
+  `latitude` double NOT NULL,
+  `longitude` double NOT NULL,
+  `heightOfStationGroundAboveMeanSeaLevel` float DEFAULT NULL,
+  `heightOfBarometerAboveMeanSeaLevel` float DEFAULT NULL,
+  `heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform` float DEFAULT NULL,
+  `instrumentationForWindMeasurement` int DEFAULT NULL,
+  `typeOfInstrumentationForEvaporationMeasurement` int DEFAULT NULL,
+  PRIMARY KEY (`stationID`),
+  UNIQUE KEY `unique_station` (`stationID`,`stationOrSiteName`) USING BTREE,
+  KEY `station_name` (`stationOrSiteName`),
+  KEY `updated` (`updated`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+COMMIT;"""
+
+cur.execute( station_sql )
+
+obs_sql = """CREATE TABLE IF NOT EXISTS `obs` (
+  `obsID` int NOT NULL AUTO_INCREMENT,
+  `stationID` int NOT NULL,
+  `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `year` int NOT NULL,
+  `month` int NOT NULL,
+  `day` int NOT NULL,
+  `hour` int NOT NULL,
+  `minute` int NOT NULL,
+  `timeSignificance` int DEFAULT NULL,
+  `timePeriod` int DEFAULT NULL,
+  PRIMARY KEY (`obsID`),
+  UNIQUE KEY `unique_obs` (`obsID`,`stationID`,`year`,`month`,`day`,`hour`,`minute`,`timeSignificance`,`timePeriod`) USING BTREE,
+  KEY `year` (`year`),
+  KEY `month` (`month`),
+  KEY `day` (`day`),
+  KEY `hour` (`hour`) USING BTREE,
+  KEY `minute` (`minute`),
+  KEY `stationID` (`stationID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+COMMIT;"""
+
+cur.execute( obs_sql )
+
 known_stations  = []
-station_params  = {}
-obs_params      = {}
 
-for i in ("station", "obs"):
-    cur.execute(f"SHOW COLUMNS FROM {i} WHERE field != 'updated'")
-    data = cur.fetchall()
-    for j in data[1:]:
-        eval(i+"_params")[ j[0] ] = None
-
-bufr_dir      = "bufr"
+bufr_dir      = "bufr/"
 processed_dir = bufr_dir + "processed/"
-files = glob( bufr_dir + "*---bin" )
+files = glob( bufr_dir + "*.bin" )
 #files = globa( bufr_dir + "Z__C_EDZW_*GER*bin" )
 
-#problematic = ("highwayDesignator", "stationOrSiteName", "stateOrFederalStateIdentifier")
-problematic = ()
-null_values = (2147483647, -1e+100, None, "XXXX")
+skip      = ["unexpandedDescriptors,timeIncrement"]
+station_info = ["stationNumber","blockNumber","stationOrSiteName","shortStationName","stationType","latitude","longitude","heightOfStationGroundAboveMeanSeaLevel","heightOfBarometerAboveMeanSeaLevel","heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform","instrumentationForWindMeasurement","typeOfInstrumentationForEvaporationMeasurement"]
+timekeys = ['year','month','day','hour','minute','timePeriod','timeSignificance']
+null_vals = (2147483647, -1e+100, None, "None", "null", "XXXX", {}, "", [], ())
 
 clear  = lambda keyname : re.sub( r"#[0-9]+#", '', keyname )
 number = lambda keyname : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
@@ -57,7 +98,7 @@ def sql_value_list(params, update=False):
     for i in params:
         if update:
             value_list += str(i) + " = "
-        if params[i] in null_values:
+        if params[i] in null_vals:
             value_list += "NULL, "
         else:
             value_list += "'%s', " % str(params[i])
@@ -81,8 +122,7 @@ def sql_insert(table, params, ignore=False, update=None):
     sql += sql_values(params)
 
     if update:
-        params = dict( islice( obs_params.items(), update[0], update[1] ) )
-        print("update: ", params)
+        params = dict( islice( params.items(), update[0], update[1] ) )
         sql += " ON DUPLICATE KEY UPDATE "
         sql += sql_value_list( params, True )
 
@@ -91,45 +131,21 @@ def sql_insert(table, params, ignore=False, update=None):
 
 sql_update = lambda table, SET, WHERE : r"UPDATE {table} SET {SET} WHERE {WHERE}"
 
-files = 
+get = lambda bufr, num, key : ec.codes_get( bufr, to_key(num, key) )
 
-for FILE in files[:128]:
-    with ec.BufrFile(FILE) as bufr:
-        # Print number of messages in file
-        #print(len(bufr))
-        # Open all messages in file
-        for msg in bufr:
-            items = msg.items()
-            keys = msg.keys()
-            si = {}
 
-            for i in station_info:
-                try: si[i] = msg[i]
-                except: si[i] = None
+for FILE in files:
 
-            if si["shortStationName"] not in null_vals:
-                stationID = "_" + str(si["shortStationName"])
-            elif si["stationNumber"] not in null_vals:
-                if blockNumber not in null_vals:
-                    stationID = str(si["stationNumber"] + si["blockNumber"] * 1000)
-                    while len(stationID) < 5:
-                        stationID = "0" +  stationID
-                else:
-                    stationID = "00" + si["stationNumber"]
-            else:
-                try: stationID = si["stationOrSiteName"]
-                except: stationID = ""#continue
-            print(stationID)
-    
     with open(FILE, "rb") as f:
 
-        bufr = ec.codes_bufr_new_from_file(f)
-        try: ec.codes_set(bufr, "unpack", 1)
-        except: continue
-        try: iterid = ec.codes_bufr_keys_iterator_new(bufr)
+        try:
+            bufr = ec.codes_bufr_new_from_file(f)
+            if bufr is None: continue
+            ec.codes_set(bufr, "unpack", 1)
+            iterid = ec.codes_bufr_keys_iterator_new(bufr)
         except: continue
         
-        keys, nums = [], []
+        keys, obs_keys, nums = ([] for _ in range(3))
 
         while ec.codes_bufr_keys_iterator_next(iterid):
             
@@ -137,88 +153,74 @@ for FILE in files[:128]:
             keyname = ec.codes_bufr_keys_iterator_get_name(iterid)
             clear_key = clear(keyname)
             
-            if "#" in keyname and clear_key not in problematic:
+            if "#" in keyname and clear_key not in skip:
                 
                 num = number(keyname)
-
-                if num not in nums:
-                    nums.append(num)
-                
+                if num not in nums: nums.append(num)
                 if clear_key not in keys:
                     keys.append(clear_key)
-       
-        #print(keys)
+                    if clear_key not in station_info:
+                        obs_keys.append(clear_key)
 
         for num in sorted(nums):
-            
-            cur.execute("SELECT DISTINCT shortStationName FROM station")
+
+            #get known stations
+            cur.execute("SELECT DISTINCT stationID FROM station")
             data = cur.fetchall()
 
             for i in data:
                 if i[0] not in known_stations:
                     known_stations.append(i[0])
 
-            #print(known_stations)
+            obs          = {}
+            station_meta = {} #station meta data
 
-            try:
-                station_name = ec.codes_get( bufr, to_key(num, "shortStationName") )
-            except:
-                #print("No corresponding station!")
-                continue
+            for si in station_info:
+                try: station_meta[si] = get( bufr, num, si )
+                except: station_meta[si] = None
+
+            if station_meta["shortStationName"]:
+                stationID = str(station_meta["shortStationName"])
+            else:
+                station_number = station_meta["stationNumber"]
+                block_number   = station_meta["blockNumber"]
+                if station_number not in null_vals and block_number not in null_vals:
+                    stationID = str(station_number + block_number * 1000).rjust(5,"0")
+                else: continue
+
+            station_meta["stationID"] = stationID
+            station_name = station_meta["stationOrSiteName"]
             
-            if ( station_name not in known_stations ) and ( len(station_name) > 1 ):
+            if ( station_name not in known_stations ) and ( len(station_name) > 0 ):
                 
-                print(station_name)
-
-                #add station to database
-                for sp in station_params.keys():
-                    
-                    try:
-                        value = ec.codes_get( bufr, to_key(num, sp) )
-                        station_params[sp] = value
-                    except:
-                        continue
-                
-                print(station_params)
-                sql = sql_insert( "station", station_params, ignore=True )
-                #print(sql)
-
+                print("Adding", station_name, "to database...")
+                sql = sql_insert( "station", station_meta, ignore=True )
                 #save station to db
-                cur.execute( sql )
+                try:
+                    cur.execute( sql )
+                    db.commit()
+                except: continue
 
-            #get stationID by short station name
-            try:
-                sql = f"SELECT stationID FROM station WHERE shortStationName='{station_name}'"
-                cur.execute(sql)
-                stationID = cur.fetchone()[0]
-                print(f"stationID: {stationID}")
-            except:
-                continue
-    
-            obs_params["stationID"] = stationID
+            obs["stationID"] = stationID
 
             #save obs
-            for op in obs_params.keys():
+            for key in obs_keys:
+                #max identifier length in mysql is 64
+                key = key[:64]
                 try:
-                    value = ec.codes_get( bufr, to_key(num, op) )
-                    obs_params[op] = value
-                except:
-                    continue
-            
-            #print(obs_params)
+                    cur.execute( f"ALTER TABLE obs ADD COLUMN {key} VARCHAR(255)" )
+                    db.commit()
+                except: pass
+                try:
+                    value = get( bufr, num, key )
+                    print(value)
+                    obs[key] = value
+                except: continue
 
             #insert obsdata to db; on duplicate key update only obs values (airTemperature, ...)
-            sql = sql_insert( "obs", obs_params, update = ( 12, len(obs_params)-1 ) )
-            
-            #only save 15 min values
-            if obs_params["timePeriod"] == -15:
-                sql = sql_insert( "obs", obs_params, ignore = True )
-                #print(sql)
-                cur.execute( sql )
-
-        for key in sorted(keys):
-            if clear_key =="timePeriod":
-               print( f"keyname: {key}" )
+            sql = sql_insert( "obs", obs, update = ( 12, len(obs)-1 ) )
+            try: cur.execute( sql )
+            except: continue
     
     #move file to processed folder
     move( FILE, processed_dir + FILE.replace(bufr_dir, "") )

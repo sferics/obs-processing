@@ -124,7 +124,7 @@ for FILE in files[:128]:
 
         for num in sorted(nums):
             
-            cur.execute("SELECT DISTINCT shortStationName FROM station")
+            cur.execute("SELECT DISTINCT shortStationName FROM station_gma")
             data = cur.fetchall()
 
             for i in data:
@@ -162,7 +162,7 @@ for FILE in files[:128]:
 
             #get stationID by short station name
             try:
-                sql = "SELECT stationID FROM station WHERE shortStationName='%s'" % station_name
+                sql = "SELECT stationID FROM station_gma WHERE shortStationName='%s'" % station_name
                 cur.execute(sql)
                 stationID = cur.fetchone()[0]
                 print("stationID: %d" % stationID)
@@ -186,7 +186,7 @@ for FILE in files[:128]:
             
             #only save 15 min values
             if obs_params["timePeriod"] == -15:
-                sql = sql_insert( "obs", obs_params, ignore = True )
+                sql = sql_insert( "obs_gma", obs_params, ignore = True )
                 #print(sql)
                 cur.execute( sql )
             

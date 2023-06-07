@@ -9,7 +9,7 @@ TMP_BASE="fetchSYNOPint"
 TODO_LIST="$TMP_BASE.todo"
 LOCK_FILE="$TMP_BASE.lock"
 DONE_LIST="$TMP_BASE.done"
-BUFR_DIR="bufr/"
+BUFR_DIR="bufr"
 LOCAL_DATA_DIR="$BUFR_DIR/tmp"
 PROCESSED_DIR="$BUFR_DIR/processed"
 
