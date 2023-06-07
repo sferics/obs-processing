@@ -1,11 +1,11 @@
 #!/bin/bash
 
 BASE_URL="https://opendata.dwd.de/weather/"
-WHAT_WE_WANT="weather_reports/synoptic/international/"
+WHAT_WE_WANT="weather_reports/synoptic/germany/"
 CONTENT_LOG="content.log"
 CONTENT_LOG_BZ2="$CONTENT_LOG.bz2"
 CONTENT_LOG_OLD="$CONTENT_LOG.old"
-TMP_BASE="fetchSYNOPint"
+TMP_BASE="fetchSYNOPger"
 TODO_LIST="$TMP_BASE.todo"
 LOCK_FILE="$TMP_BASE.lock"
 DONE_LIST="$TMP_BASE.done"
@@ -16,7 +16,7 @@ PROCESSED_DIR="$BUFR_DIR/processed"
 WGET="/usr/bin/wget"
 BUNZIP2="/bin/bzip2 -d"
 
-echo "[STARTED] fetchSYNOPint"
+echo "[STARTED] fetchSYNOPger"
 date
 
 if [ -f $LOCAL_DATA_DIR/$LOCK_FILE ]
@@ -60,6 +60,6 @@ mv $LOCAL_DATA_DIR/$CONTENT_LOG $LOCAL_DATA_DIR/$CONTENT_LOG_OLD
 
 echo "Download succesful!"
 
-echo "[FINISHED] fetchSYNOPint"
+echo "[FINISHED] fetchSYNOPger"
 date
 exit 0
