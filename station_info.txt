@@ -1,0 +1,12 @@
+stationNumber
+blockNumber
+stationOrSiteName
+shortStationName
+stationType
+latitude
+longitude
+heightOfStationGroundAboveMeanSeaLevel
+heightOfBarometerAboveMeanSeaLevel
+heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform
+instrumentationForWindMeasurement
+typeOfInstrumentationForEvaporationMeasurement
