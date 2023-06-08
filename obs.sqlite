@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS obs (
+  stID varchar(255) NOT NULL,
+  updated timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  year int NOT NULL,
+  month int NOT NULL,
+  day int NOT NULL,
+  hour int NOT NULL,
+  minute int NOT NULL,
+  timeSignificance int DEFAULT NULL,
+  timePeriod int DEFAULT NULL,
+  CONSTRAINT unique_obs PRIMARY KEY (stID, year, month, day, hour, minute, timeSignificance, timePeriod)
+);

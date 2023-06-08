@@ -1,6 +1,4 @@
 obs.db
-obs.sqlite
-station.sqlite
 .ssh/
 .bash_history
 .bashrc
