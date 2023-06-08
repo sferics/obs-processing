@@ -133,6 +133,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
             update = "stID," + ",".join(time_keys)
             sql = sql_insert( "obs", obs, update = update, skip_update = time_keys + ["stID"] )
+            print(sql)
             try:                   cur.execute( sql )
             except Exception as e: print(e)
            
