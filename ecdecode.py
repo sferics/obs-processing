@@ -23,7 +23,7 @@ Path(error_dir[:-1]).mkdir(exist_ok=True)
 skip          = ["unexpandedDescriptors", "timeIncrement"]
 station_info  = [ _ for _ in read_file( "station_info.txt" )[:-1].splitlines() ]
 time_keys     = ['year', 'month', 'day', 'hour', 'minute', 'timePeriod', 'timeSignificance']
-null_vals     = (2147483647, -1e+100, None, "None", "null", "NULL", "MISSING", "XXXX", {}, "", [], ())
+null_vals     = (2147483647,-1e+100,None,"None","null","NULL","MISSING","XXXX",{},"",[],(),set())
 skip_obs      = False
 
 clear      = lambda keyname           : re.sub( r"#[0-9]+#", '', keyname )
@@ -72,8 +72,8 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             ec.codes_set(bufr, "skipExtraKeyAttributes",  1)
             ec.codes_set(bufr, "unpack", 1)
             iterid = ec.codes_bufr_keys_iterator_new(bufr)
-        except:
-            print("FAIL, files moved")
+        except Exception as e:
+            print(e)
             move( FILE, error_dir + FILE.replace(bufr_dir, "") )
             continue
         
@@ -95,8 +95,10 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
         for num in sorted(nums):
             obs, meta = {}, {}
             for si in station_info:
-                try:    meta[si] = get_bufr( bufr, num, si )
-                except: meta[si] = None
+                try: meta[si] = get_bufr( bufr, num, si )
+                except Exception as e:
+                    print(e)
+                    meta[si] = None
             
             if meta["shortStationName"]: meta["stID"] = str(meta["shortStationName"])
             else:
@@ -107,18 +109,27 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             if (meta["stID"] not in known_stations()) and (len(meta["stationOrSiteName"]) > 1):
                 meta["updated"] = dt.utcnow()
                 print("Adding", meta["stationOrSiteName"], "to database...")
-                try:    cur.execute( sql_insert( "station", meta ) ); db.commit()
-                except: pass
+                try:
+                    cur.execute( sql_insert( "station", meta ) )
+                    db.commit()
+                except Exception as e:
+                    print(e)
             
             for key in obs_keys:
+                if skip_obs == True: break
                 #TODO better use PRAGMA table_info(obs) statement here
                 #https://stackoverflow.com/questions/3604310/alter-table-add-column-if-not-exists-in-sqlite
                 try:    cur.execute(f'ALTER TABLE obs ADD COLUMN "{key}"'); db.commit()
                 except: pass
-                #max length of mysql identifier is 64! TODO: write conversion dictionary
+                #max length of mysql identifier is 64!
+                #TODO: write param names and unit conversion dictionary
                 try:    obs[key] = get_bufr( bufr, num, key[:64] )
-                except: continue
+                except Exception as e:
+                    print(e)
+                    move( FILE, error_dir + FILE.replace(bufr_dir, "") )
+                    skip_obs = True
 
+            if skip_obs == True: continue
             obs["stID"]    = meta["stID"]
             obs["updated"] = dt.utcnow()
 
@@ -127,13 +138,18 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 if tk not in obs or obs[tk] in null_vals:
                     skip_obs = True; break
             if skip_obs: continue
+            
             #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
             update = "stID," + ",".join(time_keys)
             sql = sql_insert( "obs", obs, update = update, skip_update = time_keys + ["stID"] )
-            print(sql)
-            cur.execute( sql )
+            try: cur.execute( sql )
+            except Exception as e:
+                print(e)
+                move( FILE, error_dir + FILE.replace(bufr_dir, "") )
+                continue
            
     ec.codes_release(bufr)                                      #release file to free memory
-    move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
+    try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
+    except: continue
 
 db.commit(); cur.close(); db.close()
