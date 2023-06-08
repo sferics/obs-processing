@@ -96,9 +96,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             obs, meta = {}, {}
             for si in station_info:
                 try: meta[si] = get_bufr( bufr, num, si )
-                except Exception as e:
-                    print(e)
-                    meta[si] = None
+                except Exception as e: meta[si] = None
             
             if meta["shortStationName"]: meta["stID"] = str(meta["shortStationName"])
             else:
@@ -119,11 +117,11 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 if skip_obs == True: break
                 #TODO better use PRAGMA table_info(obs) statement here
                 #https://stackoverflow.com/questions/3604310/alter-table-add-column-if-not-exists-in-sqlite
-                try:    cur.execute(f'ALTER TABLE obs ADD COLUMN "{key}"'); db.commit()
+                try:    cur.execute(f'ALTER TABLE obs ADD COLUMN "{key[:64]}"'); db.commit()
                 except: pass
                 #max length of mysql identifier is 64!
                 #TODO: write param names and unit conversion dictionary
-                try:    obs[key] = get_bufr( bufr, num, key[:64] )
+                try:    obs[key[:64]] = get_bufr( bufr, num, key )
                 except Exception as e:
                     print(e)
                     move( FILE, error_dir + FILE.replace(bufr_dir, "") )
@@ -146,7 +144,10 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             except Exception as e:
                 print(e)
                 move( FILE, error_dir + FILE.replace(bufr_dir, "") )
-                continue
+                skip_obs = True
+            if skip_obs == True: break
+
+        if skip_obs == True: continue
            
     ec.codes_release(bufr)                                      #release file to free memory
     try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
