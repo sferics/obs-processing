@@ -107,11 +107,8 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             if (meta["stID"] not in known_stations()) and (len(meta["stationOrSiteName"]) > 1):
                 meta["updated"] = dt.utcnow()
                 print("Adding", meta["stationOrSiteName"], "to database...")
-                try:
-                    cur.execute( sql_insert( "station", meta ) )
-                    db.commit()
-                except Exception as e:
-                    print(e)
+                try: cur.execute( sql_insert( "station", meta ) ); db.commit()
+                except Exception as e: print(e)
             
             for key in obs_keys:
                 if skip_obs == True: break
@@ -121,13 +118,9 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 except: pass
                 #max length of mysql identifier is 64!
                 #TODO: write param names and unit conversion dictionary
-                try:    obs[key[:64]] = get_bufr( bufr, num, key )
-                except Exception as e:
-                    print(e)
-                    move( FILE, error_dir + FILE.replace(bufr_dir, "") )
-                    skip_obs = True
+                try:                   obs[key[:64]] = get_bufr( bufr, num, key )
+                except Exception as e: print(e)
 
-            if skip_obs == True: continue
             obs["stID"]    = meta["stID"]
             obs["updated"] = dt.utcnow()
 
@@ -140,14 +133,8 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
             update = "stID," + ",".join(time_keys)
             sql = sql_insert( "obs", obs, update = update, skip_update = time_keys + ["stID"] )
-            try: cur.execute( sql )
-            except Exception as e:
-                print(e)
-                move( FILE, error_dir + FILE.replace(bufr_dir, "") )
-                skip_obs = True
-            if skip_obs == True: break
-
-        if skip_obs == True: continue
+            try:                   cur.execute( sql )
+            except Exception as e: print(e)
            
     ec.codes_release(bufr)                                      #release file to free memory
     try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
