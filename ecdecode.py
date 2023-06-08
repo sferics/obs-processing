@@ -17,7 +17,9 @@ for table in ("station", "obs"): cur.execute( read_file( table + ".sqlite" ) )
 
 bufr_dir      = "bufr/"
 processed_dir = bufr_dir + "processed/"
+error_dir     = bufr_dir + "error/"
 Path(processed_dir[:-1]).mkdir(parents=True, exist_ok=True)
+Path(error_dir[:-1]).mkdir(exist_ok=True)
 skip          = ["unexpandedDescriptors", "timeIncrement"]
 station_info  = [ _ for _ in read_file( "station_info.txt" )[:-1].splitlines() ]
 time_keys     = ['year', 'month', 'day', 'hour', 'minute', 'timePeriod', 'timeSignificance']
@@ -63,10 +65,17 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
     with open(FILE, "rb") as f:
         try:
             bufr = ec.codes_bufr_new_from_file(f)
-            if bufr is None: continue
+            if bufr is None:
+                move( FILE, error_dir + FILE.replace(bufr_dir, "") )
+                print("BUFR is NONE, moved file")
+                continue
+            ec.codes_set(msgid, 'skipExtraKeyAttributes', 1)
             ec.codes_set(bufr, "unpack", 1)
             iterid = ec.codes_bufr_keys_iterator_new(bufr)
-        except: continue
+        except:
+            print("FAIL, files moved")
+            move( FILE, error_dir + FILE.replace(bufr_dir, "") )
+            continue
         
         keys, obs_keys, nums = [], [], []
         
@@ -103,12 +112,12 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             for key in obs_keys:
                 #TODO better use PRAGMA table_info(obs) statement here
                 #https://stackoverflow.com/questions/3604310/alter-table-add-column-if-not-exists-in-sqlite
-                try:    cur.execute(f'ALTER TABLE obs ADD COLUMN "{key}" VARCHAR(255)'); db.commit()
+                try:    cur.execute(f'ALTER TABLE obs ADD COLUMN "{key}"'); db.commit()
                 except: pass
                 #max length of mysql identifier is 64! TODO: write conversion dictionary
                 try:    obs[key] = get_bufr( bufr, num, key[:64] )
                 except: continue
-           
+
             obs["stID"] = meta["stID"]
             obs["updated"] = meta["updated"] = "datetime('now')"
 
@@ -120,10 +129,10 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
             update = "stID," + ",".join(time_keys)
             sql = sql_insert( "obs", obs, update = update, skip_update = time_keys + ["stID"] )
+            print(sql)
             cur.execute( sql )
            
     ec.codes_release(bufr)                                      #release file to free memory
-    try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
-    except: continue
+    move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
 
 db.commit(); cur.close(); db.close()
