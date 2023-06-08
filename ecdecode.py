@@ -69,7 +69,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 move( FILE, error_dir + FILE.replace(bufr_dir, "") )
                 print("BUFR is NONE, moved file")
                 continue
-            ec.codes_set(msgid, 'skipExtraKeyAttributes', 1)
+            #codes_set(msgid, 'skipExtraKeyAttributes', 1)
             ec.codes_set(bufr, "unpack", 1)
             iterid = ec.codes_bufr_keys_iterator_new(bufr)
         except:
