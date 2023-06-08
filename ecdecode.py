@@ -69,7 +69,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 move( FILE, error_dir + FILE.replace(bufr_dir, "") )
                 print("BUFR is NONE, moved file")
                 continue
-            #codes_set(msgid, 'skipExtraKeyAttributes', 1)
+            ec.codes_set(bufr, "skipExtraKeyAttributes",  1)
             ec.codes_set(bufr, "unpack", 1)
             iterid = ec.codes_bufr_keys_iterator_new(bufr)
         except:
@@ -105,6 +105,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 else: continue
             
             if (meta["stID"] not in known_stations()) and (len(meta["stationOrSiteName"]) > 1):
+                meta["updated"] = dt.utcnow()
                 print("Adding", meta["stationOrSiteName"], "to database...")
                 try:    cur.execute( sql_insert( "station", meta ) ); db.commit()
                 except: pass
@@ -118,8 +119,8 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 try:    obs[key] = get_bufr( bufr, num, key[:64] )
                 except: continue
 
-            obs["stID"] = meta["stID"]
-            obs["updated"] = meta["updated"] = "datetime('now')"
+            obs["stID"]    = meta["stID"]
+            obs["updated"] = dt.utcnow()
 
             #we need correct date/time information, otherwise skip this obs!
             for tk in time_keys[:5]:
