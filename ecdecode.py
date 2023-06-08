@@ -13,9 +13,7 @@ db  = connect("obs.db")   # Creating obs db and opening database connection
 cur = db.cursor()                                       # Creating cursor object to call SQL
 #read sql files to create db tables and execute the SQL statements
 read_file = lambda file_name : Path( file_name ).read_text()
-for table in ("station", "obs"):
-    print(table)
-    cur.execute( read_file( table + ".sqlite" ) )
+for table in ("station", "obs"): cur.execute( read_file( table + ".sqlite" ) )
 
 bufr_dir      = "bufr/"
 processed_dir = bufr_dir + "processed/"
@@ -98,8 +96,8 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             
             if (meta["stID"] not in known_stations()) and (len(meta["stationOrSiteName"]) > 1):
                 print("Adding", meta["stationOrSiteName"], "to database...")
-                cur.execute( sql_insert( "station", meta ) ); db.commit()
-                continue
+                try:    cur.execute( sql_insert( "station", meta ) ); db.commit()
+                except: continue
             
             for key in obs_keys:
                 #TODO better use PRAGMA table_info(obs) statement here
@@ -121,7 +119,6 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
             update = "stID," + ",".join(time_keys)
             sql = sql_insert( "obs", obs, update = update, skip_update = time_keys + ["stID"] )
-            print(sql)
             cur.execute( sql )
            
     ec.codes_release(bufr)                                      #release file to free memory
