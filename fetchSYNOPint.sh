@@ -13,6 +13,10 @@ BUFR_DIR="bufr"
 LOCAL_DATA_DIR="$BUFR_DIR/tmp"
 PROCESSED_DIR="$BUFR_DIR/processed"
 
+mkdir -p $BUFR_DIR
+mkdir -p $LOCAL_DATA_DIR
+mkdir -p $PROCESSED_DIR
+
 WGET="/usr/bin/wget"
 BUNZIP2="/bin/bzip2 -d"
 
