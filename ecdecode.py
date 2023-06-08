@@ -14,6 +14,7 @@ cur = db.cursor()                                       # Creating cursor object
 #read sql files to create db tables and execute the SQL statements
 read_file = lambda file_name : Path( file_name ).read_text()
 for table in ("station", "obs"):
+    print(table)
     cur.execute( read_file( table + ".sqlite" ) )
 
 bufr_dir      = "bufr/"
@@ -33,13 +34,13 @@ sql_update = lambda table, SET, WHERE : r"UPDATE {table} SET {SET} WHERE {WHERE}
 def sql_value_list(params, update=False):
     value_list = ""
     for i in params:
-        if update:                 value_list += str(i) + " = "
+        if update:                 value_list += '"' + str(i) + '"' + " = "
         if params[i] in null_vals: value_list += "NULL, "
         else: value_list += '"%s", ' % str(params[i])
     return value_list[:-2]
 
 def sql_values(params):
-    column_list = ", ".join(params.keys())
+    column_list = '"' + '", "'.join(params.keys()) + '"'
     value_list  = sql_value_list(params)
     return f"({column_list}) VALUES ({value_list})"
 
@@ -53,7 +54,7 @@ def sql_insert(table, params, update = None, skip_update = () ):
     return sql
 
 def known_stations():
-    cur.execute( "SELECT DISTINCT `stID` FROM `station`" )
+    cur.execute( "SELECT DISTINCT stID FROM station" )
     data = cur.fetchall()
     if data: return (i[0] for i in data)
     else:    return ()
@@ -97,13 +98,13 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             
             if (meta["stID"] not in known_stations()) and (len(meta["stationOrSiteName"]) > 1):
                 print("Adding", meta["stationOrSiteName"], "to database...")
-                try:    cur.execute( sql_insert( "station", meta ) ); db.commit()
-                except: continue
+                cur.execute( sql_insert( "station", meta ) ); db.commit()
+                continue
             
             for key in obs_keys:
                 #TODO better use PRAGMA table_info(obs) statement here
                 #https://stackoverflow.com/questions/3604310/alter-table-add-column-if-not-exists-in-sqlite
-                try:    cur.execute(f"ALTER TABLE obs ADD COLUMN {key} VARCHAR(255)"); db.commit()
+                try:    cur.execute(f'ALTER TABLE obs ADD COLUMN "{key}" VARCHAR(255)'); db.commit()
                 except: pass
                 #max length of mysql identifier is 64! TODO: write conversion dictionary
                 try:    obs[key] = get_bufr( bufr, num, key[:64] )
@@ -118,13 +119,13 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                     skip_obs = True; break
             if skip_obs: continue
             #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
-            update = ",".join(time_keys)
+            update = "stID," + ",".join(time_keys)
             sql = sql_insert( "obs", obs, update = update, skip_update = time_keys + ["stID"] )
             print(sql)
-            try:    cur.execute( sql )
-            except: continue
-            
-    move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
+            cur.execute( sql )
+           
     ec.codes_release(bufr)                                      #release file to free memory
-    
+    try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
+    except: continue
+
 db.commit(); cur.close(); db.close()
