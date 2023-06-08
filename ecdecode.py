@@ -98,7 +98,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             if (meta["stID"] not in known_stations()) and (len(meta["stationOrSiteName"]) > 1):
                 print("Adding", meta["stationOrSiteName"], "to database...")
                 try:    cur.execute( sql_insert( "station", meta ) ); db.commit()
-                except: continue
+                except: pass
             
             for key in obs_keys:
                 #TODO better use PRAGMA table_info(obs) statement here
