@@ -17,6 +17,7 @@ for table in ("station", "obs"): cur.execute( read_file( table + ".sqlite" ) )
 
 bufr_dir      = "bufr/"
 processed_dir = bufr_dir + "processed/"
+Path(processed_dir[:-1]).mkdir(parents=True, exist_ok=True)
 skip          = ["unexpandedDescriptors", "timeIncrement"]
 station_info  = [ _ for _ in read_file( "station_info.txt" )[:-1].splitlines() ]
 time_keys     = ['year', 'month', 'day', 'hour', 'minute', 'timePeriod', 'timeSignificance']
