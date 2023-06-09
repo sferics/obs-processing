@@ -23,21 +23,19 @@ Path(processed_dir[:-1]).mkdir(parents=True, exist_ok=True)
 Path(error_dir[:-1]).mkdir(exist_ok=True)
 skip          = ("unexpandedDescriptors", "timeIncrement")
 station_info  = [ _ for _ in read_file( "station_info.txt" )[:-1].splitlines() ]
-time_keys     = ['year', 'month', 'day', 'hour', 'minute', 'timePeriod', 'timeSignificance']
+time_keys     = ('year', 'month', 'day', 'hour', 'minute', 'timePeriod', 'timeSignificance')
 null_vals     = (2147483647,-1e+100,None,"None","null","NULL","MISSING","XXXX",{},"",[],(),set())
 
-clear      = lambda keyname           : re.sub( r"#[0-9]+#", '', keyname )
+clear      = lambda keyname           : str( re.sub( r"#[0-9]+#", '', keyname ) )
 number     = lambda keyname           : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
-to_key     = lambda number, clear_key : "#" + str(number) + "#" + clear_key
-get_bufr   = lambda bufr, num, key    : ec.codes_get( bufr, to_key(num, key) )
-sql_update = lambda table, SET, WHERE : r"UPDATE {table} SET {SET} WHERE {WHERE}"
+get_bufr   = lambda bufr, number, key : ec.codes_get( bufr, f"#{number}#{key}" )
 
 def sql_value_list(params, update=False):
     value_list = ""
     for i in params:
-        if update:                 value_list += '"' + str(i) + '"' + " = "
+        if update:                 value_list += f'"{i}" = '
         if params[i] in null_vals: value_list += "NULL, "
-        else: value_list += '"%s", ' % str(params[i])
+        else:                      value_list += f'"{params[i]}", '
     return value_list[:-2]
 
 def sql_values(params):
@@ -51,7 +49,7 @@ def sql_insert(table, params, conflict = None, skip_update = () ):
         for i in skip_update:
             try:    params.pop(i)
             except: continue
-        sql += f" ON CONFLICT({conflict}) DO UPDATE SET "+sql_value_list(params,True)
+        sql += f" ON CONFLICT({conflict}) DO UPDATE SET " + sql_value_list(params,True)
     return sql
 
 def known_stations():
@@ -78,41 +76,37 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             move( FILE, error_dir + FILE.replace(bufr_dir, "") )
             continue
         
-        keys, obs_keys, nums = set(), set(), set()
+        stations = {}
         
         while ec.codes_bufr_keys_iterator_next(iterid):
-            
             keyname   = ec.codes_bufr_keys_iterator_get_name(iterid)
             clear_key = clear(keyname)
             
             if "#" in keyname and clear_key not in skip:
-                num = number(keyname)
-                nums.add(num)
-                keys.add(clear_key)
-                if clear_key not in station_info:
-                    obs_keys.add(clear_key)
-        
-        for num in nums:
-            obs, meta = {}, {}
+                try:    stations[number(keyname)].add( clear_key )
+                except: stations[number(keyname)] = set()
+
+        for num in stations.keys():
+            obs, meta = { "source" : "dwd_open_data", "type" : "bufr", "priority" : 0 }, {}
+            #TODO only update station info in dev mode, not operational!
             for si in station_info:
-                try:   meta[si] = get_bufr( bufr, num, si )
+                try:                   meta[si] = get_bufr( bufr, num, si )
                 except Exception as e: meta[si] = None
-            
-            if "shortStationName" in meta:
-                short_station = meta["shortStationName"]
-                if short_station and len(short_station) == 4:
-                    meta["stID"] = str("shortstation")
-            if meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
+
+            if meta["latitude"] in null_vals or meta["longitude"] in null_vals: continue
+            if meta["shortStationName"] not in null_vals and len(meta["shortStationName"]) == 4:
+                meta["stID"] = meta["shortStationName"]
+            elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
                 meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
             else: continue
             
             if (meta["stID"] not in known_stations()) and (len(meta["stationOrSiteName"]) > 1):
                 meta["updated"] = dt.utcnow()
                 print("Adding", meta["stationOrSiteName"], "to database...")
-                try: cur.execute( sql_insert( "station", meta ) ); db.commit()
+                try:                   cur.execute( sql_insert( "station", meta ) ); db.commit()
                 except Exception as e: print(e)
             
-            for key in obs_keys:
+            for key in stations[num]:
                 if skip_obs == True: break
                 #TODO better use PRAGMA table_info(obs) statement here
                 #https://stackoverflow.com/questions/3604310/alter-table-add-column-if-not-exists-in-sqlite
@@ -121,8 +115,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 #max length of mysql identifier is 64!
                 #TODO: write param names and unit conversion dictionary
                 try:                   obs[key[:64]] = get_bufr( bufr, num, key )
-                except Exception as e:
-                    print(f"{e}: {key}")
+                except Exception as e: print(f"{e}: {key}")
 
             obs["stID"]    = meta["stID"]
             obs["updated"] = dt.utcnow()
@@ -135,12 +128,16 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             
             #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
             conflict = "stID, " + ", ".join(time_keys) 
-            sql = sql_insert( "obs", obs, conflict = conflict, skip_update = time_keys + ["stID"] )
+            sql = sql_insert( "obs", obs, conflict=conflict, skip_update=list(time_keys)+["stID"] )
             try:                   cur.execute( sql )
             except Exception as e: print(e)
            
-    ec.codes_release(bufr)                                      #release file to free memory
-    try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
-    except: continue
+    ec.codes_release(bufr) #release file to free memory
+    try:
+        #move FILE to the processed folder
+        move( FILE, processed_dir + FILE.replace(bufr_dir, "") ) #move FILE to the processed folder
+    except Exception as e:
+        print(e)
+        continue
 
 db.commit(); cur.close(); db.close()
