@@ -70,6 +70,7 @@ def register_file( name, path, source, status="locked" ):
     values = f"VALUES ('{name}','{path}','{source}','{status}')"
     sql    = f"INSERT INTO files (name,path,source,status) {values}"
     cur.execute( sql )
+    return cur.lastrowid
 
 def get_file_status( name ):
     sql = f"SELECT status FROM files WHERE name = '{name}'"
@@ -97,6 +98,10 @@ print("#FILES in DIR:  ", len(files_in_dir))
 print("#FILES in DB:   ", len(skip_files))
 print("#FILES to parse:", len(files_to_parse))
 
+#TODO source and file_type should be determined outside of this script by command line arguments
+#TODO or by some smart detection (file ending, data dir)
+file_type = "bufr"
+source         = "dwd_opendata"
 
 for FILE in files_to_parse:
    
@@ -105,14 +110,12 @@ for FILE in files_to_parse:
 
     parsed_counter = 0
     skip_obs       = False
-    source         = "dwd_opendata"
-    source        += "_ger" if FILE[-29:-26] == "GER" else "_int"
+    source         = source+"_ger" if FILE[-29:-26] == "GER" else source+"_int"
     file_path      = str( Path( bufr_dir + FILE ).resolve().parent )
-    file_type      = "bufr"
     priority       = priorities[file_type]
 
-    #set file status = locked
-    register_file( FILE, file_path, source )
+    #set file status = locked and get rowid (FILE ID)
+    ID = register_file( FILE, file_path, source )
 
     with open(bufr_dir + FILE, "rb") as f:
         try:
@@ -140,7 +143,7 @@ for FILE in files_to_parse:
                 except: stations[number(keyname)] = set()
         
         for num in stations.keys():
-            obs, meta = { "source":source, "file":FILE, "type":file_type, "priority":priority }, {}
+            obs, meta = { "file" : ID, "priority" : priority }, {}
             #TODO only update station info in dev mode, not operational!
             for si in station_info:
                 try:                   meta[si] = get_bufr( bufr, num, si )

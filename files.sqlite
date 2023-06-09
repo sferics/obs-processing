@@ -2,5 +2,6 @@ CREATE TABLE IF NOT EXISTS files (
   name varchar(255) UNIQUE,
   path varchar(255),
   source varchar(255),
-  status varchar(6)
+  status varchar(6),
+  CONSTRAINT unique_file PRIMARY KEY (name,path)
 )
