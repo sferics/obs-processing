@@ -1,0 +1,58 @@
+db_name: obs.db
+
+null_vals: [2147483647,-1e+100,"null","NULL","MISSING","XXXX",""," "]
+
+station_info:
+  - stationNumber
+  - blockNumber
+  - stationOrSiteName
+  - shortStationName
+  - stateIdentifier
+  - nationalStationNumber
+  - stationType
+  - latitude
+  - longitude
+  - elevation
+  - heightOfStationGroundAboveMeanSeaLevel
+  - heightOfBarometerAboveMeanSeaLevel
+  - heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform
+  - heightOfSensorAboveWaterSurface
+  - depthBelowWaterSurface
+  - depthBelowLandSurface
+  - instrumentationForWindMeasurement
+  - typeOfInstrumentationForEvaporationMeasurement
+  - wigosIdentifierSeries
+  - wigosIssuerOfIdentifier
+  - wigosIdentifierSeries
+  - wigosIssueNumber
+  - wigosLocalIdentifierCharacter
+  - mainPresentWeatherDetectingSystem
+  - supplementaryPresentWeatherSensor
+  - visibilityMeasurementSystem
+  - cloudDetectionSystem
+  - lightningDetectionSensorType
+  - skyConditionAlgorithmType
+  - capabilityToDetectPrecipitationPhenomena
+  - capabilityToDetectOtherWeatherPhenomena
+  - capabilityToDetectObscuration
+  - capabilityToDiscriminateLightningStrikes
+  - methodOfStateOfGroundMeasurement
+  - methodOfPrecipitationMeasurement
+  - methodOfLiquidContentMeasurementOfPrecipitation
+  - methodOfWaterTemperatureAndOrOrSalinityMeasurement
+  - methodOfEvaporationMeasurement
+  - sensorIndex
+
+priorities:
+  bufr:   0
+  synop:  1
+  metar:  2
+
+sources:
+  dwd_opendata:
+    bufr: 
+      ext:  bin
+      dir:  bufr
+      time_keys:  [year, month, day, hour, minute, timePeriod, timeSignificance]
+      skip_keys:  [unexpandedDescriptors, timeIncrement]
+    synop: {ext: txt, path: synop}

@@ -4,18 +4,12 @@
 from glob import glob       #file lookup
 import eccodes as ec        #bufr decoder by ECMWF
 from sqlite3 import connect #python sqlite connector
-import re, sys, os, json    #regular expressions, system, operating system and JSON handling
-#from shutil import move    #moving/copying files
+import re, sys, os, yaml    #regular expressions, system, operating system and YAML config handling
 from pathlib import Path    #path operation
 from datetime import datetime as dt
-import cProfile, logging    #profiler and logging
-import yaml #YAML AINT A MARKUP LANGUAGE!
-#https://www.redhat.com/sysadmin/yaml-nesting-lists-comments-ansible
-#https://realpython.com/python-yaml/
 
-if len(sys.argv) == 2:
-    source = sys.argv[1]
-else: source = "dwd_opendata"
+if len(sys.argv) == 2:  source = sys.argv[1]
+else:                   source = "dwd_opendata"
 
 def read_yaml(file_path):
     with open(file_path, "r") as f:
@@ -45,7 +39,6 @@ for table in ("station", "obs", "files"): cur.execute( read_file( table + ".sqli
 clear      = lambda keyname           : str( re.sub( r"#[0-9]+#", '', keyname ) )
 number     = lambda keyname           : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
 get_bufr   = lambda bufr, number, key : ec.codes_get( bufr, f"#{number}#{key}" )
-
 
 def sql_value_list(params, update=False):
     value_list = ""
@@ -99,7 +92,6 @@ def set_file_status( name, status ):
     if status != "parsed":
         print(f"Setting status of FILE '{name}' to '{status}'")
 
-
 known_stations  = lambda : select_distinct( "stID", "station" )
 files_status    = lambda status : select_distinct( "name", "files", "status", status )
 
@@ -122,7 +114,6 @@ for FILE in files_to_parse:
     skip_obs       = False
     source         = source+"_ger" if FILE[-29:-26] == "GER" else source+"_int"
     file_path      = str( Path( bufr_dir + FILE ).resolve().parent )
-
     #set file status = locked and get rowid (FILE ID)
     ID = register_file( FILE, file_path, source )
 
@@ -137,12 +128,11 @@ for FILE in files_to_parse:
             iterid = ec.codes_bufr_keys_iterator_new(bufr)
         except Exception as e:
             print(e)
-            print("ERROR while preparing to read BUFR, moved file")
             set_file_status( FILE, error )
             continue
         
         stations = {}
-
+        
         while ec.codes_bufr_keys_iterator_next(iterid):
             keyname   = ec.codes_bufr_keys_iterator_get_name(iterid)
             clear_key = clear(keyname)
@@ -174,16 +164,12 @@ for FILE in files_to_parse:
 
             for key in stations[num]:
                 if skip_obs == True: break
-                #TODO better use PRAGMA table_info(obs) statement here
-                #https://stackoverflow.com/questions/3604310/alter-table-add-column-if-not-exists-in-sqlite
                 try:    cur.execute(f'ALTER TABLE obs ADD COLUMN "{key[:64]}"'); db.commit()
                 except: pass
                 #max length of mysql identifier is 64!
                 #TODO: write param names and unit conversion dictionary
-                try:
-                    obs[key[:64]] = get_bufr( bufr, num, key )
-                except Exception as e:
-                    print(f"{e}: {key}")
+                try:                    obs[key[:64]] = get_bufr( bufr, num, key )
+                except Exception as e:  print(f"{e}: {key}")
 
             obs["stID"]    = meta["stID"]
             obs["updated"] = dt.utcnow()
@@ -205,8 +191,7 @@ for FILE in files_to_parse:
                 print(e)
                 set_file_status( FILE, "error" )
 
-        if parsed_counter == 0:
-            set_file_status( FILE, "empty" )
+        if parsed_counter == 0: set_file_status( FILE, "empty" )
            
     try:                   ec.codes_release(bufr) #release file to free memory
     except Exception as e: print(e)
