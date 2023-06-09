@@ -13,19 +13,25 @@ else:                   source = "dwd_opendata"
 
 def read_yaml(file_path):
     with open(file_path, "r") as f:
-        return yaml.safe_load(f)
+        return yaml.load(f, yaml.Loader)
 
 #read config.yaml
-config       = read_yaml( "config.yaml" )
-db_name      = config["db_name"]
-priority     = config["priorities"]["bufr"]
-station_info = tuple( config["station_info"] )
-null_vals    = tuple( list(config["null_vals"]) + [None] )
+config        = read_yaml( "config.yaml" )
+db_name       = config["db_name"]
+priority      = config["priorities"]["bufr"]
+station_info  = config["station_info"]
+null_vals     = set( config["null_vals"] + [None] )
+config_script = config["scripts"]["ecdecode.py"]
+verbose       = config_script["verbose"]
+profile       = config_script["profile"]
+logging       = config_script["logging"]
+if profile: import cProfiler
+if logging: import logging
 
 config_source = config["sources"][source]["bufr"]
 ext           = config_source["ext"]
-time_keys     = tuple( config_source["time_keys"] )
-skip_keys     = tuple( config_source["skip_keys"] )
+time_keys     = config_source["time_keys"]
+skip_keys     = config_source["skip_keys"]
 bufr_dir      = config_source["dir"] + "/"
 Path(bufr_dir).mkdir(exist_ok=True)
 
@@ -90,7 +96,7 @@ def set_file_status( name, status ):
     sql = f"UPDATE files SET status = '{status}'"
     cur.execute( sql )
     if status != "parsed":
-        print(f"Setting status of FILE '{name}' to '{status}'")
+        if verbose: print(f"Setting status of FILE '{name}' to '{status}'")
 
 known_stations  = lambda : select_distinct( "stID", "station" )
 files_status    = lambda status : select_distinct( "name", "files", "status", status )
@@ -100,9 +106,10 @@ skip_files     = set(files_status( skip_status ))
 files_in_dir   = set((os.path.basename(i) for i in glob( bufr_dir + f"*.{ext}" )))
 files_to_parse = files_in_dir - skip_files
 
-print("#FILES in DIR:  ", len(files_in_dir))
-print("#FILES in DB:   ", len(skip_files))
-print("#FILES to parse:", len(files_to_parse))
+if verbose:
+    print("#FILES in DIR:  ", len(files_in_dir))
+    print("#FILES in DB:   ", len(skip_files))
+    print("#FILES to parse:", len(files_to_parse))
 
 
 for FILE in files_to_parse:
@@ -127,7 +134,7 @@ for FILE in files_to_parse:
             ec.codes_set(bufr, "unpack", 1)
             iterid = ec.codes_bufr_keys_iterator_new(bufr)
         except Exception as e:
-            print(e)
+            if verbose: print(e)
             set_file_status( FILE, error )
             continue
         
@@ -158,9 +165,11 @@ for FILE in files_to_parse:
 
             if (meta["stID"] not in known_stations()) and (len(meta["stationOrSiteName"]) > 1):
                 meta["updated"] = dt.utcnow()
-                print("Adding", meta["stationOrSiteName"], "to database...")
-                try:                   cur.execute( sql_insert( "station", meta ) ); db.commit()
-                except Exception as e: print(e)
+                if verbose: print("Adding", meta["stationOrSiteName"], "to database...")
+                try:
+                    cur.execute( sql_insert( "station", meta ) ); db.commit()
+                except Exception as e:
+                    if verbose: print(e)
 
             for key in stations[num]:
                 if skip_obs == True: break
@@ -168,8 +177,10 @@ for FILE in files_to_parse:
                 except: pass
                 #max length of mysql identifier is 64!
                 #TODO: write param names and unit conversion dictionary
-                try:                    obs[key[:64]] = get_bufr( bufr, num, key )
-                except Exception as e:  print(f"{e}: {key}")
+                try:
+                    obs[key[:64]] = get_bufr( bufr, num, key )
+                except Exception as e:
+                    if verbose: print(f"{e}: {key}")
 
             obs["stID"]    = meta["stID"]
             obs["updated"] = dt.utcnow()
@@ -188,13 +199,15 @@ for FILE in files_to_parse:
                 set_file_status( FILE, "parsed" )
                 parsed_counter += 1
             except Exception as e:
-                print(e)
+                if verbose: print(e)
                 set_file_status( FILE, "error" )
 
         if parsed_counter == 0: set_file_status( FILE, "empty" )
            
-    try:                   ec.codes_release(bufr) #release file to free memory
-    except Exception as e: print(e)
+    try:
+        ec.codes_release(bufr) #release file to free memory
+    except Exception as e:
+        if verbose: print(e)
 
 #commit to db and close all connections
 db.commit(); cur.close(); db.close()

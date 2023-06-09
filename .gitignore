@@ -17,6 +17,7 @@ obs.db
 __pycache__/
 bufr.old/
 bufr/
+synop/
 GMA/
 data.json
 eccodes-python/

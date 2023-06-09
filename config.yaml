@@ -1,8 +1,8 @@
 db_name: obs.db
 
-null_vals: [2147483647,-1e+100,"null","NULL","MISSING","XXXX",""," "]
+null_vals: !!python/list [2147483647,-1e+100,"null","NULL","MISSING","XXXX",""," "]
 
-station_info:
+station_info: !!python/tuple
   - stationNumber
   - blockNumber
   - stationOrSiteName
@@ -48,11 +48,17 @@ priorities:
   synop:  1
   metar:  2
 
+scripts:
+  ecdecode.py:
+    verbose: 1
+    profile: 0
+    logging: 0
+
 sources:
   dwd_opendata:
     bufr: 
       ext:  bin
       dir:  bufr
-      time_keys:  [year, month, day, hour, minute, timePeriod, timeSignificance]
-      skip_keys:  [unexpandedDescriptors, timeIncrement]
+      time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
+      skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]
     synop: {ext: txt, path: synop}
