@@ -137,7 +137,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             except Exception as e: print(e)
            
     ec.codes_release(bufr)                                      #release file to free memory
-    try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
-    except: continue
+    #try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
+    #except: continue
 
 db.commit(); cur.close(); db.close()
