@@ -9,29 +9,43 @@ import re, sys, os, json    #regular expressions, system, operating system and J
 from pathlib import Path    #path operation
 from datetime import datetime as dt
 import cProfile, logging    #profiler and logging
+import yaml #YAML AINT A MARKUP LANGUAGE!
+#https://www.redhat.com/sysadmin/yaml-nesting-lists-comments-ansible
+#https://realpython.com/python-yaml/
 
-def load_json( file_name ):
-    string = open( file_name ).read()
-    return json.loads( string )
+if len(sys.argv) == 2:
+    source = sys.argv[1]
+else: source = "dwd_opendata"
 
-db  = connect("obs.db")   # Creating obs db and opening database connection
-cur = db.cursor()                                       # Creating cursor object to call SQL
+def read_yaml(file_path):
+    with open(file_path, "r") as f:
+        return yaml.safe_load(f)
+
+#read config.yaml
+config       = read_yaml( "config.yaml" )
+db_name      = config["db_name"]
+priority     = config["priorities"]["bufr"]
+station_info = tuple( config["station_info"] )
+null_vals    = tuple( list(config["null_vals"]) + [None] )
+
+config_source = config["sources"][source]["bufr"]
+ext           = config_source["ext"]
+time_keys     = tuple( config_source["time_keys"] )
+skip_keys     = tuple( config_source["skip_keys"] )
+bufr_dir      = config_source["dir"] + "/"
+Path(bufr_dir).mkdir(exist_ok=True)
+
+db  = connect(db_name)  # Creating obs db and opening database connection
+cur = db.cursor()       # Creating cursor object to call SQL
+
 #read sql files to create db tables and execute the SQL statements
 read_file = lambda file_name : Path( file_name ).read_text()
 for table in ("station", "obs", "files"): cur.execute( read_file( table + ".sqlite" ) )
 
-bufr_dir      = "bufr/"
-Path(bufr_dir).mkdir(exist_ok=True)
-
-skip          = ("unexpandedDescriptors", "timeIncrement")
-station_info  = [ _ for _ in read_file( "station_info.txt" )[:-1].splitlines() ]
-priorities    = load_json("priorities.json")
-time_keys     = ('year', 'month', 'day', 'hour', 'minute', 'timePeriod', 'timeSignificance')
-null_vals     = (2147483647,-1e+100,None,"None","null","NULL","MISSING","XXXX",{},"",[],(),set())
-
 clear      = lambda keyname           : str( re.sub( r"#[0-9]+#", '', keyname ) )
 number     = lambda keyname           : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
 get_bufr   = lambda bufr, number, key : ec.codes_get( bufr, f"#{number}#{key}" )
+
 
 def sql_value_list(params, update=False):
     value_list = ""
@@ -89,19 +103,15 @@ def set_file_status( name, status ):
 known_stations  = lambda : select_distinct( "stID", "station" )
 files_status    = lambda status : select_distinct( "name", "files", "status", status )
 
-skip_status     = ("parsed","empty","error","locked")
-skip_files = set(files_status( skip_status ))
-files_in_dir   = set((os.path.basename(i) for i in glob( bufr_dir + "*.bin" )))
+skip_status    = ("parsed","empty","error","locked")
+skip_files     = set(files_status( skip_status ))
+files_in_dir   = set((os.path.basename(i) for i in glob( bufr_dir + f"*.{ext}" )))
 files_to_parse = files_in_dir - skip_files
 
 print("#FILES in DIR:  ", len(files_in_dir))
 print("#FILES in DB:   ", len(skip_files))
 print("#FILES to parse:", len(files_to_parse))
 
-#TODO source and file_type should be determined outside of this script by command line arguments
-#TODO or by some smart detection (file ending, data dir)
-file_type = "bufr"
-source         = "dwd_opendata"
 
 for FILE in files_to_parse:
    
@@ -112,7 +122,6 @@ for FILE in files_to_parse:
     skip_obs       = False
     source         = source+"_ger" if FILE[-29:-26] == "GER" else source+"_int"
     file_path      = str( Path( bufr_dir + FILE ).resolve().parent )
-    priority       = priorities[file_type]
 
     #set file status = locked and get rowid (FILE ID)
     ID = register_file( FILE, file_path, source )
@@ -138,7 +147,7 @@ for FILE in files_to_parse:
             keyname   = ec.codes_bufr_keys_iterator_get_name(iterid)
             clear_key = clear(keyname)
             
-            if "#" in keyname and clear_key not in list(skip) + list(station_info):
+            if "#" in keyname and clear_key not in list(skip_keys) + list(station_info):
                 try:    stations[number(keyname)].add( clear_key )
                 except: stations[number(keyname)] = set()
         
