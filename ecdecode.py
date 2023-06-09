@@ -119,7 +119,8 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 #max length of mysql identifier is 64!
                 #TODO: write param names and unit conversion dictionary
                 try:                   obs[key[:64]] = get_bufr( bufr, num, key )
-                except Exception as e: print(e)
+                except Exception as e:
+                    print(f"{e}: {key}")
 
             obs["stID"]    = meta["stID"]
             obs["updated"] = dt.utcnow()
