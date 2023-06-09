@@ -24,7 +24,6 @@ skip          = ["unexpandedDescriptors", "timeIncrement"]
 station_info  = [ _ for _ in read_file( "station_info.txt" )[:-1].splitlines() ]
 time_keys     = ['year', 'month', 'day', 'hour', 'minute', 'timePeriod', 'timeSignificance']
 null_vals     = (2147483647,-1e+100,None,"None","null","NULL","MISSING","XXXX",{},"",[],(),set())
-skip_obs      = False
 
 clear      = lambda keyname           : re.sub( r"#[0-9]+#", '', keyname )
 number     = lambda keyname           : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
@@ -45,13 +44,13 @@ def sql_values(params):
     value_list  = sql_value_list(params)
     return f"({column_list}) VALUES ({value_list})"
 
-def sql_insert(table, params, update = None, skip_update = () ):
+def sql_insert(table, params, conflict = None, skip_update = () ):
     sql = f"INSERT INTO {table} " + sql_values(params)
-    if update:
+    if conflict:
         for i in skip_update:
             try:    params.pop(i)
             except: continue
-        sql += f" ON CONFLICT({update}) DO UPDATE SET "+sql_value_list(params,True)
+        sql += f" ON CONFLICT({conflict}) DO UPDATE SET "+sql_value_list(params,True)
     return sql
 
 def known_stations():
@@ -62,6 +61,7 @@ def known_stations():
 
 
 for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
+    skip_obs = False
     with open(FILE, "rb") as f:
         try:
             bufr = ec.codes_bufr_new_from_file(f)
@@ -125,15 +125,14 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             obs["updated"] = dt.utcnow()
 
             #we need correct date/time information, otherwise skip this obs!
-            for tk in time_keys[:5]:
+            for tk in time_keys[:4]:
                 if tk not in obs or obs[tk] in null_vals:
                     skip_obs = True; break
             if skip_obs: continue
             
             #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
-            update = "stID," + ",".join(time_keys)
-            sql = sql_insert( "obs", obs, update = update, skip_update = time_keys + ["stID"] )
-            print(sql)
+            conflict = "stID, " + ", ".join(time_keys) 
+            sql = sql_insert( "obs", obs, conflict = conflict, skip_update = time_keys + ["stID"] )
             try:                   cur.execute( sql )
             except Exception as e: print(e)
            
