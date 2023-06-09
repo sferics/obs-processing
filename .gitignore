@@ -1,3 +1,4 @@
+*.profile
 tables
 obs.db
 .ssh/
