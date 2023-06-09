@@ -8,6 +8,7 @@ import re, sys, os          #regular expressions, system and operating system
 from shutil import move     #moving/copying files
 from pathlib import Path    #path operation
 from datetime import datetime as dt
+import cProfile, logging
 
 db  = connect("obs.db")   # Creating obs db and opening database connection
 cur = db.cursor()                                       # Creating cursor object to call SQL
@@ -20,7 +21,7 @@ processed_dir = bufr_dir + "processed/"
 error_dir     = bufr_dir + "error/"
 Path(processed_dir[:-1]).mkdir(parents=True, exist_ok=True)
 Path(error_dir[:-1]).mkdir(exist_ok=True)
-skip          = ["unexpandedDescriptors", "timeIncrement"]
+skip          = ("unexpandedDescriptors", "timeIncrement")
 station_info  = [ _ for _ in read_file( "station_info.txt" )[:-1].splitlines() ]
 time_keys     = ['year', 'month', 'day', 'hour', 'minute', 'timePeriod', 'timeSignificance']
 null_vals     = (2147483647,-1e+100,None,"None","null","NULL","MISSING","XXXX",{},"",[],(),set())
@@ -77,32 +78,32 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             move( FILE, error_dir + FILE.replace(bufr_dir, "") )
             continue
         
-        keys, obs_keys, nums = [], [], []
+        keys, obs_keys, nums = set(), set(), set()
         
         while ec.codes_bufr_keys_iterator_next(iterid):
             
-            keyname = ec.codes_bufr_keys_iterator_get_name(iterid)
+            keyname   = ec.codes_bufr_keys_iterator_get_name(iterid)
             clear_key = clear(keyname)
             
             if "#" in keyname and clear_key not in skip:
                 num = number(keyname)
-                if num not in nums: nums.append(num)
-                if clear_key not in keys:
-                    keys.append(clear_key)
-                    if clear_key not in station_info:
-                        obs_keys.append(clear_key)
+                nums.add(num)
+                keys.add(clear_key)
+                obs_keys.add(clear_key)
         
         for num in sorted(nums):
             obs, meta = {}, {}
             for si in station_info:
-                try: meta[si] = get_bufr( bufr, num, si )
+                try:   meta[si] = get_bufr( bufr, num, si )
                 except Exception as e: meta[si] = None
             
-            if meta["shortStationName"]: meta["stID"] = str(meta["shortStationName"])
-            else:
-                if meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
-                    meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
-                else: continue
+            if "shortStationName" in meta:
+                short_station = meta["shortStationName"]
+                if short_station and len(short_station) == 4:
+                    meta["stID"] = str("shortstation")
+            elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
+                meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
+            else: continue
             
             if (meta["stID"] not in known_stations()) and (len(meta["stationOrSiteName"]) > 1):
                 meta["updated"] = dt.utcnow()
@@ -138,7 +139,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             except Exception as e: print(e)
            
     ec.codes_release(bufr)                                      #release file to free memory
-    try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
-    except: continue
+    #try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
+    #except: continue
 
 db.commit(); cur.close(); db.close()
