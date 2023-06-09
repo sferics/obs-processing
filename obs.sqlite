@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS obs (
   updated timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
   type varchar(5) NOT NULL,
   source varchar(255) NOT NULL,
+  file varchar(255) NOT NULL,
   priority int unsigned NOT NULL,
   year int unsigned NOT NULL,
   month int unsigned NOT NULL,
@@ -10,6 +11,6 @@ CREATE TABLE IF NOT EXISTS obs (
   hour int unsigned NOT NULL,
   minute int unsigned NOT NULL,
   timeSignificance int DEFAULT NULL,
-  timePeriod int DEFAULT NULL,
+  timePeriod int unsigned DEFAULT NULL,
   CONSTRAINT unique_obs PRIMARY KEY (stID, year, month, day, hour, minute, timeSignificance, timePeriod)
 );
