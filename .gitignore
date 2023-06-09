@@ -17,12 +17,13 @@ obs.db
 __pycache__/
 bufr.old/
 bufr/
+GMA/
 data.json
 eccodes-python/
-g
 log/
 output.json
 output/
 snap/
 tables/
 test.txt
+wget-log
