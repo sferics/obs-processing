@@ -60,7 +60,9 @@ def known_stations():
 
 
 for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
+    
     skip_obs = False
+    
     with open(FILE, "rb") as f:
         try:
             bufr = ec.codes_bufr_new_from_file(f)
@@ -93,7 +95,8 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 try:                   meta[si] = get_bufr( bufr, num, si )
                 except Exception as e: meta[si] = None
 
-            if meta["latitude"] in null_vals or meta["longitude"] in null_vals: continue
+            if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
+                continue
             if meta["shortStationName"] not in null_vals and len(meta["shortStationName"]) == 4:
                 meta["stID"] = meta["shortStationName"]
             elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
@@ -135,7 +138,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
     ec.codes_release(bufr) #release file to free memory
     try:
         #move FILE to the processed folder
-        move( FILE, processed_dir + FILE.replace(bufr_dir, "") ) #move FILE to the processed folder
+        move( FILE, processed_dir + FILE.replace(bufr_dir, "") )
     except Exception as e:
         print(e)
         continue
