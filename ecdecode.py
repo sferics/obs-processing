@@ -89,9 +89,10 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 num = number(keyname)
                 nums.add(num)
                 keys.add(clear_key)
-                obs_keys.add(clear_key)
+                if clear_key not in station_info:
+                    obs_keys.add(clear_key)
         
-        for num in sorted(nums):
+        for num in nums:
             obs, meta = {}, {}
             for si in station_info:
                 try:   meta[si] = get_bufr( bufr, num, si )
@@ -101,7 +102,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
                 short_station = meta["shortStationName"]
                 if short_station and len(short_station) == 4:
                     meta["stID"] = str("shortstation")
-            elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
+            if meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
                 meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
             else: continue
             
@@ -139,7 +140,7 @@ for FILE in glob( bufr_dir + "*.bin" ): #get list of files in bufr_dir
             except Exception as e: print(e)
            
     ec.codes_release(bufr)                                      #release file to free memory
-    #try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
-    #except: continue
+    try: move( FILE, processed_dir + FILE.replace(bufr_dir, "") )    #move FILE to the "processed" folder
+    except: continue
 
 db.commit(); cur.close(); db.close()
