@@ -14,13 +14,34 @@ scripts:
     logging: 0
 
 sources:
-  dwd_opendata:
+  DWD_OpenData:
+    dir: DWD
     bufr:
       ext:  bin
       dir:  DWD
       time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
       skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]
-    synop: {ext: txt, path: synop}
+    synop:
+      ext: txt
+  KMNI_OpenData:
+    dir: KNMI
+      ext: bufr
+  COD_OpenData:
+    dir: COD
+    bufr:
+      ext: bufr
+    synop:
+      ext: syn
+  RMI_OpenData:
+    dir: RMI
+    bufr:
+      ext: bufr
+  NOAA_OpenData:
+    dir: NOAA
+    bufr:
+      ext: bin
+    synop:
+      ext: txt
 
 station_info: !!python/tuple
   - stationNumber

@@ -9,7 +9,7 @@ from pathlib import Path    #path operation
 from datetime import datetime as dt
 
 if len(sys.argv) == 2:  source = sys.argv[1]
-else:                   source = "dwd_opendata"
+else:                   source = "DWD_OpenData"
 
 def read_yaml(file_path):
     with open(file_path, "r") as f:
@@ -28,6 +28,7 @@ logging       = config_script["logging"]
 if profile: import cProfiler
 if logging: import logging
 
+sources       = config["sources"]
 config_source = config["sources"][source]["bufr"]
 ext           = config_source["ext"]
 time_keys     = config_source["time_keys"]
@@ -211,3 +212,9 @@ for FILE in files_to_parse:
 
 #commit to db and close all connections
 db.commit(); cur.close(); db.close()
+
+"""
+for source in sources:
+    for file in files:
+        main( source, file )
+"""
