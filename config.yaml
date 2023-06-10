@@ -2,6 +2,26 @@ db_name: obs.db
 
 null_vals: !!python/list [2147483647,-1e+100,"null","NULL","MISSING","XXXX",""," "]
 
+priorities:
+  bufr:   0
+  synop:  1
+  metar:  2
+
+scripts:
+  ecdecode.py:
+    verbose: 1
+    profile: 0
+    logging: 0
+
+sources:
+  dwd_opendata:
+    bufr:
+      ext:  bin
+      dir:  DWD
+      time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
+      skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]
+    synop: {ext: txt, path: synop}
+
 station_info: !!python/tuple
   - stationNumber
   - blockNumber
@@ -42,23 +62,3 @@ station_info: !!python/tuple
   - methodOfWaterTemperatureAndOrOrSalinityMeasurement
   - methodOfEvaporationMeasurement
   - sensorIndex
-
-priorities:
-  bufr:   0
-  synop:  1
-  metar:  2
-
-scripts:
-  ecdecode.py:
-    verbose: 1
-    profile: 0
-    logging: 0
-
-sources:
-  dwd_opendata:
-    bufr: 
-      ext:  bin
-      dir:  bufr
-      time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
-      skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]
-    synop: {ext: txt, path: synop}
