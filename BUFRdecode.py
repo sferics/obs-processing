@@ -92,8 +92,7 @@ def close_db(db, cur):
 
 #read sql files to create db tables and execute the SQL statements
 read_file = lambda file_name : Path( file_name ).read_text()
-for table in db_tables:
-    cur.execute( read_file( table + "." + db_table_ext ) )
+for table in db_tables: cur.execute( read_file( table + "." + db_table_ext ) )
 
 priority      = config["priorities"]["bufr"]
 station_info  = config["station_info"]
@@ -112,18 +111,13 @@ if profile: import cProfiler
 if logging: import logging
 
 if len(sys.argv) == 2:
-    
     source = config["sources"][sys.argv[1]]
     
     if "," in source:
-        sources = source.split(",")
-        config_sources = {}
-        
-        for s in sources:
-            config_sources[s] = config["sources"][s]
+        sources = source.split(","); config_sources = {}
+        for s in sources: config_sources[s] = config["sources"][s]
     
     else: config_sources = { sys.argv[1] : config["sources"][sys.argv[1]] }
-
 else: config_sources = config["sources"]
 
 
@@ -293,11 +287,9 @@ def parse_all_bufrs( source ):
         #TODO: remove this nasty workaround after memory leak is fixed!
         #if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
-            print("Too much RAM used!")
-            print("Last file:", FILE)
+            print("Too much RAM used, RESTARTING...")
             close_db(db, cur)
-            #restart program
-            exe = sys.executable
+            exe = sys.executable #restart program
             os.execl(exe, exe, * sys.argv); sys.exit()
 
 for SOURCE in config_sources:
