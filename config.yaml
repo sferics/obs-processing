@@ -66,17 +66,21 @@ sources:
       ext:  txt
       url:  ["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/", "https://tgftp.nws.noaa.gov/data/observations/metar/stations/"]
       wget: "-N -nd -np -r -l1"
-  NCAR:
-    bufr:
-      ext: bufr
-      set: https://rda.ucar.edu/datasets/ds461.0/
-      url: https://data.rda.ucar.edu/ds461.0/bufr/2023/gdas.adpsfc.t00z.20230101.bufr?download=1
-  OGIMET:
-    bufr:
-     ext:  [bufr, bin]
-     url:  http://www.ogimet.com/getbufr.php?res=list&beg=201701290600&end=201701290600 
-     wget: ""
-     tar:  true
+  #NCAR:
+  #  bufr:
+  #    ext: bufr
+  #    set: https://rda.ucar.edu/datasets/ds461.0/
+  #    url: https://data.rda.ucar.edu/ds461.0/bufr/2023/gdas.adpsfc.t00z.20230101.bufr?download=1
+  #OGIMET:
+  #  bufr:
+  #   ext:  [bufr, bin]
+  #   url:  http://www.ogimet.com/getbufr.php?res=list&beg=201701290600&end=201701290600 
+  #   wget: ""
+  #   tar:  true
+  #SWISS:
+  #  csv:
+  #    ext: csv
+  #    url: https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA98.csv
 
 station_info: !!python/tuple
   - stationNumber

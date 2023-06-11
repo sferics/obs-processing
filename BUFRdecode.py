@@ -10,7 +10,7 @@ from datetime import datetime as dt
 
 
 clear      = lambda keyname           : str( re.sub( r"#[0-9]+#", '', keyname ) )
-number     = lambda keyname, char="#" : int( re.sub( f"{char}[A-Za-z0-9]+", "", keyname[1:]) )
+number     = lambda keyname           : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
 get_bufr   = lambda bufr, number, key : ec.codes_get( bufr, f"#{number}#{key}" )
 
 def sql_value_list(params, update=False):
@@ -147,7 +147,7 @@ def parse_all_bufrs( source ):
 
     Path(bufr_dir).mkdir(exist_ok=True)
 
-    for FILE in list(files_to_parse)[:100]:
+    for FILE in files_to_parse):
        
         #if file status is 'locked' continue with next file
         if get_file_status( FILE ) == "locked": continue
@@ -184,19 +184,15 @@ def parse_all_bufrs( source ):
             while ec.codes_bufr_keys_iterator_next(iterid):
                 keyname   = ec.codes_bufr_keys_iterator_get_name(iterid)
                 clear_key = clear(keyname)
-                try:
-                    num = number(keyname)
-                except:
-                    try: num = number(keyname, "->")
-                    except: continue
+                try: num = number(keyname)
+                except: continue
 
-                if "->" in keyname: #associated field
-                    continue
+                if "->" in keyname: continue #associated field
                 elif "#" in keyname:
                     if clear_key not in list(skip_keys) + list(station_info):
                         try:    keys[number(keyname)].add( clear_key )
                         except: keys[number(keyname)] = set()
-                else:
+                elif not multi_file:
                     try:    keys[0].add( keyname )
                     except: keys[0] = set()
 
@@ -207,9 +203,8 @@ def parse_all_bufrs( source ):
                 for si in station_info:
                     try:                   meta[si] = ec.codes_get( bufr, si )
                     except Exception as e: meta[si] = None
-            
-            try: del keys[0]
-            except: pass
+                try: del keys[0]
+                except: pass
 
             for num in keys:
               
@@ -230,7 +225,7 @@ def parse_all_bufrs( source ):
                     meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
                 else: continue
 
-                if not meta["stID"] or not meta["stationOrSiteName"]: continue
+                if meta["stID"] in null_vals or meta["stationOrSiteName"] in null_vals: continue
 
                 if (meta["stID"] not in known_stations()) and (len(meta["stationOrSiteName"]) > 1):
                     meta["updated"] = dt.utcnow()
@@ -245,8 +240,7 @@ def parse_all_bufrs( source ):
                     except: pass
                     #max length of mysql identifier is 64!
                     #TODO: write param names and unit conversion dictionary
-                    try:
-                        value = get_bufr( bufr, num, key )
+                    try: value = get_bufr( bufr, num, key )
                     except Exception as e:
                         if verbose: print(f"{e}: {key}")
                     if value in null_vals: value = None
