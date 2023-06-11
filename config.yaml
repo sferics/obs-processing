@@ -1,6 +1,7 @@
-db_name: obs.db
-
-null_vals: !!python/list [2147483647,-1e+100,"null","NULL","MISSING","XXXX",""," "]
+database:
+  name: obs.db
+  tables: !!python/tuple [station, obs, files]
+  table_ext: "sqlite"
 
 priorities:
   bufr:   0
@@ -8,40 +9,74 @@ priorities:
   metar:  2
 
 scripts:
-  ecdecode.py:
+  get_obs.py: ""
+  BUFRdecode.py:
     verbose: 1
     profile: 0
     logging: 0
+    min_ram: 1024
+    null_vals: [2147483647,-1e+100,"null","NULL","MISSING","XXXX",""," " ]
+    time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
+    skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]
+    skip_status: !!python/tuple [parsed, empty, error, locked]
+    multi_file: [DWD, NOAA]
+  SYNOPdecode.py: ""
+  METARdecode.oy: ""
 
 sources:
-  DWD_OpenData:
-    dir: DWD
+  DWD:
     bufr:
       ext:  bin
-      dir:  DWD
-      time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
-      skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]
+      url:  https://opendata.dwd.de/weather/weather_reports/synoptic/
+      wget: "-nc -nd -np -r" 
     synop:
-      ext: txt
-  KMNI_OpenData:
-    dir: KNMI
-      ext: bufr
-  COD_OpenData:
-    dir: COD
+      ext:  txt
+      url:  https://opendata.dwd.de/weather/weather_reports/synoptic/international/ 
+      wget: "-nc -nd -np -r -l1"
+  KNMI:
+    bufr:
+      ext:  bufr
+      url:  https://api.dataplatform.knmi.nl/open-data/v1/datasets/knmi_synop_bufr/versions/1/files 
+      api:  eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjA2MTU4MDU3YmM2MDRkMjA5OTExN2ZjOWJkY2IyZThiIiwiaCI6Im11cm11cjEyOCJ9
+      curl: "--location --request GET -G {url} -d maxKeys=10 --header Authorization: {api}"
+  COD:
+    bufr:
+      ext:  bufr
+      url:  https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
+      wget: "-e robots=off -nc -nd -np -r"
+    synop:
+      ext:  syn
+      url:  https://weather.cod.edu/digatmos/syn/
+      wget: "-e robots=off -nc -nd -np -r"
+  RMI:
+    bufr:
+      ext:  bufr
+      url:  https://opendata.meteo.be/ftp/observations/synop/
+      wget: "-nc -nd -np -r"
+  NOAA:
+    bufr: 
+      ext:  bin
+      url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.bf/DC.intl/
+      wget: "-N -nd -np -r -l1"
+    synop:
+      ext:  txt
+      url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.synop/
+      wget: "-N -nd -np -r -l1"
+    metar:
+      ext:  txt
+      url:  ["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/", "https://tgftp.nws.noaa.gov/data/observations/metar/stations/"]
+      wget: "-N -nd -np -r -l1"
+  NCAR:
     bufr:
       ext: bufr
-    synop:
-      ext: syn
-  RMI_OpenData:
-    dir: RMI
+      set: https://rda.ucar.edu/datasets/ds461.0/
+      url: https://data.rda.ucar.edu/ds461.0/bufr/2023/gdas.adpsfc.t00z.20230101.bufr?download=1
+  OGIMET:
     bufr:
-      ext: bufr
-  NOAA_OpenData:
-    dir: NOAA
-    bufr:
-      ext: bin
-    synop:
-      ext: txt
+     ext:  [bufr, bin]
+     url:  http://www.ogimet.com/getbufr.php?res=list&beg=201701290600&end=201701290600 
+     wget: ""
+     tar:  true
 
 station_info: !!python/tuple
   - stationNumber
