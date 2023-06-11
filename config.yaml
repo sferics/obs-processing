@@ -11,7 +11,7 @@ priorities:
   metar:  2
 
 scripts:
-  get_obs.py: ""
+  getALL.py: ""
   BUFRdecode.py:
     verbose: 1
     profile: 0
@@ -21,12 +21,12 @@ scripts:
     time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
     skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]
     skip_status: !!python/tuple [parsed, empty, error, locked]
-  SYNOPdecode.py: ""
-  METARdecode.oy: ""
-  getSWISS.py:    ""
-  getSMHI.py:     "https://opendata.smhi.se/apidocs/metobs/data.html"
-  getMIRA.py:     "" #Dahlem additional obs
-  getZAMG.py:     "" #only historical
+  SYNOPdecode.py: "" #TODO
+  METARdecode.oy: "" #TODO
+  getSWISS.py:    https://opendata.swiss/de/dataset/automatische-wetterstationen-aktuelle-messwerte
+  getSMHI.py:     https://opendata.smhi.se/apidocs/metobs/data.html
+  getMIRA.py:     "" #Dahlem additional obs TODO
+  getZAMG.py:     "" #only historical data...
 
 sources:
   DWD:
