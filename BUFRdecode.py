@@ -147,7 +147,7 @@ def parse_all_bufrs( source ):
 
     Path(bufr_dir).mkdir(exist_ok=True)
 
-    for FILE in files_to_parse):
+    for FILE in files_to_parse:
        
         #if file status is 'locked' continue with next file
         if get_file_status( FILE ) == "locked": continue
