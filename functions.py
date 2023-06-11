@@ -1,3 +1,13 @@
+def read_file(file_name):
+    from pathlib import Path
+    return Path( file_name ).read_text()
+
+def read_yaml(file_path):
+    with open(file_path, "r") as f:
+        import yaml
+        return yaml.load(f, yaml.Loader)
+
+
 def search(dictionary, substr, sort=True):
 
     result = []
