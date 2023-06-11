@@ -8,7 +8,7 @@ import re, sys, os, psutil   #regular expressions, system, operating system, pro
 from pathlib import Path     #path operation
 from datetime import datetime as dt
 from functions import read_yaml
-from database import db; db = db()
+from database import db; db = db() #establish sqlite database connection (see database.py)
 
 clear      = lambda keyname           : str( re.sub( r"#[0-9]+#", '', keyname ) )
 number     = lambda keyname           : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
@@ -24,7 +24,6 @@ null_vals     = set( config_script["null_vals"] + [None] )
 time_keys     = config_script["time_keys"]
 skip_keys     = config_script["skip_keys"]
 skip_status   = config_script["skip_status"]
-multi_file    = config_script["multi_file"]
 verbose       = config_script["verbose"]
 profile       = config_script["profile"]
 logging       = config_script["logging"]
@@ -32,7 +31,7 @@ logging       = config_script["logging"]
 if profile: import cProfiler #TODO use module
 if logging: import logging   #TODO use module
 
-
+#parse command line arguments
 if len(sys.argv) == 2:
     source = config["sources"][sys.argv[1]]
     
@@ -47,10 +46,10 @@ else: config_sources = config["sources"]
 def parse_all_bufrs( source ):
     bufr_dir      = source + "/"
     config_source = config_sources[source]
-    ext           = config_source["bufr"]["ext"]
-    if type(ext) == list:
-        ext = r"[" + "][".join(ext) + "]"
-        print(ext)
+    config_bufr   = config_source["bufr"]
+    ext           = config_bufr["ext"]
+    if type(ext) == list: ext = r"[" + "][".join(ext) + "]"
+    multi_file    = config_bufr["multi_file"]
 
     skip_files     = set(db.files_status( skip_status ))
     files_in_dir   = set((os.path.basename(i) for i in glob( bufr_dir + f"*.{ext}" )))
@@ -71,12 +70,8 @@ def parse_all_bufrs( source ):
 
         #if file status is 'locked' continue with next file
         if db.get_file_status( FILE, source_name ) == "locked": continue
-
-        if source == "DWD":
-            if FILE[-29:-26] == "GER":  source_name += "_ger"
-            else:                       source_name += "_int"
         
-        file_path      = str( Path( bufr_dir + FILE ).resolve().parent )
+        file_path = str( Path( bufr_dir + FILE ).resolve().parent )
         #set file status = locked and get rowid (FILE ID)
         ID = db.register_file( FILE, file_path, source_name )
 
@@ -111,7 +106,7 @@ def parse_all_bufrs( source ):
                     try:    keys[0].add( keyname )
                     except: keys[0] = set()
 
-            if source not in multi_file: #workaround
+            if not multi_file: #workaround
                 #BUFR messages all valid for one single station
                 obs, meta = { "file" : ID, "priority" : priority }, {}
                 for si in station_info:
@@ -123,7 +118,7 @@ def parse_all_bufrs( source ):
             for num in keys:
                 skip_obs = False
 
-                if source in multi_file:
+                if multi_file:
                     obs, meta = { "file" : ID, "priority" : priority }, {}
                     #TODO only update station info in dev mode, not operational!
                     for si in station_info:
@@ -163,7 +158,7 @@ def parse_all_bufrs( source ):
                 obs["updated"] = dt.utcnow()
 
                 #we need correct date/time information, otherwise skip this obs!
-                if source in multi_file:
+                if multi_file:
                     for tk in time_keys[:4]:
                         if tk not in obs or obs[tk] in null_vals:
                             skip_obs = True; break
@@ -180,10 +175,11 @@ def parse_all_bufrs( source ):
                         if verbose: print(e)
                         db.set_file_status( FILE, "error" )
 
-            if source in multi_file:
-                if parsed_counter == 0:
-                    db.set_file_status( FILE, "empty" )
+            if multi_file:
+                if parsed_counter == 0: db.set_file_status( FILE, "empty" )
             else:
+                #year = config_source["year"]
+                #obs["year"] = FILE[config_source["year"]
                 if source == "RMI":     obs["year"] = FILE[11:15]
                 elif source == "COD":   obs["year"] = FILE[0:2]
                 else:                   obs["year"] = dt.utcnow().year

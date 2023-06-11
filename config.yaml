@@ -21,7 +21,6 @@ scripts:
     time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
     skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]
     skip_status: !!python/tuple [parsed, empty, error, locked]
-    multi_file: [DWD, NOAA]
   SYNOPdecode.py: ""
   METARdecode.oy: ""
   getSWISS.py:    ""
@@ -36,6 +35,7 @@ sources:
       url:  https://opendata.dwd.de/weather/weather_reports/synoptic/
       wget: "-nc -nd -np -r -l 1 -k -p -H"
       prio: 0
+      multi_file: True
     synop:
       ext:  txt
       url:  https://opendata.dwd.de/weather/weather_reports/synoptic/international/ 
@@ -49,12 +49,14 @@ sources:
       api:  eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjA2MTU4MDU3YmM2MDRkMjA5OTExN2ZjOWJkY2IyZThiIiwiaCI6Im11cm11cjEyOCJ9
       curl: "--location --request GET -G {url} -d maxKeys=10 --header Authorization: {api}"
       prio: 0
+      multi_file: False
   COD: #College of DuPage
     bufr:
       ext:  bufr
       url:  https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
       wget: "-e robots=off -nc -nd -np -r"
       prio: 0
+      multi_file: False
     synop:
       ext:  syn
       url:  https://weather.cod.edu/digatmos/syn/
@@ -66,12 +68,14 @@ sources:
       url:  https://opendata.meteo.be/ftp/observations/synop/
       wget: "-nc -nd -np -r"
       prio: 0
+      multi_file: False
   NOAA:
     bufr: 
       ext:  bin
       url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.bf/DC.intl/
       wget: "-N -nd -np -r -l 1"
       prio: 0
+      multi_file: True
     synop:
       ext:  txt
       url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.synop/
