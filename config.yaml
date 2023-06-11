@@ -28,14 +28,15 @@ sources:
     bufr:
       ext:  bin
       url:  https://opendata.dwd.de/weather/weather_reports/synoptic/
-      wget: "-nc -nd -np -r" 
+      wget: "-nc -nd -np -r -l 1 -k -p -H" 
     synop:
       ext:  txt
       url:  https://opendata.dwd.de/weather/weather_reports/synoptic/international/ 
-      wget: "-nc -nd -np -r -l1"
+      wget: "-nc -nd -np"
   KNMI:
     bufr:
       ext:  bufr
+      #https://developer.dataplatform.knmi.nl/
       url:  https://api.dataplatform.knmi.nl/open-data/v1/datasets/knmi_synop_bufr/versions/1/files 
       api:  eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjA2MTU4MDU3YmM2MDRkMjA5OTExN2ZjOWJkY2IyZThiIiwiaCI6Im11cm11cjEyOCJ9
       curl: "--location --request GET -G {url} -d maxKeys=10 --header Authorization: {api}"
@@ -57,15 +58,15 @@ sources:
     bufr: 
       ext:  bin
       url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.bf/DC.intl/
-      wget: "-N -nd -np -r -l1"
+      wget: "-N -nd -np -r -l 1"
     synop:
       ext:  txt
       url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.synop/
-      wget: "-N -nd -np -r -l1"
+      wget: "-N -nd -np -r -l 1"
     metar:
       ext:  txt
       url:  ["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/", "https://tgftp.nws.noaa.gov/data/observations/metar/stations/"]
-      wget: "-N -nd -np -r -l1"
+      wget: "-N -nd -np -r -l 1"
   #NCAR:
   #  bufr:
   #    ext: bufr
