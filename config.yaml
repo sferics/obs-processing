@@ -11,7 +11,7 @@ priorities:
   metar:  2
 
 scripts:
-  getALL.py: ""
+  getALL.py: "" #replacement for getALL.sh and all get*.sh script which it calls TODO
   BUFRdecode.py:
     verbose: 1
     profile: 0
