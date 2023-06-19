@@ -2,9 +2,9 @@ from functions import read_yaml, read_file
 
 class db:
 
-    def __init__(self):
+    def __init__(self, config="config.yaml"):
         #read config.yaml to dictionary
-        config_yaml      = read_yaml( "config.yaml" )
+        config_yaml      = read_yaml( config )
         self.config      = config_yaml["database"]
         self.name        = self.config["name"]
         self.tables      = self.config["tables"]
@@ -42,31 +42,58 @@ class db:
         value_list  = self.sql_value_list(params)
         return f"({column_list}) VALUES ({value_list})"
 
-    def sql_insert(self, table, params, conflict = None, skip_update = () ):
+    def sql_insert(self, table, params, conflict = (), skip_update = () ):
         sql = f"INSERT INTO {table} " + self.sql_values(params)
-        if conflict:
+        if len(conflict) > 0:
+            if len(conflict) > 1:
+                conflict = ",".join(conflict)
+            else: conflict = conflict[0]
             for i in skip_update:
                 try:    params.pop(i)
                 except: continue
             sql += f" ON CONFLICT({conflict}) DO UPDATE SET " + self.sql_value_list(params,True)
         return sql
 
+    sql_in = lambda self, what : "IN('"+"','".join(what)+"')"
+
     def select_distinct( self, column, table, where=None, what=None ):
         sql = f"SELECT DISTINCT {column} FROM {table} "
         if where:
-            if type(what) == tuple: what = "IN('"+"','".join(what)+"')"
-            else: what = f"= '{what}'"
-            sql += f"WHERE {where} {what}"
+            if type(where) == tuple and len(where) > 1 and len(where) == len(what):
+                s = "WHERE "
+                for i in range(len(where)):
+                    if type(what[i]) == tuple: what_i = self.sql_in( what[i] )
+                    else: what_i = f"= '{what[i]}'"
+                    s += f"{where[i]} {what_i} AND "
+                sql += s[:-5]
+            else:  
+                if type(what) == tuple: what = self.sql_in( what )
+                else: what = f"= '{what}'"
+                sql += f"WHERE {where} {what}"
         self.cur.execute( sql )
         data = self.cur.fetchall()
         if data: return set(i[0] for i in data)
         else:    return set()
+
+    def add_column( self, table, column ):
+        try: self.cur.execute(f'ALTER TABLE {table} ADD COLUMN "{column}"')
+        except: pass
 
     def register_file( self, name, path, source, status="locked" ):
         values = f"VALUES ('{name}','{path}','{source}','{status}')"
         sql    = f"INSERT INTO files (name,path,source,status) {values}"
         self.cur.execute( sql )
         return self.cur.lastrowid
+
+    def file_exists( self, name, path ):
+        sql = f"SELECT COUNT(*) FROM files WHERE name = '{name}' and path = '{path}'"
+        self.cur.execute( sql )
+        return self.cur.fetchone()
+
+    def get_file_id( self, name, path ):
+        sql = f"SELECT rowid FROM files WHERE name = '{name}' and path = '{path}'"
+        self.cur.execute( sql )
+        return self.cur.fetchone()
 
     def get_file_status( self, name, source ):
         sql = f"SELECT status FROM files WHERE name = '{name}' AND source = '{source}'"
@@ -81,5 +108,10 @@ class db:
         if status != "parsed":
             if verbose: print(f"Setting status of FILE '{name}' to '{status}'")
 
-    known_stations  = lambda self         : self.select_distinct( "stID", "station" )
-    files_status    = lambda self, status : self.select_distinct( "name", "files", "status", status )
+    def files_status( self, status, source=None ):
+        if source:
+            return self.select_distinct( "name", "files", ("status", "source"), (status, source) )
+        else:
+            return self.select_distinct( "name", "files", "status", status )
+
+    known_stations  = lambda self : self.select_distinct( "stID", "station" )

@@ -3,7 +3,7 @@ database:
   name: obs.db
   tables: !!python/tuple [station, obs, files]
   table_ext: "sqlite"
-  null_vals: [2147483647,-1e+100,"null","NULL","MISSING","XXXX",""," " ]
+  null_vals: [2147483647,-1e+100,"-1e+100","null","NULL","None","MISSING","XXXX",""," " ]
 
 priorities:
   bufr:   0
@@ -11,13 +11,13 @@ priorities:
   metar:  2
 
 scripts:
-  getALL.py: "" #replacement for getALL.sh and all get*.sh script which it calls TODO
+  getALL.py: "" #replacement for getALL.sh and all get*.sh scripts which it calls TODO
   BUFRdecode.py:
     verbose: 1
     profile: 0
     logging: 0
     min_ram: 1024
-    null_vals: [2147483647,-1e+100,"null","NULL","MISSING","XXXX",""," " ]
+    null_vals: [2147483647,-1e+100,"-1e+100","null","NULL","None","MISSING","XXXX",""," " ]
     time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
     skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]
     skip_status: !!python/tuple [parsed, empty, error, locked]
@@ -33,13 +33,13 @@ sources:
     bufr:
       ext:  bin
       url:  https://opendata.dwd.de/weather/weather_reports/synoptic/
-      wget: "-nc -nd -np -r -l 1 -k -p -H"
+      wget: "-nc -nd -np -e robots=off -r -l 1 -k -p -H"
       prio: 0
       multi_file: True
     synop:
       ext:  txt
       url:  https://opendata.dwd.de/weather/weather_reports/synoptic/international/ 
-      wget: "-nc -nd -np"
+      wget: "-nc -nd -np -e robots=off"
       prio: 2
   KNMI: #TODO
     bufr:
@@ -83,22 +83,24 @@ sources:
       prio: 2
     metar:
       ext:  txt
-      url:  ["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/", "https://tgftp.nws.noaa.gov/data/observations/metar/stations/"]
+      url:  !!python/tuple ["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/", "https://tgftp.nws.noaa.gov/data/observations/metar/stations/"]
       wget: "-N -nd -np -r -l 1"
       prio: 3
-  #NCAR: #TODO
-  #  bufr:
-  #    ext:  bufr
-  #    set:  https://rda.ucar.edu/datasets/ds461.0/
-  #    url:  https://data.rda.ucar.edu/ds461.0/bufr/2023/gdas.adpsfc.t00z.20230101.bufr?download=1
-  #    prio: 0
-  #OGIMET: #TODO
-  #  bufr:
-  #   ext:  [bufr, bin]
-  #   url:  http://www.ogimet.com/getbufr.php?res=list&beg=201701290600&end=201701290600 
-  #   wget: ""
-  #   tar:  true
-  #   prio: 1
+  NCAR: #TODO only historical?
+    bufr:
+      ext:  bufr
+      set:  https://rda.ucar.edu/datasets/ds461.0/
+      url:  https://data.rda.ucar.edu/ds461.0/bufr/2023/gdas.adpsfc.t00z.20230101.bufr?download=1
+      tar:  True
+      prio: 0
+      multi_file: False #True
+  OGIMET: #TODO
+    bufr:
+     ext:  bufr
+     url:  http://www.ogimet.com/getbufr.php?res=list&beg=201701290600&end=201701290600 
+     wget: ""
+     prio: 1
+     multi_file: False
   #SWISS: #TODO import from wetterturnier
   #  ext:  csv
   #  url:  https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA98.csv

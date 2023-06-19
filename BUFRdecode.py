@@ -20,13 +20,14 @@ priority      = config["priorities"]["bufr"]
 station_info  = config["station_info"]
 config_script = config["scripts"][sys.argv[0]]
 
-null_vals     = set( config_script["null_vals"] + [None] )
+null_vals     = set( config_script["null_vals"] + [None,-1e+100] )
 time_keys     = config_script["time_keys"]
 skip_keys     = config_script["skip_keys"]
 skip_status   = config_script["skip_status"]
 verbose       = config_script["verbose"]
 profile       = config_script["profile"]
 logging       = config_script["logging"]
+conflict_keys = list(time_keys) + ["stID"]
 
 if profile: import cProfiler #TODO use module
 if logging: import logging   #TODO use module
@@ -51,7 +52,7 @@ def parse_all_bufrs( source ):
     if type(ext) == list: ext = r"[" + "][".join(ext) + "]"
     multi_file    = config_bufr["multi_file"]
 
-    skip_files     = set(db.files_status( skip_status ))
+    skip_files     = set(db.files_status( skip_status, source ))
     files_in_dir   = set((os.path.basename(i) for i in glob( bufr_dir + f"*.{ext}" )))
     files_to_parse = files_in_dir - skip_files
 
@@ -73,7 +74,8 @@ def parse_all_bufrs( source ):
         
         file_path = str( Path( bufr_dir + FILE ).resolve().parent )
         #set file status = locked and get rowid (FILE ID)
-        ID = db.register_file( FILE, file_path, source_name )
+        try: ID = db.register_file( FILE, file_path, source_name )
+        except: ID = db.get_file_id( FILE, file_path )
 
         with open(bufr_dir + FILE, "rb") as f:
             try:
@@ -122,8 +124,12 @@ def parse_all_bufrs( source ):
                     obs, meta = { "file" : ID, "priority" : priority }, {}
                     #TODO only update station info in dev mode, not operational!
                     for si in station_info:
-                        try:                   meta[si] = get_bufr( bufr, num, si )
-                        except Exception as e: meta[si] = None
+                        try:
+                            value = get_bufr( bufr, num, si )
+                            if value not in null_vals:
+                                meta[si] = value
+                            else: meta[si] = "NULL"
+                        except Exception as e: meta[si] = "NULL"
 
                 if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
                     continue
@@ -143,16 +149,13 @@ def parse_all_bufrs( source ):
                         if verbose: print(e)
 
                 for key in keys[num]:
-                    #if skip_obs == True: break
-                    try:    db.cur.execute(f'ALTER TABLE obs ADD COLUMN "{key[:64]}"')
-                    except: pass
-                    #max length of mysql identifier is 64!
+                    db.add_column( "obs", key )
                     #TODO: write param names and unit conversion dictionary
                     try: value = get_bufr( bufr, num, key )
                     except Exception as e:
                         if verbose: print(f"{e}: {key}")
-                    if value in null_vals: value = None
-                    obs[key[:64]] = value
+                    if value in null_vals: value = "NULL"
+                    obs[key] = value
 
                 obs["stID"]    = meta["stID"]
                 obs["updated"] = dt.utcnow()
@@ -165,8 +168,7 @@ def parse_all_bufrs( source ):
                     if skip_obs: continue
                 
                     #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
-                    conflict = "stID, " + ", ".join(time_keys) 
-                    sql = db.sql_insert( "obs", obs, conflict=conflict, skip_update=list(time_keys)+["stID"] )
+                    sql = db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
                     try:
                         db.cur.execute( sql )
                         db.set_file_status( FILE, "parsed" )
@@ -184,8 +186,7 @@ def parse_all_bufrs( source ):
                 elif source == "COD":   obs["year"] = FILE[0:2]
                 else:                   obs["year"] = dt.utcnow().year
                 #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
-                conflict = "stID, " + ", ".join(time_keys)
-                sql = db.sql_insert( "obs", obs, conflict=conflict, skip_update=list(time_keys)+["stID"] )
+                sql = db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
                 try:
                     db.cur.execute( sql )
                     db.set_file_status( FILE, "parsed" )
