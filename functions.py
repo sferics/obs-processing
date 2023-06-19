@@ -89,6 +89,8 @@ def str2ts( string, fmt, min_time = False, tzinfo=tz.utc ):
    datetime = str2dt( string, fmt )
    return dt2ts( datetime, min_time = min_time, tzinfo=tzinfo )
 
+ts2dt = lambda ts : dt.fromtimestamp( ts )
+
 hhmm_str = lambda integer : str(integer).rjust(2, "0")
 
 class clock_iter:

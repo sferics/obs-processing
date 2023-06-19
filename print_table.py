@@ -17,4 +17,5 @@ db=connect("obs.db")
 cur=db.cursor()
 cur.execute(f"SELECT {what} FROM {table}{where}")
 data=cur.fetchall()
-print(data)
+for i in data:
+    print(i)

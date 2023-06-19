@@ -79,34 +79,64 @@ class db:
         try: self.cur.execute(f'ALTER TABLE {table} ADD COLUMN "{column}"')
         except: pass
 
-    def register_file( self, name, path, source, status="locked" ):
-        values = f"VALUES ('{name}','{path}','{source}','{status}')"
-        sql    = f"INSERT INTO files (name,path,source,status) {values}"
+    def register_file( self, name, path, source, status="locked", date="NULL" ):
+        values = f"VALUES ('{name}','{path}','{source}','{status}','{date}')"
+        sql    = f"INSERT INTO files (name,path,source,status,date) {values}"
         self.cur.execute( sql )
         return self.cur.lastrowid
 
     def file_exists( self, name, path ):
-        sql = f"SELECT COUNT(*) FROM files WHERE name = '{name}' and path = '{path}'"
+        sql = f"SELECT COUNT(*) FROM files WHERE name = '{name}' AND path = '{path}'"
         self.cur.execute( sql )
-        return self.cur.fetchone()
+        return self.cur.fetchone()[0]
 
     def get_file_id( self, name, path ):
-        sql = f"SELECT rowid FROM files WHERE name = '{name}' and path = '{path}'"
+        sql = f"SELECT rowid FROM files WHERE name = '{name}' AND path = '{path}'"
         self.cur.execute( sql )
-        return self.cur.fetchone()
+        return self.cur.fetchone()[0]
 
-    def get_file_status( self, name, source ):
-        sql = f"SELECT status FROM files WHERE name = '{name}' AND source = '{source}'"
+    def get_file_name( self, ID ):
+        sql = f"SELECT name FROM files WHERE rowid = '{ID}'"
         self.cur.execute( sql )
-        status = self.cur.fetchone()
+        return self.cur.fetchone()[0]
+
+    def get_file_path( self, ID ):
+        sql = f"SELECT path FROM files WHERE name = '{ID}'"
+        self.cur.execute( sql )
+        return self.cur.fetchone()[0]
+
+    def get_file_source( self, ID ):
+        sql = f"SELECT source FROM files WHERE name = '{ID}'"
+        self.cur.execute( sql )
+        return self.cur.fetchone()[0]
+
+    def get_file_status( self, ID ):
+        sql = f"SELECT status FROM files WHERE rowid = '{ID}'"
+        self.cur.execute( sql )
+        status = self.cur.fetchone()[0]
         if status: return status
         else:      return None
 
-    def set_file_status( self, name, status, verbose=False ):
-        sql = f"UPDATE files SET status = '{status}'"
+    def set_file_status( self, ID, status, verbose=False ):
+        sql = f"UPDATE files SET status = '{status}' WHERE rowid = '{ID}'"
         self.cur.execute( sql )
-        if status != "parsed":
-            if verbose: print(f"Setting status of FILE '{name}' to '{status}'")
+        if status != "parsed" and verbose:
+            name = self.get_file_name( ID )
+            print(f"Setting status of FILE '{name}' to '{status}'")
+
+    def get_file_date( self, ID ):
+        sql = f"SELECT date FROM files WHERE rowid = '{ID}'"
+        self.cur.execute( sql )
+        date = self.cur.fetchone()[0]
+        if date: return date
+        else:      return None
+
+    def set_file_date( self, ID, date, verbose=False ):
+        sql = f"UPDATE files SET date = '{date}' WHERE rowid = '{ID}'"
+        self.cur.execute( sql )
+        if verbose:
+            name = self.get_file_name( ID )
+            print(f"Setting date of FILE '{name}' to '{date}'")
 
     def files_status( self, status, source=None ):
         if source:

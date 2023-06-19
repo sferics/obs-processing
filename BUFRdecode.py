@@ -7,7 +7,7 @@ from sqlite3 import connect  #python sqlite connector
 import re, sys, os, psutil   #regular expressions, system, operating system, process handling
 from pathlib import Path     #path operation
 from datetime import datetime as dt
-from functions import read_yaml
+from functions import read_yaml, ts2dt
 from database import db; db = db() #establish sqlite database connection (see database.py)
 
 clear      = lambda keyname           : str( re.sub( r"#[0-9]+#", '', keyname ) )
@@ -64,31 +64,34 @@ def parse_all_bufrs( source ):
     Path(bufr_dir).mkdir(exist_ok=True)
 
     for FILE in files_to_parse:
-        parsed_counter = 0
+        
+        if multi_file: parsed_counter = 0
         skip_obs       = False
-        station0       = False
         source_name    = source[:]
 
-        #if file status is 'locked' continue with next file
-        if db.get_file_status( FILE, source_name ) == "locked": continue
-        
         file_path = str( Path( bufr_dir + FILE ).resolve().parent )
-        #set file status = locked and get rowid (FILE ID)
-        try: ID = db.register_file( FILE, file_path, source_name )
-        except: ID = db.get_file_id( FILE, file_path )
+
+        if not db.file_exists( FILE, file_path ):
+            file_date = ts2dt( Path(file_path).stat().st_mtime )
+            #set file status = locked and get rowid (FILE ID)
+            ID = db.register_file( FILE, file_path, source_name, status="locked", date=file_date )
+        else:
+            ID = db.get_file_id( FILE, file_path )
+            #if file status is 'locked' continue with next file
+            if db.get_file_status( ID ) == "locked": continue
 
         with open(bufr_dir + FILE, "rb") as f:
             try:
                 bufr = ec.codes_bufr_new_from_file(f)
                 if bufr is None:
-                    db.set_file_status( FILE, "empty", verbose=verbose )
+                    db.set_file_status( ID, "empty", verbose=verbose )
                     continue
                 ec.codes_set(bufr, "skipExtraKeyAttributes",  1)
                 ec.codes_set(bufr, "unpack", 1)
                 iterid = ec.codes_bufr_keys_iterator_new(bufr)
             except Exception as e:
                 if verbose: print(e)
-                db.set_file_status( FILE, "error" )
+                db.set_file_status( ID, "error" )
                 continue
             
             keys = {}
@@ -125,11 +128,11 @@ def parse_all_bufrs( source ):
                     #TODO only update station info in dev mode, not operational!
                     for si in station_info:
                         try:
-                            value = get_bufr( bufr, num, si )
-                            if value not in null_vals:
-                                meta[si] = value
-                            else: meta[si] = "NULL"
-                        except Exception as e: meta[si] = "NULL"
+                            meta[si] = get_bufr( bufr, num, si )
+                            if meta[si] in null_vals: meta[si] = "NULL"
+                        except Exception as e:
+                            if verbose: print(f"{e}: {key}")
+                            meta[si] = "NULL"
 
                 if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
                     continue
@@ -141,7 +144,7 @@ def parse_all_bufrs( source ):
 
                 if meta["stID"] in null_vals or meta["stationOrSiteName"] in null_vals: continue
 
-                if (meta["stID"] not in db.known_stations()) and (len(meta["stationOrSiteName"]) > 1):
+                if meta["stID"] not in db.known_stations():
                     meta["updated"] = dt.utcnow()
                     if verbose: print("Adding", meta["stationOrSiteName"], "to database...")
                     try: db.cur.execute( db.sql_insert( "station", meta ) )
@@ -151,11 +154,12 @@ def parse_all_bufrs( source ):
                 for key in keys[num]:
                     db.add_column( "obs", key )
                     #TODO: write param names and unit conversion dictionary
-                    try: value = get_bufr( bufr, num, key )
+                    try:
+                        obs[key] = get_bufr( bufr, num, key )
+                        if obs[key] in null_vals: obs[key] = "NULL"
                     except Exception as e:
                         if verbose: print(f"{e}: {key}")
-                    if value in null_vals: value = "NULL"
-                    obs[key] = value
+                        obs[key] = "NULL"
 
                 obs["stID"]    = meta["stID"]
                 obs["updated"] = dt.utcnow()
@@ -171,14 +175,14 @@ def parse_all_bufrs( source ):
                     sql = db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
                     try:
                         db.cur.execute( sql )
-                        db.set_file_status( FILE, "parsed" )
+                        db.set_file_status( ID, "parsed" )
                         parsed_counter += 1
                     except Exception as e:
                         if verbose: print(e)
-                        db.set_file_status( FILE, "error" )
+                        db.set_file_status( ID, "error", verbose=verbose )
 
             if multi_file:
-                if parsed_counter == 0: db.set_file_status( FILE, "empty" )
+                if parsed_counter == 0: db.set_file_status( ID, "empty", verbose=verbose )
             else:
                 #year = config_source["year"]
                 #obs["year"] = FILE[config_source["year"]
@@ -189,10 +193,10 @@ def parse_all_bufrs( source ):
                 sql = db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
                 try:
                     db.cur.execute( sql )
-                    db.set_file_status( FILE, "parsed" )
+                    db.set_file_status( ID, "parsed" )
                 except Exception as e:
                     if verbose: print(e)
-                    db.set_file_status( FILE, "error" )
+                    db.set_file_status( ID, "error", verbose=verbose )
 
         db.commit()
         ec.codes_release(bufr) #release file to free memory

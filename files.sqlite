@@ -3,5 +3,6 @@ CREATE TABLE IF NOT EXISTS files (
   path varchar(255),
   source varchar(255),
   status varchar(6),
+  date DATETIME DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_file PRIMARY KEY (name,path)
 )
