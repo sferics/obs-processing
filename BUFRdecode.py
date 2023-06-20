@@ -130,9 +130,7 @@ def parse_all_bufrs( source ):
                         try:
                             meta[si] = get_bufr( bufr, num, si )
                             if meta[si] in null_vals: meta[si] = "NULL"
-                        except Exception as e:
-                            if verbose: print(f"{e}: {key}")
-                            meta[si] = "NULL"
+                        except Exception as e: meta[si] = "NULL"
 
                 if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
                     continue
