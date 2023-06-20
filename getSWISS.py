@@ -99,6 +99,7 @@ for outfile in outfiles:
          obs[p] = value
 
       db.sql_insert( "obs", obs, conflict=("stID","year","month","day","hour","minute") ) 
-   
+      db.commit()
+      
    # commit and close db
-   db.commit(); db.close()
+   db.close()

@@ -50,6 +50,9 @@ sources:
       curl: "--location --request GET -G {url} -d maxKeys=10 --header Authorization: {api}"
       prio: 0
       multi_file: False
+    netcdf:
+      ext:  nc
+      url:  https://dataplatform.knmi.nl/dataset/access/actuele10mindataknmistations-2
   COD: #College of DuPage
     bufr:
       ext:  bufr
