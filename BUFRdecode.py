@@ -16,7 +16,6 @@ get_bufr   = lambda bufr, number, key : ec.codes_get( bufr, f"#{number}#{key}" )
 
 #read config.yaml
 config        = read_yaml( "config.yaml" )
-priority      = config["priorities"]["bufr"]
 station_info  = config["station_info"]
 config_script = config["scripts"][sys.argv[0]]
 
@@ -27,7 +26,7 @@ skip_status   = config_script["skip_status"]
 verbose       = config_script["verbose"]
 profile       = config_script["profile"]
 logging       = config_script["logging"]
-conflict_keys = list(time_keys) + ["stID"]
+conflict_keys = list(time_keys) + ["stID","prio"]
 
 if profile: import cProfiler #TODO use module
 if logging: import logging   #TODO use module
@@ -48,6 +47,7 @@ def parse_all_bufrs( source ):
     bufr_dir      = source + "/"
     config_source = config_sources[source]
     config_bufr   = config_source["bufr"]
+    priority      = config_bufr["prio"]
     ext           = config_bufr["ext"]
     if type(ext) == list: ext = r"[" + "][".join(ext) + "]"
     multi_file    = config_bufr["multi_file"]
@@ -113,12 +113,10 @@ def parse_all_bufrs( source ):
 
             if not multi_file: #workaround
                 #BUFR messages all valid for one single station
-                obs, meta = { "file" : ID, "priority" : priority }, {}
+                obs, meta = { "file" : ID, "prio" : priority }, {}
                 for si in station_info:
                     try:                   meta[si] = ec.codes_get( bufr, si )
                     except Exception as e: meta[si] = None
-                #try: del keys[0]
-                #except: pass
 
                 if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
                     continue
@@ -141,7 +139,7 @@ def parse_all_bufrs( source ):
                 skip_obs = False
 
                 if multi_file:
-                    obs, meta = { "file" : ID, "priority" : priority }, {}
+                    obs, meta = { "file" : ID, "prio" : priority }, {}
                     #TODO only update station info in dev mode, not operational!
                     for si in station_info:
                         try:
@@ -193,22 +191,18 @@ def parse_all_bufrs( source ):
                         db.set_file_status( ID, "parsed" )
                         parsed_counter += 1
                     except Exception as e:
-                        print(obs["stID"])
                         if verbose: print(e)
                         db.set_file_status( ID, "error", verbose=verbose )
 
             if multi_file:
                 if parsed_counter == 0: db.set_file_status( ID, "empty", verbose=verbose )
             else:
+                if source == "RMI":     obs["year"] = FILE[11:15]
+                elif source == "COD":   obs["year"] = FILE[0:2]
                 for tk in time_keys[:4]:
                     if tk not in obs or obs[tk] in null_vals:
                         skip_obs = True; break
                 if skip_obs: continue
-                #year = config_source["year"]
-                #obs["year"] = FILE[config_source["year"]
-                if source == "RMI":     obs["year"] = FILE[11:15]
-                elif source == "COD":   obs["year"] = FILE[0:2]
-                else:                   obs["year"] = dt.utcnow().year
                 #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
                 sql = db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
                 try:

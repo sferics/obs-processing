@@ -5,11 +5,6 @@ database:
   table_ext: "sqlite"
   null_vals: [2147483647,-1e+100,"-1e+100","null","NULL","None","MISSING","XXXX",""," " ]
 
-priorities:
-  bufr:   0
-  synop:  1
-  metar:  2
-
 scripts:
   getALL.py: "" #replacement for getALL.sh and all get*.sh scripts which it calls TODO
   BUFRdecode.py:
