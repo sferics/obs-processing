@@ -117,8 +117,25 @@ def parse_all_bufrs( source ):
                 for si in station_info:
                     try:                   meta[si] = ec.codes_get( bufr, si )
                     except Exception as e: meta[si] = None
-                try: del keys[0]
-                except: pass
+                #try: del keys[0]
+                #except: pass
+
+                if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
+                    continue
+                if meta["shortStationName"] not in null_vals and len(meta["shortStationName"]) == 4:
+                    meta["stID"] = meta["shortStationName"]
+                elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
+                    meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
+                else: continue
+
+                if meta["stID"] in null_vals or meta["stationOrSiteName"] in null_vals: continue
+                
+                if meta["stID"] not in db.known_stations():
+                    meta["updated"] = dt.utcnow()
+                    if verbose: print("Adding", meta["stationOrSiteName"], "to database...")
+                    try: db.cur.execute( db.sql_insert( "station", meta ) )
+                    except Exception as e:
+                        if verbose: print(e)
 
             for num in keys:
                 skip_obs = False
@@ -132,22 +149,22 @@ def parse_all_bufrs( source ):
                             if meta[si] in null_vals: meta[si] = "NULL"
                         except Exception as e: meta[si] = "NULL"
 
-                if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
-                    continue
-                if meta["shortStationName"] not in null_vals and len(meta["shortStationName"]) == 4:
-                    meta["stID"] = meta["shortStationName"]
-                elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
-                    meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
-                else: continue
+                    if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
+                        continue
+                    if meta["shortStationName"] not in null_vals and len(meta["shortStationName"]) == 4:
+                        meta["stID"] = meta["shortStationName"]
+                    elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
+                        meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
+                    else: continue
 
-                if meta["stID"] in null_vals or meta["stationOrSiteName"] in null_vals: continue
+                    if meta["stID"] in null_vals or meta["stationOrSiteName"] in null_vals: continue
 
-                if meta["stID"] not in db.known_stations():
-                    meta["updated"] = dt.utcnow()
-                    if verbose: print("Adding", meta["stationOrSiteName"], "to database...")
-                    try: db.cur.execute( db.sql_insert( "station", meta ) )
-                    except Exception as e:
-                        if verbose: print(e)
+                    if meta["stID"] not in db.known_stations():
+                        meta["updated"] = dt.utcnow()
+                        if verbose: print("Adding", meta["stationOrSiteName"], "to database...")
+                        try: db.cur.execute( db.sql_insert( "station", meta ) )
+                        except Exception as e:
+                            if verbose: print(e)
 
                 for key in keys[num]:
                     db.add_column( "obs", key )
@@ -176,12 +193,17 @@ def parse_all_bufrs( source ):
                         db.set_file_status( ID, "parsed" )
                         parsed_counter += 1
                     except Exception as e:
+                        print(obs["stID"])
                         if verbose: print(e)
                         db.set_file_status( ID, "error", verbose=verbose )
 
             if multi_file:
                 if parsed_counter == 0: db.set_file_status( ID, "empty", verbose=verbose )
             else:
+                for tk in time_keys[:4]:
+                    if tk not in obs or obs[tk] in null_vals:
+                        skip_obs = True; break
+                if skip_obs: continue
                 #year = config_source["year"]
                 #obs["year"] = FILE[config_source["year"]
                 if source == "RMI":     obs["year"] = FILE[11:15]
