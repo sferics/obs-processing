@@ -10,7 +10,7 @@ mkdir -p $TMPDIR
 TD=$(date +%Y%m%d%H%M)
 YD=$(date -d yesterday +%Y%m%d)
 
-LST="${TMPDIR}/listing.html"
+LST="${OUTDIR}/listing.html"
 URL="https://www.ogimet.com/getbufr.php"
 
 # Grep listing from ogimet (listing with files)
@@ -38,7 +38,7 @@ fi
 # by the bufr decoder.
 printf "Start downloading new bufr files (if there are any)\n"
 for file in ${files[@]} ; do
-    local=`printf "%s/%s" ${TMPDIR} ${file}`
+    local=`printf "%s/%s" ${OUTDIR} ${file}`
     if [ ! -f ${local} ] ; then
         success=0
         ii=0
@@ -52,7 +52,6 @@ for file in ${files[@]} ; do
                echo "0 BYTE FILE!"
             fi
             if [ -f ${local} ]; then
-               cp ${local} ${OUTDIR}/
                succes=1
                echo "SUCCESS!"
             else
