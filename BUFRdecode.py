@@ -76,7 +76,7 @@ def parse_all_bufrs( source ):
             #set file status = locked and get rowid (FILE ID)
             try: ID = db.register_file( FILE, file_path, source_name, status="locked", date=file_date )
             except Exception as e:
-                print(e)
+                if verbose: print(e)
                 continue
         else:
             ID = db.get_file_id( FILE, file_path )
@@ -94,7 +94,9 @@ def parse_all_bufrs( source ):
                 iterid = ec.codes_bufr_keys_iterator_new(bufr)
             except Exception as e:
                 if verbose: print(e)
-                db.set_file_status( ID, "error" )
+                try: db.set_file_status( ID, "error" )
+                except Exception as e:
+                    if verbose: print(e)
                 continue
             
             keys = {}
@@ -195,7 +197,9 @@ def parse_all_bufrs( source ):
                         parsed_counter += 1
                     except Exception as e:
                         if verbose: print(e)
-                        db.set_file_status( ID, "error", verbose=verbose )
+                        try: db.set_file_status( ID, "error", verbose=verbose )
+                        except Exception as e:
+                            if verbose: print(e)
 
             if multi_file:
                 if parsed_counter == 0: db.set_file_status( ID, "empty", verbose=verbose )
@@ -213,7 +217,9 @@ def parse_all_bufrs( source ):
                     db.set_file_status( ID, "parsed" )
                 except Exception as e:
                     if verbose: print(e)
-                    db.set_file_status( ID, "error", verbose=verbose )
+                    try: db.set_file_status( ID, "error", verbose=verbose )
+                    except Exception as e:
+                        if verbose: print(e)
 
         db.commit()
         ec.codes_release(bufr) #release file to free memory
