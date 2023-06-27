@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS files (
-  name varchar(255) UNIQUE,
-  path varchar(255),
-  source varchar(255),
-  status varchar(6),
+  name varchar UNIQUE,
+  path varchar,
+  source varchar,
+  status varchar,
   date DATETIME DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_file PRIMARY KEY (name,path)
 )

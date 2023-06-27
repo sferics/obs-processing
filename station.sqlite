@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS station (
-  stID varchar(6) PRIMARY KEY,
+  stID varchar PRIMARY KEY,
   updated DATETIME DEFAULT CURRENT_TIMESTAMP,
   stationNumber int unsigned DEFAULT NULL,
   blockNumber int unsigned DEFAULT NULL,
-  stationOrSiteName varchar(255) DEFAULT NULL,
-  shortStationName varchar(4) DEFAULT NULL,
+  stationOrSiteName varchar DEFAULT NULL,
+  shortStationName varchar DEFAULT NULL,
   stateIdentifier int DEFAULT NULL,
   nationalStationNumber int unsigned DEFAULT NULL,
   stationType int DEFAULT NULL,

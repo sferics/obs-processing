@@ -74,7 +74,7 @@ def parse_all_bufrs( source ):
         if not db.file_exists( FILE, file_path ):
             file_date = ts2dt( Path(file_path).stat().st_mtime )
             #set file status = locked and get rowid (FILE ID)
-            try: ID = db.register_file( FILE, file_path, source_name, status="locked", date=file_date )
+            try: ID = db.register_file(FILE, file_path, source_name, status="locked",date=file_date)
             except Exception as e:
                 if verbose: print(e)
                 continue
@@ -87,8 +87,10 @@ def parse_all_bufrs( source ):
             try:
                 bufr = ec.codes_bufr_new_from_file(f)
                 if bufr is None:
-                    db.set_file_status( ID, "empty", verbose=verbose )
-                    continue
+                    try: db.set_file_status( ID, "empty", verbose=verbose )
+                    except Exception as e:
+                        if verbose: print(e)
+                    break
                 ec.codes_set(bufr, "skipExtraKeyAttributes",  1)
                 ec.codes_set(bufr, "unpack", 1)
                 iterid = ec.codes_bufr_keys_iterator_new(bufr)
@@ -100,6 +102,8 @@ def parse_all_bufrs( source ):
                 continue
             
             keys = {}
+            for skip_function in ( ec.codes_skip_duplicates, ec.codes_skip_computed, ec.codes_skip_function ):
+                skip_function( iterid )
 
             while ec.codes_bufr_keys_iterator_next(iterid):
                 keyname   = ec.codes_bufr_keys_iterator_get_name(iterid)
@@ -116,6 +120,8 @@ def parse_all_bufrs( source ):
                     try:    keys[0].add( keyname )
                     except: keys[0] = set()
 
+            ec.codes_keys_iterator_delete(iterid)
+
             if not multi_file: #workaround
                 #BUFR messages all valid for one single station
                 obs, meta = { "file" : ID, "prio" : priority }, {}
@@ -124,14 +130,19 @@ def parse_all_bufrs( source ):
                     except Exception as e: meta[si] = None
 
                 if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
+                    ec.codes_release(bufr)
                     continue
                 if meta["shortStationName"] not in null_vals and len(meta["shortStationName"]) == 4:
                     meta["stID"] = meta["shortStationName"]
                 elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
                     meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
-                else: continue
+                else:
+                    ec.codes_release(bufr)
+                    continue
 
-                if meta["stID"] in null_vals or meta["stationOrSiteName"] in null_vals: continue
+                if meta["stID"] in null_vals or meta["stationOrSiteName"] in null_vals:
+                    ec.codes_release(bufr)
+                    continue
                 
                 if meta["stID"] not in db.known_stations():
                     meta["updated"] = dt.utcnow()
@@ -209,7 +220,9 @@ def parse_all_bufrs( source ):
                 for tk in time_keys[:4]:
                     if tk not in obs or obs[tk] in null_vals:
                         skip_obs = True; break
-                if skip_obs: continue
+                if skip_obs:
+                    ec.codes_release(bufr)
+                    continue
                 #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
                 sql = db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
                 try:
@@ -222,7 +235,8 @@ def parse_all_bufrs( source ):
                         if verbose: print(e)
 
             ec.codes_release(bufr) #release file to free memory
-        db.commit()
+            db.commit() #force to commit changes to database
+
         process     = psutil.Process(os.getpid())
         memory_used = process.memory_info().rss  // 1024**2
         memory_free = psutil.virtual_memory()[1] // 1024**2

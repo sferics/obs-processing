@@ -1,16 +1,13 @@
 from sys import argv
 
-if len(argv) == 2:
-    table = argv[1]
-else: table = "obs"
+if len(argv) == 1: table = "obs"
+else:              table = argv[1]
 
-if len(argv) == 3:
-    what = argv[2]
-else: what = "*"
+if len(argv) == 3: what = argv[2]
+else:              what = "*"
 
-if len(argv) == 4:
-    where = f" WHERE {argv[3]}"
-else: where = ""
+if len(argv) == 4: where = f" WHERE {argv[3]}"
+else:              where = ""
 
 from sqlite3 import connect
 db=connect("obs.db")
