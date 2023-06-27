@@ -44,6 +44,7 @@ sources:
       api:  eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjA2MTU4MDU3YmM2MDRkMjA5OTExN2ZjOWJkY2IyZThiIiwiaCI6Im11cm11cjEyOCJ9
       curl: "--location --request GET -G {url} -d maxKeys=10 --header Authorization: {api}"
       prio: 0
+      year: [11,15]
       multi_file: False
     netcdf:
       ext:  nc
@@ -54,6 +55,7 @@ sources:
       url:  https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
       wget: "-e robots=off -nc -nd -np -r"
       prio: 0
+      year: [0,2]
       multi_file: False
     synop:
       ext:  syn

@@ -215,8 +215,8 @@ def parse_all_bufrs( source ):
             if multi_file:
                 if parsed_counter == 0: db.set_file_status( ID, "empty", verbose=verbose )
             else:
-                if source == "RMI":     obs["year"] = FILE[11:15]
-                elif source == "COD":   obs["year"] = FILE[0:2]
+                start, stop = config_bufr["year"]
+                obs["year"] = FILE[start:stop]
                 for tk in time_keys[:4]:
                     if tk not in obs or obs[tk] in null_vals:
                         skip_obs = True; break

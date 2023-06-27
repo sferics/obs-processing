@@ -8,8 +8,7 @@ TMPDIR="${OUTDIR}/TMP"
 mkdir -p $TMPDIR
 
 TD=$(date +%Y%m%d%H%M)
-#YD=$(date -d yesterday +%Y%m%d)
-YD=$(date -d "14 days ago" +%Y%m%d)
+YD=$(date -d yesterday +%Y%m%d)
 
 LST="${OUTDIR}/listing.html"
 URL="https://www.ogimet.com/getbufr.php"
