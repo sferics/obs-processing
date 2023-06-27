@@ -87,18 +87,14 @@ def parse_all_bufrs( source ):
             try:
                 bufr = ec.codes_bufr_new_from_file(f)
                 if bufr is None:
-                    try: db.set_file_status( ID, "empty", verbose=verbose )
-                    except Exception as e:
-                        if verbose: print(e)
-                    break
+                    db.set_file_status( ID, "empty", verbose=verbose )
+                    continue
                 ec.codes_set(bufr, "skipExtraKeyAttributes",  1)
                 ec.codes_set(bufr, "unpack", 1)
                 iterid = ec.codes_bufr_keys_iterator_new(bufr)
             except Exception as e:
                 if verbose: print(e)
-                try: db.set_file_status( ID, "error" )
-                except Exception as e:
-                    if verbose: print(e)
+                db.set_file_status( ID, "error" )
                 continue
             
             keys = {}
@@ -208,9 +204,7 @@ def parse_all_bufrs( source ):
                         parsed_counter += 1
                     except Exception as e:
                         if verbose: print(e)
-                        try: db.set_file_status( ID, "error", verbose=verbose )
-                        except Exception as e:
-                            if verbose: print(e)
+                        db.set_file_status( ID, "error", verbose=verbose )
 
             if multi_file:
                 if parsed_counter == 0: db.set_file_status( ID, "empty", verbose=verbose )
@@ -232,9 +226,7 @@ def parse_all_bufrs( source ):
                     db.set_file_status( ID, "parsed" )
                 except Exception as e:
                     if verbose: print(e)
-                    try: db.set_file_status( ID, "error", verbose=verbose )
-                    except Exception as e:
-                        if verbose: print(e)
+                    db.set_file_status( ID, "error", verbose=verbose )
 
             ec.codes_release(bufr) #release file to free memory
             db.commit() #force to commit changes to database

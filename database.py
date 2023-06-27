@@ -118,11 +118,13 @@ class db:
         else:      return None
 
     def set_file_status( self, ID, status, verbose=False ):
-        sql = f"UPDATE files SET status = '{status}' WHERE rowid = '{ID}'"
-        self.cur.execute( sql )
         if status != "parsed" and verbose:
             name = self.get_file_name( ID )
             print(f"Setting status of FILE '{name}' to '{status}'")
+        sql = f"UPDATE files SET status = '{status}' WHERE rowid = '{ID}'"
+        try: self.cur.execute( sql )
+        except Exception as e:
+            if verbose: print(e)
 
     def get_file_date( self, ID ):
         sql = f"SELECT date FROM files WHERE rowid = '{ID}'"
