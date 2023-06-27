@@ -83,7 +83,7 @@ sources:
       prio: 2
     metar:
       ext:  txt
-      url:  !!python/tuple ["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/", "https://tgftp.nws.noaa.gov/data/observations/metar/stations/"]
+      url:  ["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/", "https://tgftp.nws.noaa.gov/data/observations/metar/stations/", "http://tgftp.nws.noaa.gov/data/observations/metar/cycles/"]
       wget: "-N -nd -np -r -l 1"
       prio: 3
   NCAR: #TODO only historical?
