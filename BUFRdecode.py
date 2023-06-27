@@ -243,7 +243,6 @@ def parse_all_bufrs( source ):
         memory_used = process.memory_info().rss  // 1024**2
         memory_free = psutil.virtual_memory()[1] // 1024**2
 
-        #TODO: remove this nasty workaround after memory leak is fixed!
         #if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
             print("Too much RAM used, RESTARTING...")
