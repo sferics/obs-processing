@@ -4,6 +4,7 @@ database:
   tables: !!python/tuple [station, obs, files]
   table_ext: "sqlite"
   null_vals: [2147483647,-1e+100,"-1e+100","null","NULL","None","MISSING","XXXX",""," " ]
+  conflict:  ["stID","prio","year","month","day","hour","minute","timePeriod","timeSignificance"]
 
 scripts:
   getALL.py: "" #replacement for getALL.sh and all get*.sh scripts which it calls TODO

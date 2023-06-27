@@ -43,6 +43,7 @@ class db:
         return f"({column_list}) VALUES ({value_list})"
 
     def sql_insert(self, table, params, conflict = (), skip_update = () ):
+        
         sql = f"INSERT INTO {table} " + self.sql_values(params)
         if len(conflict) > 0:
             if len(conflict) > 1:
@@ -52,7 +53,8 @@ class db:
                 try:    params.pop(i)
                 except: continue
             sql += f" ON CONFLICT({conflict}) DO UPDATE SET " + self.sql_value_list(params,True)
-        return sql
+        
+        self.cur.execute( sql )
 
     sql_in = lambda self, what : "IN('"+"','".join(what)+"')"
 
@@ -75,15 +77,28 @@ class db:
         if data: return set(i[0] for i in data)
         else:    return set()
 
-    def add_column( self, table, column ):
+    def add_column( self, table, column, verbose=False ):
         try: self.cur.execute(f'ALTER TABLE {table} ADD COLUMN "{column}"')
-        except: pass
+        except Exception as e:
+            if verbose:
+                print(e)
+                print("Column '{column}' already exist in table '{table}'!")
 
-    def register_file( self, name, path, source, status="locked", date="NULL" ):
+    def drop_column( self, table, column, verbose=False ):
+        try: self.cur.execute(f'ALTER TABLE {table} DROP COLUMN "{column}"')
+        except Exception as e:
+            if verbose:
+                print(e)
+                print("Column '{column}' does not exist in table '{table}'!")
+
+    def register_file( self, name, path, source, status="locked", date="NULL", verbose=False ):
         values = f"VALUES ('{name}','{path}','{source}','{status}','{date}')"
         sql    = f"INSERT INTO files (name,path,source,status,date) {values}"
-        self.cur.execute( sql )
-        return self.cur.lastrowid
+        try:
+            self.cur.execute( sql )
+            return self.cur.lastrowid
+        except Exception as e:
+            if verbose: print(e)
 
     def file_exists( self, name, path ):
         sql = f"SELECT COUNT(*) FROM files WHERE name = '{name}' AND path = '{path}'"
@@ -131,14 +146,18 @@ class db:
         self.cur.execute( sql )
         date = self.cur.fetchone()[0]
         if date: return date
-        else:      return None
+        else:    return None
 
     def set_file_date( self, ID, date, verbose=False ):
-        sql = f"UPDATE files SET date = '{date}' WHERE rowid = '{ID}'"
-        self.cur.execute( sql )
         if verbose:
             name = self.get_file_name( ID )
             print(f"Setting date of FILE '{name}' to '{date}'")
+        
+        try:
+            sql = f"UPDATE files SET date = '{date}' WHERE rowid = '{ID}'"
+            self.cur.execute( sql )
+        except Exception as e:
+            if verbose: print(e)
 
     def files_status( self, status, source=None ):
         if source:

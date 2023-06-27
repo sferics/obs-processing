@@ -74,7 +74,7 @@ def parse_all_bufrs( source ):
         if not db.file_exists( FILE, file_path ):
             file_date = ts2dt( Path(file_path).stat().st_mtime )
             #set file status = locked and get rowid (FILE ID)
-            try: ID = db.register_file(FILE, file_path, source_name, status="locked",date=file_date)
+            try: ID = db.register_file(FILE,file_path,source_name,status="locked",date=file_date,verbose=verbose)
             except Exception as e:
                 if verbose: print(e)
                 continue
@@ -86,16 +86,13 @@ def parse_all_bufrs( source ):
         with open(bufr_dir + FILE, "rb") as f:
             try:
                 bufr = ec.codes_bufr_new_from_file(f)
-                if bufr is None:
-                    db.set_file_status( ID, "empty", verbose=verbose )
-                    continue
+                if bufr is None: db.set_file_status( ID, "empty", verbose=verbose ); continue
                 ec.codes_set(bufr, "skipExtraKeyAttributes",  1)
                 ec.codes_set(bufr, "unpack", 1)
                 iterid = ec.codes_bufr_keys_iterator_new(bufr)
             except Exception as e:
                 if verbose: print(e)
-                db.set_file_status( ID, "error" )
-                continue
+                db.set_file_status( ID, "error" ); continue
             
             keys = {}
             for skip_function in ( ec.codes_skip_duplicates, ec.codes_skip_computed, ec.codes_skip_function ):
@@ -132,18 +129,15 @@ def parse_all_bufrs( source ):
                     meta["stID"] = meta["shortStationName"]
                 elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
                     meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
-                else:
-                    ec.codes_release(bufr)
-                    continue
+                else: ec.codes_release(bufr); continue
 
                 if meta["stID"] in null_vals or meta["stationOrSiteName"] in null_vals:
-                    ec.codes_release(bufr)
-                    continue
+                    ec.codes_release(bufr); continue
                 
                 if meta["stID"] not in db.known_stations():
                     meta["updated"] = dt.utcnow()
                     if verbose: print("Adding", meta["stationOrSiteName"], "to database...")
-                    try: db.cur.execute( db.sql_insert( "station", meta ) )
+                    try: db.sql_insert( "station", meta )
                     except Exception as e:
                         if verbose: print(e)
 
@@ -154,15 +148,12 @@ def parse_all_bufrs( source ):
                     obs, meta = { "file" : ID, "prio" : priority }, {}
                     #TODO only update station info in dev mode, not operational!
                     for si in station_info:
-                        try:
-                            meta[si] = get_bufr( bufr, num, si )
-                            if meta[si] in null_vals: meta[si] = "NULL"
-                        except Exception as e: meta[si] = "NULL"
+                        try:    meta[si] = get_bufr( bufr, num, si )
+                        except: meta[si] = "NULL"
 
-                    if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
-                        continue
+                    if meta["latitude"] in null_vals or meta["longitude"] in null_vals: continue
                     if meta["shortStationName"] not in null_vals and len(meta["shortStationName"]) == 4:
-                        meta["stID"] = meta["shortStationName"]
+                        meta["stID"] = meta["shortStationName"] # for DWD nebenamtliche Stationen
                     elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
                         meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
                     else: continue
@@ -172,7 +163,7 @@ def parse_all_bufrs( source ):
                     if meta["stID"] not in db.known_stations():
                         meta["updated"] = dt.utcnow()
                         if verbose: print("Adding", meta["stationOrSiteName"], "to database...")
-                        try: db.cur.execute( db.sql_insert( "station", meta ) )
+                        try: db.sql_insert( "station", meta )
                         except Exception as e:
                             if verbose: print(e)
 
@@ -197,14 +188,13 @@ def parse_all_bufrs( source ):
                     if skip_obs: continue
                 
                     #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
-                    sql = db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
-                    try:
-                        db.cur.execute( sql )
-                        db.set_file_status( ID, "parsed" )
-                        parsed_counter += 1
+                    try: db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
                     except Exception as e:
                         if verbose: print(e)
                         db.set_file_status( ID, "error", verbose=verbose )
+                    else:
+                        db.set_file_status( ID, "parsed" )
+                        parsed_counter += 1
 
             if multi_file:
                 if parsed_counter == 0: db.set_file_status( ID, "empty", verbose=verbose )
@@ -220,13 +210,11 @@ def parse_all_bufrs( source ):
                     ec.codes_release(bufr)
                     continue
                 #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
-                sql = db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
-                try:
-                    db.cur.execute( sql )
-                    db.set_file_status( ID, "parsed" )
+                try: db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
                 except Exception as e:
                     if verbose: print(e)
                     db.set_file_status( ID, "error", verbose=verbose )
+                else: db.set_file_status( ID, "parsed" )
 
             ec.codes_release(bufr) #release file to free memory
             db.commit() #force to commit changes to database

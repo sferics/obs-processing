@@ -201,6 +201,8 @@ stations = {
     "06670" : "KLO"
 }
 
+conflict = config["database"]["conflict"]
+
 for outfile in outfiles:
 
     file_name = outfile.split("/")[-1]
@@ -242,17 +244,16 @@ for outfile in outfiles:
             hhmm = datestr[8:]
 
             obs[p] = value
-            obs["station"] = s
-            obs["file"]    = ID
-            obs["prio"]    = -1
-            obs["year"]    = int(datestr[:4])
-            obs["month"]   = int(datestr[4:6])
-            obs["day"]     = int(datestr[6:8])
-            obs["hour"]    = int(hhmm[:2])
-            obs["minute"]  = int(hhmm[2:])
-            print(obs)
+            obs["stID"]   = s
+            obs["file"]   = ID
+            obs["prio"]   = -1
+            obs["year"]   = int(datestr[:4])
+            obs["month"]  = int(datestr[4:6])
+            obs["day"]    = int(datestr[6:8])
+            obs["hour"]   = int(hhmm[:2])
+            obs["minute"] = int(hhmm[2:])
 
-        db.sql_insert( "obs", obs, conflict=("stID","prio","year","month","day","hour","minute") ) 
+        db.sql_insert( "obs", obs, conflict=conflict ) 
     
     db.set_file_status( ID, "processed" )
     db.commit()
