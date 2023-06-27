@@ -221,8 +221,8 @@ def parse_all_bufrs( source ):
                     except Exception as e:
                         if verbose: print(e)
 
+            ec.codes_release(bufr) #release file to free memory
         db.commit()
-        ec.codes_release(bufr) #release file to free memory
         process     = psutil.Process(os.getpid())
         memory_used = process.memory_info().rss  // 1024**2
         memory_free = psutil.virtual_memory()[1] // 1024**2
