@@ -103,34 +103,38 @@ class db:
     def file_exists( self, name, path ):
         sql = f"SELECT COUNT(*) FROM files WHERE name = '{name}' AND path = '{path}'"
         self.cur.execute( sql )
-        return self.cur.fetchone()[0]
+        try:    return self.cur.fetchone()[0]
+        except: return None
 
     def get_file_id( self, name, path ):
         sql = f"SELECT rowid FROM files WHERE name = '{name}' AND path = '{path}'"
         self.cur.execute( sql )
-        return self.cur.fetchone()[0]
+        try:    return self.cur.fetchone()[0]
+        except: return None
 
     def get_file_name( self, ID ):
         sql = f"SELECT name FROM files WHERE rowid = '{ID}'"
         self.cur.execute( sql )
-        return self.cur.fetchone()[0]
+        try:    return self.cur.fetchone()[0]
+        except: return None
 
     def get_file_path( self, ID ):
         sql = f"SELECT path FROM files WHERE name = '{ID}'"
         self.cur.execute( sql )
-        return self.cur.fetchone()[0]
+        try:    return self.cur.fetchone()[0]
+        except: return None
 
     def get_file_source( self, ID ):
         sql = f"SELECT source FROM files WHERE name = '{ID}'"
         self.cur.execute( sql )
-        return self.cur.fetchone()[0]
+        try:    return self.cur.fetchone()[0]
+        except: return None
 
     def get_file_status( self, ID ):
         sql = f"SELECT status FROM files WHERE rowid = '{ID}'"
         self.cur.execute( sql )
-        status = self.cur.fetchone()[0]
-        if status: return status
-        else:      return None
+        try:    return self.cur.fetchone()[0]
+        except: return None
 
     def set_file_status( self, ID, status, verbose=False ):
         if status != "parsed" and verbose:
