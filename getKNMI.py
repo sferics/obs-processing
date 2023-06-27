@@ -16,16 +16,9 @@ api_url = "https://api.dataplatform.knmi.nl/open-data"
 api_version = "v1"
 
 
-def main():
+def main(dataset_name, dataset_version, filename):
     # Parameters
     api_key = "eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjA2MTU4MDU3YmM2MDRkMjA5OTExN2ZjOWJkY2IyZThiIiwiaCI6Im11cm11cjEyOCJ9"
-    dataset_name = "knmi_synop_bufr"
-    dataset_version = "1"
-
-    # Use get file to retrieve a file from one hour ago.
-    date = dt.utcnow()
-    dd = date.day; hh = date.hour
-    filename = f"SYNOP_BUFR_{dd:02d}{hh:02d}.bufr"
     logger.debug(f"Dataset file to download: {filename}")
 
     endpoint = f"{api_url}/{api_version}/datasets/{dataset_name}/versions/{dataset_version}/files/{filename}/url"
@@ -62,4 +55,12 @@ def download_file_from_temporary_download_url(download_url, filename):
 
 
 if __name__ == "__main__":
-    main()
+    # Use get file to retrieve a file from one hour ago.
+    date = dt.utcnow()
+    YY =  date.year; MM = date.month; DD = date.day; hh = date.hour; mm = int( date.minute / 10 ) * 10
+    main("knmi_synop_bufr", 1, f"SYNOP_BUFR_{DD:02d}{hh:02d}.bufr")
+    try:
+        main("Actuele10mindataKNMIstations", 2, f"KMDS__OPER_P___10M_OBS_L2_{YY}{MM:02d}{DD:02d}{hh:02d}{mm:02d}.nc")
+    except:
+        mm -= 10
+        main("Actuele10mindataKNMIstations", 2, f"KMDS__OPER_P___10M_OBS_L2_{YY}{MM:02d}{DD:02d}{hh:02d}{mm:02d}.nc")

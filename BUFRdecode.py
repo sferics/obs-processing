@@ -74,7 +74,10 @@ def parse_all_bufrs( source ):
         if not db.file_exists( FILE, file_path ):
             file_date = ts2dt( Path(file_path).stat().st_mtime )
             #set file status = locked and get rowid (FILE ID)
-            ID = db.register_file( FILE, file_path, source_name, status="locked", date=file_date )
+            try: ID = db.register_file( FILE, file_path, source_name, status="locked", date=file_date )
+            except Exception as e:
+                print(e)
+                continue
         else:
             ID = db.get_file_id( FILE, file_path )
             #if file status is 'locked' continue with next file
