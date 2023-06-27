@@ -215,8 +215,10 @@ def parse_all_bufrs( source ):
             if multi_file:
                 if parsed_counter == 0: db.set_file_status( ID, "empty", verbose=verbose )
             else:
-                start, stop = config_bufr["year"]
-                obs["year"] = FILE[start:stop]
+                try:
+                    start, stop = config_bufr["year"]
+                    obs["year"] = FILE[start:stop]
+                except: pass
                 for tk in time_keys[:4]:
                     if tk not in obs or obs[tk] in null_vals:
                         skip_obs = True; break
