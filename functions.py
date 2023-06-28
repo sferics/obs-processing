@@ -7,6 +7,19 @@ def read_yaml(file_path):
         import yaml
         return yaml.load(f, yaml.Loader)
 
+def get_file_path( FILE, string=True ):
+    import Path
+    PATH = Path( FILE ).resolve().parent
+    if string:
+        return str( PATH )
+    return PATH
+
+def get_file_date( file_path, datetime=True ):
+    date = Path(file_path).stat().st_mtime
+    if datetime:
+        return ts2dt( date )
+    return date
+
 from datetime import datetime as dt, timezone as tz
 import numpy as np
 

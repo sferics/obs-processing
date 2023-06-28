@@ -7,7 +7,7 @@ from sqlite3 import connect  #python sqlite connector
 import re, sys, os, psutil   #regular expressions, system, operating system, process handling
 from pathlib import Path     #path operation
 from datetime import datetime as dt
-from functions import read_yaml, ts2dt, already_running
+from functions import read_yaml, ts2dt, already_running, get_file_path, get_file_date
 from database import db; db = db() #establish sqlite database connection (see database.py)
 
 clear      = lambda keyname           : str( re.sub( r"#[0-9]+#", '', keyname ) )
@@ -70,10 +70,10 @@ def parse_all_bufrs( source ):
         skip_obs       = False
         source_name    = source[:]
 
-        file_path = str( Path( bufr_dir + FILE ).resolve().parent )
+        file_path = get_file_path( bufr_dir + FILE )
 
         if not db.file_exists( FILE, file_path ):
-            file_date = ts2dt( Path(file_path).stat().st_mtime )
+            file_date = get_file_date( file_path )
             #set file status = locked and get rowid (FILE ID)
             try: ID = db.register_file(FILE,file_path,source_name,status="locked",date=file_date,verbose=verbose)
             except Exception as e:
