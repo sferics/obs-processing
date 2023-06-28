@@ -233,18 +233,16 @@ def parse_all_bufrs( source ):
             os.execl(exe, exe, * sys.argv); sys.exit()
 
 
-if __name__ == "__main__":
+pid_file = config_script["pid_file"]
 
-    pid_file = config_script["pid_file"]
+if already_running( pid_file ):
+    sys.exit( f"{sys.argv[0]} is already running... exiting!" )
 
-    if already_running( pid_file ):
-        sys.exit( f"{sys.argv[0]} is already running... exiting!" )
+for SOURCE in config_sources:
+    if verbose: print(f"Parsing source {SOURCE}...")
+    parse_all_bufrs( SOURCE )
 
-    for SOURCE in config_sources:
-        if verbose: print(f"Parsing source {SOURCE}...")
-        parse_all_bufrs( SOURCE )
-
-    #commit to db and close all connections
-    db.close()
-    #remove file containing the pid, so the script can be started again
-    os.remove( pid_file )
+#commit to db and close all connections
+db.close()
+#remove file containing the pid, so the script can be started again
+os.remove( pid_file )

@@ -1,5 +1,6 @@
+from pathlib import Path
+
 def read_file(file_name):
-    from pathlib import Path
     return Path( file_name ).read_text()
 
 def read_yaml(file_path):
@@ -8,7 +9,6 @@ def read_yaml(file_path):
         return yaml.load(f, yaml.Loader)
 
 def get_file_path( FILE, string=True ):
-    import Path
     PATH = Path( FILE ).resolve().parent
     if string:
         return str( PATH )
