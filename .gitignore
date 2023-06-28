@@ -41,3 +41,5 @@ RMI/
 KNMI/
 NOAA/
 miniconda3
+obs.db-journal
+pid.BUFRdecode
