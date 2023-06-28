@@ -43,8 +43,6 @@ if len(sys.argv) == 2:
 else: config_sources = config["sources"]
 
 
-
-
 def parse_all_bufrs( source ):
     
     bufr_dir      = source + "/"
@@ -126,8 +124,7 @@ def parse_all_bufrs( source ):
                     except Exception as e: meta[si] = None
 
                 if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
-                    ec.codes_release(bufr)
-                    continue
+                    ec.codes_release(bufr); continue
                 if meta["shortStationName"] not in null_vals and len(meta["shortStationName"]) == 4:
                     meta["stID"] = meta["shortStationName"]
                 elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
@@ -154,14 +151,16 @@ def parse_all_bufrs( source ):
                         try:    meta[si] = get_bufr( bufr, num, si )
                         except: meta[si] = "NULL"
 
-                    if meta["latitude"] in null_vals or meta["longitude"] in null_vals: continue
+                    if meta["latitude"] in null_vals or meta["longitude"] in null_vals:
+                        continue
                     if meta["shortStationName"] not in null_vals and len(meta["shortStationName"]) == 4:
                         meta["stID"] = meta["shortStationName"] # for DWD nebenamtliche Stationen
                     elif meta["stationNumber"] not in null_vals and meta["blockNumber"] not in null_vals:
                         meta["stID"] = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5, "0")
                     else: continue
 
-                    if meta["stID"] in null_vals or meta["stationOrSiteName"] in null_vals: continue
+                    if meta["stID"] in null_vals or meta["stationOrSiteName"] in null_vals:
+                        continue
 
                     if meta["stID"] not in db.known_stations():
                         meta["updated"] = dt.utcnow()
@@ -211,7 +210,8 @@ def parse_all_bufrs( source ):
                     if tk not in obs or obs[tk] in null_vals:
                         skip_obs = True; break
                 
-                if skip_obs: ec.codes_release(bufr); continue
+                if skip_obs:
+                    ec.codes_release(bufr); continue
 
                 #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
                 try: db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
