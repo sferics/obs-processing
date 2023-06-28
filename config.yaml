@@ -2,7 +2,7 @@ database:
   connector: database.py
   name: obs.db
   tables: !!python/tuple [station, obs, files]
-  table_ext: "sqlite"
+  table_ext: "sql"
   null_vals: [2147483647,-1e+100,"-1e+100","null","NULL","None","MISSING","XXXX",""," " ]
   conflict:  ["stID","prio","year","month","day","hour","minute","timePeriod","timeSignificance"]
 
