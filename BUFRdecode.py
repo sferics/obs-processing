@@ -197,12 +197,11 @@ def parse_all_bufrs( source, pid_file ):
                     except Exception as e:
                         if verbose: print(e)
                         db.set_file_status( ID, "error", verbose=verbose )
-                    else:
-                        db.set_file_status( ID, "parsed" )
-                        parsed_counter += 1
+                    else: parsed_counter += 1
 
             if multi_file:
                 if parsed_counter == 0: db.set_file_status( ID, "empty", verbose=verbose )
+                else:                   db.set_file_status( ID, "parsed" )
             else:
                 try:
                     start, stop = config_bufr["year"]
