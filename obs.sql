@@ -1,21 +1,14 @@
-CREATE TABLE IF NOT EXISTS `obs` (
-  `obsID` int NOT NULL AUTO_INCREMENT,
-  `stID` varchar(255) NOT NULL,
-  `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `year` int NOT NULL,
-  `month` int NOT NULL,
-  `day` int NOT NULL,
-  `hour` int NOT NULL,
-  `minute` int NOT NULL,
-  `timeSignificance` int DEFAULT NULL,
-  `timePeriod` int DEFAULT NULL,
-  PRIMARY KEY (`obsID`),
-  UNIQUE KEY `unique_obs` (`obsID`,`stID`,`year`,`month`,`day`,`hour`,`minute`,`timeSignificance`,`timePeriod`) USING BTREE,
-  KEY `year` (`year`),
-  KEY `month` (`month`),
-  KEY `day` (`day`),
-  KEY `hour` (`hour`) USING BTREE,
-  KEY `minute` (`minute`),
-  KEY `stID` (`stID`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-COMMIT;
+CREATE TABLE IF NOT EXISTS obs (
+  stID varchar NOT NULL,
+  updated timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  file varchar DEFAULT NULL,
+  prio int unsigned NOT NULL,
+  year int unsigned NOT NULL,
+  month int unsigned NOT NULL,
+  day int unsigned NOT NULL,
+  hour int unsigned NOT NULL,
+  minute int unsigned NOT NULL,
+  timePeriod int unsigned DEFAULT NULL,
+  timeSignificance int DEFAULT NULL,
+  CONSTRAINT unique_obs PRIMARY KEY (stID,year,month,day,hour,minute,timeSignificance,timePeriod,prio)
+);
