@@ -1,4 +1,4 @@
-#/!venv/bin/python3
+#!/home/obs/miniconda3/bin
 #decode bufr and save obs to database
 
 from glob import glob        #file lookup
