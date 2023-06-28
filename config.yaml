@@ -13,6 +13,7 @@ scripts:
     profile: 0
     logging: 0
     min_ram: 1024
+    pid_file: "pid.BUFRdecode"
     null_vals: [2147483647,-1e+100,"-1e+100","null","NULL","None","MISSING","XXXX",""," " ]
     time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
     skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]

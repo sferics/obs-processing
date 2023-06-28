@@ -7,64 +7,6 @@ def read_yaml(file_path):
         import yaml
         return yaml.load(f, yaml.Loader)
 
-
-def search(dictionary, substr, sort=True):
-
-    result = []
-    for key in dictionary:
-        if substr in key:
-            result.append(key)
-    if sort: return sorted(result)
-    return result
-
-from sys import getsizeof, stderr
-from itertools import chain
-from collections import deque
-try:
-    from reprlib import repr
-except ImportError:
-    pass
-
-def total_size(o, handlers={}, verbose=False):
-    """ Returns the approximate memory footprint an object and all of its contents.
-
-    Automatically finds the contents of the following builtin containers and
-    their subclasses:  tuple, list, deque, dict, set and frozenset.
-    To search other containers, add handlers to iterate over their contents:
-
-        handlers = {SomeContainerClass: iter,
-                    OtherContainerClass: OtherContainerClass.get_elements}
-
-    """
-    dict_handler = lambda d: chain.from_iterable(d.items())
-    all_handlers = {tuple: iter,
-                    list: iter,
-                    deque: iter,
-                    dict: dict_handler,
-                    set: iter,
-                    frozenset: iter,
-                   }
-    all_handlers.update(handlers)     # user handlers take precedence
-    seen = set()                      # track which object id's have already been seen
-    default_size = getsizeof(0)       # estimate sizeof object without __sizeof__
-
-    def sizeof(o):
-        if id(o) in seen:       # do not double count the same object
-            return 0
-        seen.add(id(o))
-        s = getsizeof(o, default_size)
-
-        if verbose:
-            print(s, type(o), repr(o), file=stderr)
-
-        for typ, handler in all_handlers.items():
-            if isinstance(o, typ):
-                s += sum(map(sizeof, handler(o)))
-                break
-        return s
-
-    return sizeof(o)
-
 from datetime import datetime as dt, timezone as tz
 import numpy as np
 
@@ -113,3 +55,14 @@ class clock_iter:
             self.mm = str( int(self.mm)+10 )
             self.time = self.hh + self.mm
             return self.time
+
+from os import getpid
+from os.path import exists
+from psutil import pid_exists, Process
+
+def already_running( pid_file = "pid.txt" ):
+    if exists( pid_file ):
+        return True
+    with open( pid_file, 'w' ) as f:
+        f.write( getpid() )
+    return False

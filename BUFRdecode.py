@@ -7,7 +7,7 @@ from sqlite3 import connect  #python sqlite connector
 import re, sys, os, psutil   #regular expressions, system, operating system, process handling
 from pathlib import Path     #path operation
 from datetime import datetime as dt
-from functions import read_yaml, ts2dt
+from functions import read_yaml, ts2dt, already_running
 from database import db; db = db() #establish sqlite database connection (see database.py)
 
 clear      = lambda keyname           : str( re.sub( r"#[0-9]+#", '', keyname ) )
@@ -43,7 +43,10 @@ if len(sys.argv) == 2:
 else: config_sources = config["sources"]
 
 
+
+
 def parse_all_bufrs( source ):
+    
     bufr_dir      = source + "/"
     config_source = config_sources[source]
     config_bufr   = config_source["bufr"]
@@ -203,12 +206,13 @@ def parse_all_bufrs( source ):
                     start, stop = config_bufr["year"]
                     obs["year"] = FILE[start:stop]
                 except: pass
+                
                 for tk in time_keys[:4]:
                     if tk not in obs or obs[tk] in null_vals:
                         skip_obs = True; break
-                if skip_obs:
-                    ec.codes_release(bufr)
-                    continue
+                
+                if skip_obs: ec.codes_release(bufr); continue
+
                 #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
                 try: db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
                 except Exception as e:
@@ -219,10 +223,8 @@ def parse_all_bufrs( source ):
             ec.codes_release(bufr) #release file to free memory
             db.commit() #force to commit changes to database
 
-        process     = psutil.Process(os.getpid())
-        memory_used = process.memory_info().rss  // 1024**2
         memory_free = psutil.virtual_memory()[1] // 1024**2
-
+        
         #if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
             print("Too much RAM used, RESTARTING...")
@@ -230,9 +232,19 @@ def parse_all_bufrs( source ):
             exe = sys.executable #restart program
             os.execl(exe, exe, * sys.argv); sys.exit()
 
-for SOURCE in config_sources:
-    if verbose: print(f"Parsing source {SOURCE}...")
-    parse_all_bufrs( SOURCE )
 
-#commit to db and close all connections
-db.close()
+if __name__ == "__main__":
+
+    pid_file = config_script["pid_file"]
+
+    if already_running( pid_file ):
+        sys.exit( f"{sys.argv[0]} is already running... exiting!" )
+
+    for SOURCE in config_sources:
+        if verbose: print(f"Parsing source {SOURCE}...")
+        parse_all_bufrs( SOURCE )
+
+    #commit to db and close all connections
+    db.close()
+    #remove file containing the pid, so the script can be started again
+    os.remove( pid_file )
