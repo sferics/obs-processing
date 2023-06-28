@@ -179,15 +179,18 @@ def parse_all_bufrs( source, pid_file ):
                         if verbose: print(f"{e}: {key}")
                         obs[key] = "NULL"
 
-                obs["stID"]    = meta["stID"]
-                obs["updated"] = dt.utcnow()
+                obs["stID"]     = meta["stID"]
+                obs["updated"]  = dt.utcnow()
+                obs["source"]   = source
 
                 #we need correct date/time information, otherwise skip this obs!
                 if multi_file:
-                    for tk in time_keys[:4]:
+                    for tk in time_keys[:3]:
                         if tk not in obs or obs[tk] in null_vals:
                             skip_obs = True; break
                     if skip_obs: continue
+
+                    if "minute" not in obs or obs["minute"] in null_vals: obs["minute"] = 0
                 
                     #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
                     try: db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
@@ -206,11 +209,12 @@ def parse_all_bufrs( source, pid_file ):
                     obs["year"] = FILE[start:stop]
                 except: obs["year"] = dt.utcnow().year
 
-                for tk in time_keys[:4]:
+                for tk in time_keys[:3]:
                     if tk not in obs or obs[tk] in null_vals:
                         skip_obs = True; break
                 
                 if skip_obs: ec.codes_release(bufr); continue
+                if "minute" not in obs or obs["minute"] in null_vals: obs["minute"] = 0
 
                 #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
                 try: db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
