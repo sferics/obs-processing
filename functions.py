@@ -61,8 +61,22 @@ from os.path import exists
 from psutil import pid_exists, Process
 
 def already_running( pid_file = "pid.txt" ):
+    #https://stackoverflow.com/a/73363976
     if exists( pid_file ):
         return True
     with open( pid_file, 'w' ) as f:
         f.write( str(getpid()) )
+    return False
+
+def already_running2():
+    """same as above but without pid file"""
+    import subprocess, sys
+    
+    cmd = [f'pgrep -f .*python.*{sys.argv[0]}']
+    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, 
+    stderr=subprocess.PIPE)
+    my_pid, err = process.communicate()
+
+    if len(my_pid.splitlines()) >0:
+       return True
     return False
