@@ -64,5 +64,5 @@ def already_running( pid_file = "pid.txt" ):
     if exists( pid_file ):
         return True
     with open( pid_file, 'w' ) as f:
-        f.write( getpid() )
+        f.write( str(getpid()) )
     return False
