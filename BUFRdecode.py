@@ -43,7 +43,7 @@ if len(sys.argv) == 2:
 else: config_sources = config["sources"]
 
 
-def parse_all_bufrs( source ):
+def parse_all_bufrs( source, pid_file ):
     
     bufr_dir      = source + "/"
     config_source = config_sources[source]
@@ -204,14 +204,13 @@ def parse_all_bufrs( source ):
                 try:
                     start, stop = config_bufr["year"]
                     obs["year"] = FILE[start:stop]
-                except: pass
-                
+                except: obs["year"] = dt.utcnow().year
+
                 for tk in time_keys[:4]:
                     if tk not in obs or obs[tk] in null_vals:
                         skip_obs = True; break
                 
-                if skip_obs:
-                    ec.codes_release(bufr); continue
+                if skip_obs: ec.codes_release(bufr); continue
 
                 #insert obsdata to db; on duplicate key update only obs values; no stID or time_keys
                 try: db.sql_insert( "obs", obs, conflict = conflict_keys, skip_update = conflict_keys )
@@ -224,25 +223,27 @@ def parse_all_bufrs( source ):
             db.commit() #force to commit changes to database
 
         memory_free = psutil.virtual_memory()[1] // 1024**2
-        
+
         #if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
             print("Too much RAM used, RESTARTING...")
             db.close()
+            os.remove( pid_file )
             exe = sys.executable #restart program
             os.execl(exe, exe, * sys.argv); sys.exit()
 
 
-pid_file = config_script["pid_file"]
+if __name__ == "__main__":
+    pid_file = config_script["pid_file"]
 
-if already_running( pid_file ):
-    sys.exit( f"{sys.argv[0]} is already running... exiting!" )
+    if already_running( pid_file ):
+        sys.exit( f"{sys.argv[0]} is already running... exiting!" )
 
-for SOURCE in config_sources:
-    if verbose: print(f"Parsing source {SOURCE}...")
-    parse_all_bufrs( SOURCE )
+    for SOURCE in config_sources:
+        if verbose: print(f"Parsing source {SOURCE}...")
+        parse_all_bufrs( SOURCE, pid_file )
 
-#commit to db and close all connections
-db.close()
-#remove file containing the pid, so the script can be started again
-os.remove( pid_file )
+    #commit to db and close all connections
+    db.close()
+    #remove file containing the pid, so the script can be started again
+    os.remove( pid_file )

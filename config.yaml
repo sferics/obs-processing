@@ -46,7 +46,6 @@ sources:
       api:  eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjA2MTU4MDU3YmM2MDRkMjA5OTExN2ZjOWJkY2IyZThiIiwiaCI6Im11cm11cjEyOCJ9
       curl: "--location --request GET -G {url} -d maxKeys=10 --header Authorization: {api}"
       prio: 0
-      year: [11,15]
       multi_file: False
     netcdf:
       ext:  nc
@@ -70,6 +69,7 @@ sources:
       url:  https://opendata.meteo.be/ftp/observations/synop/
       wget: "-nc -nd -np -r"
       prio: 0
+      year: [11:15]
       multi_file: False
   NOAA:
     bufr: 
