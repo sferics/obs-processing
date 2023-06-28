@@ -24,6 +24,7 @@ scripts:
   getSMHI.py:     https://opendata.smhi.se/apidocs/metobs/data.html
   getMIRA.py:     "" #Dahlem additional obs TODO
   getZAMG.py:     "" #only historical data...
+  getKNMI.py:     "" #dutch weather service API download script
 
 sources:
   DWD:
