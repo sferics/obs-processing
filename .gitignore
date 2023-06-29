@@ -43,3 +43,5 @@ NOAA/
 miniconda3
 obs.db-journal
 pid.BUFRdecode
+.bash_aliases
+.sqlite_history
