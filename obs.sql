@@ -11,5 +11,5 @@ CREATE TABLE IF NOT EXISTS obs (
   minute int unsigned NOT NULL,
   timePeriod int unsigned DEFAULT NULL,
   timeSignificance int DEFAULT NULL,
-  CONSTRAINT uniq_obs PRIMARY KEY (stID,year,month,day,hour,minute,timeSignificance,timePeriod,prio)
+  CONSTRAINT unique_obs PRIMARY KEY (stID,year,month,day,hour,minute,timeSignificance,timePeriod,prio)
 );

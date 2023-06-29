@@ -40,5 +40,11 @@ CREATE TABLE IF NOT EXISTS station (
   methodOfWaterTemperatureAndOrOrSalinityMeasurement int DEFAULT NULL,
   methodOfEvaporationMeasurement int DEFAULT NULL,
   methodOfSnowDepthMeasurement int DEFAULT NULL,
+  indicatorToSpecifyObservingMethodForExtremeTemperatures DEFAULT NULL,
+  principalTimeOfDailyReadingOfMaximumTemperature DEFAULT NULL,
+  principalTimeOfDailyReadingOfMinimumTemperature DEFAULT NULL,
+  qualityInformationAwsData DEFAULT NULL,
+  internalMeasurementStatusInformationAws DEFAULT NULL,
+  surfaceQualifierForTemperatureData DEFAULT NULL,
   sensorIndex int DEFAULT NULL
 );
