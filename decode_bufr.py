@@ -459,8 +459,8 @@ if __name__ == "__main__":
     conda_env = os.environ['CONDA_DEFAULT_ENV']
     
     if config_script["conda_env"] != conda_env:
-        sys.exit(f"This script needs to run in conda environment {conda_env}, exiting!")
-    
+        sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
+ 
     if args.max_files:  config_script["max_files"]  = args.max_files
     if args.sort_files: config_script["sort_files"] = args.sort_files
 

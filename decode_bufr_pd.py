@@ -145,8 +145,12 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         if len(df.columns) == 0: file_statuses.add( ("empty", ID) ); continue
         # if dataframe larger than minimum keyset: drop all rows and columns which only contains NaNs
         
-        elif len(df.columns) > number_of_filter_keys:
-        #else:
+        #elif len(df.columns) > number_of_filter_keys:
+        else:
+            if debug:
+                for ix, row in df.iteritems():
+                    print(df.loc[:, ix].notna().any())
+            
             df.dropna(how="all", inplace=True)
             if df.empty: file_statuses.add( ("empty", ID) ); continue
             df.dropna(how="all", axis=1, inplace=True)
@@ -244,7 +248,7 @@ if __name__ == "__main__":
     conda_env = os.environ['CONDA_DEFAULT_ENV']
     
     if config_script["conda_env"] != conda_env:
-        sys.exit(f"This script needs to run in conda environment {conda_env}, exiting!")
+        sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
     
     if args.max_files:  config_script["max_files"]  = args.max_files
     if args.sort_files: config_script["sort_files"] = args.sort_files

@@ -81,7 +81,7 @@ scripts:
     additional_keys:  !!python/tuple  [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
 
   decode_bufr_pd.py:
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     profiler:         0 # use profiler  TODO
@@ -98,7 +98,7 @@ scripts:
       #output_oper:      /data/stations_oper # em24 dev
       #output_dev:       /data/stations_dev  # em24 dev
     output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations
+    output_dev:       /home/juri/data/stations_test
     #output_dev:       /historical/db_amalthea/data/stations # m23
     #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation_se.yaml # TODO might be useful in future to define this by source?

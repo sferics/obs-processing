@@ -12,8 +12,9 @@ def convert_imgw_keys(key, data):
 if __name__ == "__main__":
     config          = gf.read_yaml("config.yaml")
     config_script   = config["scripts"][sys.argv[0]]
-    conda_env = os.environ['CONDA_DEFAULT_ENV']
-    if config_script["conda_env"] != conda_env: sys.exit(f"This script needs to run in conda environment {conda_env}, exiting!")
+    conda_env       = os.environ['CONDA_DEFAULT_ENV']
+    if config_script["conda_env"] != conda_env:
+        sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
 
     config_source   = config["sources"]["IMGW"]
     config_general  = config["general"]
