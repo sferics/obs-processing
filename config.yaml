@@ -1,84 +1,415 @@
+amalthea:
+  path:     /home/dev/amalthea
+  git:      sicherzumziel.de/amalthea/amalthea
+  branch:   main
+  version:  0.0
+  owner:    Meteo Service weather research
+  updated:  2023-08-06
+  authors:  [Andrei Arba, Morten Kretschmer, Juri Hubrig]
+
+
 database:
-  connector: database.py
-  name: obs.db
-  tables: !!python/tuple [station, obs, files]
-  table_ext: "sql"
-  null_vals: [2147483647,-1e+100,"-1e+100","null","NULL","None","MISSING","XXXX",""," " ]
-  conflict:  ["stID","prio","year","month","day","hour","minute","timePeriod","timeSignificance"]
+  connector:  database.py
+  db_file:    main.test.db
+  log_level:  ERROR
+  verbose:    0
+  traceback:  1
+  timeout:    5 # default is 5
+  settings: 
+    analysis_limit:             
+    auto_vacuum:                
+    automatic_index:            
+    busy_timeout:               
+    cache_size:                 
+    cache_spill:                
+    case_sensitive_like:        
+    cell_size_check:            
+    defer_foreign_keys:         
+    encoding:                   
+    foreign_keys:               
+    hard_heap_limit:            
+    ignore_check_constraints:   
+    journal_mode:               
+    journal_size_limit:         
+    legacy_alter_table:         
+    locking_mode:              NORMAL
+    max_page_count:             
+    mmap_size:                  
+    page_size:                  
+    parser_trace:               
+    query_only:                 
+    read_uncommitted:           
+    recursive_triggers:         
+    reverse_unordered_selects:  
+    schema_version:             
+    secure_delete:              
+    soft_heap_limit:            
+    synchronous:                
+    temp_store:                 
+    threads:                    
+    trusted_schema:             
+    user_version:               
+    writable_schema:            
+
+
+general:
+  skip_status:      [parsed, empty, error, locked]
+  output_oper:      /home/juri/data/stations_oper #TODO not used so far, future operational usage
+  output_dev:       /home/juri/data/stations
+  dev_mode:         1
+  station_dbs:      # settings for connections to station databases
+    max_retries:    1200
+    timeout:        3
+    settings:       {} # add SQLite PRAGMA settings analog to settings of main database here
+  bufr:
+    null_vals:      !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    time_keys:      !!python/tuple  [year, month, day, hour, minute]
+    station_keys:   !!python/tuple  [shortStationName, stationNumber, blockNumber]
+
 
 scripts:
-  getALL.py: "" #replacement for getALL.sh and all get*.sh scripts which it calls TODO
-  BUFRdecode.py:
-    verbose: 1
-    profile: 0
-    logging: 0
-    min_ram: 1024
-    pid_file: "pid.BUFRdecode"
-    null_vals: [2147483647,-1e+100,"-1e+100","null","NULL","None","MISSING","XXXX",""," " ]
-    time_keys: !!python/tuple [year, month, day, hour, minute, timePeriod, timeSignificance]
-    skip_keys: !!python/tuple [unexpandedDescriptors, timeIncrement]
-    skip_status: !!python/tuple [parsed, empty, error, locked]
-  SYNOPdecode.py: "" #TODO
-  METARdecode.oy: "" #TODO
-  getSWISS.py:    https://opendata.swiss/de/dataset/automatische-wetterstationen-aktuelle-messwerte
-  getSMHI.py:     https://opendata.smhi.se/apidocs/metobs/data.html
-  getMIRA.py:     "" #Dahlem additional obs TODO
-  getZAMG.py:     "" #only historical data...
-  getKNMI.py:     "" #dutch weather service API download script
+  add_stations_from_bufr.py:
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+    verbose:          1
+    traceback:        1
+    max_files:        0
+    max_retries:      100
+    multiprocessing:  15
+    null_vals:        !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    mandatory_keys:   !!python/tuple  [stationOrSiteName, latitude, longitude]
+    additional_keys:  !!python/tuple  [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
+
+  decode_bufr_pd.py:
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        1 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_files:        5046 # zero means no maximum #15: 5395
+    max_retries:      1200 # max retries when writing into databases 
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
+      #output_oper:      /data/stations_oper # em24 dev
+      #output_dev:       /data/stations_dev  # em24 dev
+    output_oper:      #TODO not used so far, for future operational usage
+    output_dev:       /home/juri/data/stations
+    #output_dev:       /historical/db_amalthea/data/stations # m23
+    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
+    bufr_translation: bufr_translation_se.yaml # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    extract_subsets:  0
+    skip_function:    0
+    skip_computed:    0
+    skip_duplicates:  0
+    skip_status:      [parsed, empty, error, locked]
+    null_vals:        !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    time_keys:        !!python/tuple  [year, month, day, hour, minute]
+    station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
+
+  decode_bufr_mv.py:
+    conda_env:        metview
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        1 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_files:        5046 # zero means no maximum #15: 5395
+    max_retries:      1200 # max retries when writing into databases 
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
+      #output_oper:      /data/stations_oper # em24 dev
+      #output_dev:       /data/stations_dev  # em24 dev
+    output_oper:      #TODO not used so far, for future operational usage
+    output_dev:       /home/juri/data/stations
+    #output_dev:       /historical/db_amalthea/data/stations # m23
+    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
+    bufr_translation: bufr_translation_mv.yaml # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    extract_subsets:  0
+    skip_function:    0
+    skip_computed:    0
+    skip_duplicates:  0
+    skip_status:      [parsed, empty, error, locked]
+    null_vals:        !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    time_keys:        !!python/tuple  [year, month, day, hour, minute]
+    station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
+
+  decode_bufr_se.py:
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        1 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_files:        5046 # zero means no maximum #15: 5395
+    max_retries:      1200 # max retries when writing into databases 
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
+      #output_oper:      /data/stations_oper # em24 dev
+      #output_dev:       /data/stations_dev  # em24 dev
+    output_oper:      #TODO not used so far, for future operational usage
+    output_dev:       /home/juri/data/stations
+    #output_dev:       /historical/db_amalthea/data/stations # m23
+    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
+    bufr_translation: bufr_translation_se.yaml # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    extract_subsets:  0
+    skip_function:    0
+    skip_computed:    0
+    skip_duplicates:  0
+    skip_status:      [parsed, empty, error, locked]
+    null_vals:        !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    time_keys:        !!python/tuple  [year, month, day, hour, minute]
+    station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
+
+  decode_bufr.py:
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        1 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_files:        5046 # zero means no maximum #15: 5395
+    max_retries:      1200 # max retries when writing into databases 
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
+      #output_oper:      /data/stations_oper # em24 dev
+      #output_dev:       /data/stations_dev  # em24 dev
+    output_oper:      #TODO not used so far, for future operational usage
+    output_dev:       /home/juri/data/stations
+    #output_dev:       /historical/db_amalthea/data/stations # m23
+    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
+    bufr_translation: bufr_translation.yaml # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    extract_subsets:  0
+    skip_function:    0
+    skip_computed:    0
+    skip_duplicates:  0
+    skip_status:      [parsed, empty, error, locked]
+    null_vals:        !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    time_keys:        !!python/tuple  [year, month, day, hour, minute]
+    station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
+
+  decode_synop.py:    #TODO
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+  decode_metar.py:    #TODO
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+  decode_netcdf.py:   #TODO
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+  
+  get_obs.py:         # replacement for getALL.sh and get*.sh scripts; calls get*.py as well TODO
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+    dev_mode:         1 # True : download all data in given timespan - False : download only daily data
+    max_retries:      3
+  get_ogimet.py:      #TODO rewrite bash script in python
+  get_swiss.py:       https://opendata.swiss/de/dataset/automatische-wetterstationen-aktuelle-messwerte
+  get_smhi.py:        https://opendata.smhi.se/apidocs/metobs/data.html
+  get_mira.py:        # Dahlem additional obs TODO
+  get_zamg.py:        # only historical data!
+  get_knmi.py:        # dutch weather service API download script
+  get_imgw.py:
+    conda_env:        test39
+    dev_mode:         1
+    log_level:        ERROR
+    verbose:          1
+    max_retries:      10
+    timeout:          3
+    
+  forge_obs.py:
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+
+  audit_obs.py:  #TODO data quality check (idea: each obs parameter gets a range in units table)
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+
+  derive_obs.py:      #TODO e.g. calculate Td from T and RH ... do we need this or can it be part of decode_bufr?
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+
+  aggregate_obs.py:
+    conda_env:        test39
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    traceback:        1 # traceback prints
+    dev_mode:         1 # 1 : aggregate all obs data, 0 : only aggregate current obs data (livesystem)
+    multiprocessing:  15
+    station_cluster:  germany # TODO should take setting from sources instead
+    params:
+      FFavg_10m_10min_syn:      [10min, ~]
+      FFmax_10m_10min_syn:      [10min, ~]
+      FFavg_10m_1h_syn:         [1h,    AVG]
+      FFmax_10m_1h_syn:         [1h,    MAX]
+      FFmax_avg_10m_1h_syn:     [1h,    MAX]
+      PRATE_srf_1h_syn:         [1h,    SUM]
+      PRATE_srf_24h_syn:        [24h,   SUM,  6]
+      GLRAD_srf_1h_syn:         [1h,    SUM]
+      LONGRAD_srf_1h_syn:       [1h,    SUM]
+      DIFFRAD_srf_1h_syn:       [1h,    SUM]
+      Tmin_5cm_24h_syn:         [24h,   MIN,  0]
+      Tmin_2m_24h_syn:          [24h,   MIN,  0]
+      Tmax_5cm_24h_syn:         [24h,   MAX,  0]
+      Tmax_2m_24h_syn:          [24h,   MAX,  0]
+      Tmin_5cm_12h_syn:         [12h,   MIN,  18]
+      Tmin_2m_12h_syn:          [12h,   MIN,  18]
+      Tmax_5cm_12h_syn:         [12h,   MAX,  6]
+      Tmax_2m_12h_syn:          [12h,   MAX,  6]
+      SUNDUR_srf_1h_syn:        [1h,    SUM]
+      SUNDUR_srf_24h_syn:       [24h,   SUM,  0]
+      PDUR_srf_1h_syn:          [1h,    SUM]
+
+clusters:
+  germany:
+      block:      10
+      identifier: 616
+      stations:   wmo
+  germany_dwd:
+      block:      ~
+      identifier: 616
+      stations:   dwd
+
 
 sources:
-  DWD:
+  test: # for testing purposes only; dir contains BUFRs from German station [2022-03 -> 2023-03]
     bufr:
-      ext:  bin
-      url:  https://opendata.dwd.de/weather/weather_reports/synoptic/
-      wget: "-nc -nd -np -e robots=off -r -l 1 -k -p -H"
-      prio: 0
-      multi_file: True
-    synop:
-      ext:  txt
-      url:  https://opendata.dwd.de/weather/weather_reports/synoptic/international/ 
-      wget: "-nc -nd -np -e robots=off"
-      prio: 2
-  KNMI: #TODO
+      ext:    bin
+      glob:   "*" #"*_bda01,synop_bufr_GER_999999_999999__MW_???" # only german BUFR messages
+      prio:   0
+      #dir:   /historical/home/mswr/incoming/opendata.dwd.de/weather/weather_reports/synoptic/germany # m23
+      #dir:   /home/dev/bufr-decoder/DWD # em24 dev
+      dir:    /home/juri/data/historical/dwd/bufr # em24 juri
+      tables: /home/juri/amalthea/main/dwd_tables
+      skip1:  2 
+      skip2:  11
+      skip3:  4
+      filter:
+      #  # these keys are guaranteed to be always present and we filter them to make sure no NaN values are present 
+        - WMO_station_id
+        - data_datetime
+        - airTemperature
+        - heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform
+    stations: wmo
+    cluster:  germany
+ 
+  dwd_germany:
+    bufr:
+      ext:    bin
+      url:    https://opendata.dwd.de/weather/weather_reports/synoptic/germany/
+      dir:    /home/juri/data/live/dwd/bufr/germany
+    stations: wmo
+    cluster:  germany
+
+  cod:
+    bufr:
+      ext:    bufr
+      url:    https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
+      dir:    /home/juri/data/live/cod/bufr
+    stations: wmo
+    cluster:  germany
+
+  DWD: # German weather service
+    bufr:
+      ext:    bin
+      prio:   0
+      dir:    /home/dev/bufr-decoder/DWD # em24 dev
+    stations: wmo,dwd
+    clusters: germany,europe,usa
+  
+  KNMI: # Dutch weather service
     bufr:
       ext:  bufr
-      #https://developer.dataplatform.knmi.nl/
-      url:  https://api.dataplatform.knmi.nl/open-data/v1/datasets/knmi_synop_bufr/versions/1/files 
-      api:  eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjA2MTU4MDU3YmM2MDRkMjA5OTExN2ZjOWJkY2IyZThiIiwiaCI6Im11cm11cjEyOCJ9
-      curl: "--location --request GET -G {url} -d maxKeys=10 --header Authorization: {api}"
+      glob: "SYNOP_BUFR_*"
       prio: 0
-      multi_file: False
+      dir:  /home/dev/bufr-decoder/KNMI
     netcdf:
       ext:  nc
       url:  https://dataplatform.knmi.nl/dataset/access/actuele10mindataknmistations-2
-  COD: #College of DuPage
+  
+  COD: # College of DuPage
     bufr:
       ext:  bufr
       url:  https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
       wget: "-e robots=off -nc -nd -np -r"
       prio: 0
-      year: [0,2]
-      multi_file: False
+      dir:        /home/dev/bufr-decoder/COD
     synop:
       ext:  syn
       url:  https://weather.cod.edu/digatmos/syn/
       wget: "-e robots=off -nc -nd -np -r"
       prio: 2
-  RMI: #Belgian meteorological service
+    metar:
+      ext:  sao
+      url:  https://weather.cod.edu/digatmos/sao/
+      wget: "-e robots=off -nc -nd -np -r"
+      prio: 3
+
+  RMI: # Belgian meteorological service
     bufr:
       ext:  bufr
       url:  https://opendata.meteo.be/ftp/observations/synop/
       wget: "-nc -nd -np -r"
       prio: 0
-      year: [11:15]
-      multi_file: False
-  NOAA:
-    bufr: 
+      dir:        /home/dev/bufr-decoder/RMI
+  
+  SWISS: #TODO import from wetterturnier
+    ext:  csv
+    url:  https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA98.csv
+    prio: 0
+  
+  ZAMG: #TODO only historical data (not newer than yesterday...) API: https://data.hub.zamg.ac.at/
+    ext:  csv
+    url:  https://dataset.api.hub.zamg.ac.at/app/frontend/station/historical/klima-v1-10min?anonymous=true
+    prio: 0
+  
+  MIRA: #TODO import from wetterturnier
+    ext:  csv
+    url:  TODO ftp mira
+    prio: -1
+  
+  SMHI: #TODO swedish meteorological service
+    ext:  json
+    url:  https://opendata.smhi.se/apidocs/metobs/data.html
+    prio: 1
+
+  IMGW: # Polish meteo+hydrological service
+    url:    https://danepubliczne.imgw.pl/api/data/synop
+    #historical data 2017-
+    #https://danepubliczne.imgw.pl/data/arch/ost_meteo/
+    #historical data 1951-
+    #https://danepubliczne.imgw.pl/data/dane_pomiarowo_obserwacyjne/dane_meteorologiczne/
+  
+  NWS:  # US weather forecasting service
+    url:    https://www.weather.gov/documentation/services-web-api  
+  
+  NOAA: # USA weather, climate and ocean service
+    bufr:
       ext:  bin
       url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.bf/DC.intl/
       wget: "-N -nd -np -r -l 1"
       prio: 0
-      multi_file: True
+      dir:        /home/dev/bufr-decoder/NOAA
     synop:
       ext:  txt
       url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.synop/
@@ -89,75 +420,20 @@ sources:
       url:  ["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/", "https://tgftp.nws.noaa.gov/data/observations/metar/stations/", "http://tgftp.nws.noaa.gov/data/observations/metar/cycles/"]
       wget: "-N -nd -np -r -l 1"
       prio: 3
-  NCAR: #TODO only historical?
-    bufr:
+  
+  NCAR: # only historical (not newer than yesterday)!
+    bufr: #TODO strange format - adapt BUFR decoder to it or leave this source out
       ext:  bufr
       set:  https://rda.ucar.edu/datasets/ds461.0/
       url:  https://data.rda.ucar.edu/ds461.0/bufr/2023/gdas.adpsfc.t00z.20230101.bufr?download=1
       tar:  True
       prio: 0
-      multi_file: False #True
+      dir:        /home/dev/bufr-decoder/NCAR
+  
   OGIMET: #TODO
     bufr:
-     ext:  bufr
-     url:  http://www.ogimet.com/getbufr.php?res=list&beg=201701290600&end=201701290600 
-     wget: ""
-     prio: 1
-     multi_file: False
-  #SWISS: #TODO import from wetterturnier
-  #  ext:  csv
-  #  url:  https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA98.csv
-  #  prio: 0
-  #ZAMG: #TODO only historical data (not newer than yesterday...) API: https://data.hub.zamg.ac.at/
-  #  ext:  csv
-  #  url:  https://dataset.api.hub.zamg.ac.at/app/frontend/station/historical/klima-v1-10min?anonymous=true 
-  #  prio: 0
-  #MIRA: #TODO import from wetterturnier
-  #  ext:  csv
-  #  url:  TODO ftp mira
-  #  prio: -1
-  #SMHI: TODO swedish meteorological service
-  #  ext:  json
-  #  url:  https://opendata.smhi.se/apidocs/metobs/data.html
-  #  prio: 1
-
-station_info: !!python/tuple
-  - stationNumber
-  - blockNumber
-  - stationOrSiteName
-  - shortStationName
-  - stateIdentifier
-  - nationalStationNumber
-  - stationType
-  - latitude
-  - longitude
-  - elevation
-  - heightOfStationGroundAboveMeanSeaLevel
-  - heightOfBarometerAboveMeanSeaLevel
-  - heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform
-  - heightOfSensorAboveWaterSurface
-  - depthBelowWaterSurface
-  - depthBelowLandSurface
-  - instrumentationForWindMeasurement
-  - typeOfInstrumentationForEvaporationMeasurement
-  - wigosIdentifierSeries
-  - wigosIssuerOfIdentifier
-  - wigosIdentifierSeries
-  - wigosIssueNumber
-  - wigosLocalIdentifierCharacter
-  - mainPresentWeatherDetectingSystem
-  - supplementaryPresentWeatherSensor
-  - visibilityMeasurementSystem
-  - cloudDetectionSystem
-  - lightningDetectionSensorType
-  - skyConditionAlgorithmType
-  - capabilityToDetectPrecipitationPhenomena
-  - capabilityToDetectOtherWeatherPhenomena
-  - capabilityToDetectObscuration
-  - capabilityToDiscriminateLightningStrikes
-  - methodOfStateOfGroundMeasurement
-  - methodOfPrecipitationMeasurement
-  - methodOfLiquidContentMeasurementOfPrecipitation
-  - methodOfWaterTemperatureAndOrOrSalinityMeasurement
-  - methodOfEvaporationMeasurement
-  - sensorIndex
+      ext:  bufr
+      url:  http://www.ogimet.com/getbufr.php?res=list&beg=201701290600&end=201701290600
+      wget: ""
+      prio: 1
+      dir:        /home/dev/bufr-decoder/OGIMET

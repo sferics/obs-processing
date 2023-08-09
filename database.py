@@ -1,172 +1,1502 @@
-from functions import read_yaml, read_file
+#!/home/dev/bin/miniconda3/envs/test39/bin/python
 
-class db:
+import sys, re, inspect, sqlite3 # sqlite connector python base module
+import funcy
+import global_functions as gf
+import global_variables as gv
+import logging as log
 
-    def __init__(self, config="config.yaml"):
-        #read config.yaml to dictionary
-        config_yaml      = read_yaml( config )
-        self.config      = config_yaml["database"]
-        self.name        = self.config["name"]
-        self.tables      = self.config["tables"]
-        self.table_ext   = self.config["table_ext"]
-        self.null_vals   = self.config["null_vals"]
+class database:
 
-        #set up database cursor and cursor
-        from sqlite3 import connect  #python sqlite connector
-        self.con    = connect(self.name)  # Creating obs db and opening database connection
-        self.cur    = self.con.cursor()   # Creating cursor object to call SQL
-        self.commit = lambda : self.con.commit()
+    def __init__(self, db_file="main.test.db", timeout=5, ro=False, log_level="NOTSET", verbose=0, traceback=0, settings={}):
+        
+        #TODO add logging statements where it makes sense for debugging/monitoring of database activities
+        if log_level: self.log_level = log_level
+        log.basicConfig( filename=f"database.log", filemode="w", level=eval(f"log.{self.log_level}") )
 
-        #read sql files to create db tables and execute the SQL statements
-        for table in self.tables:
-            self.cur.execute( read_file( table + "." + self.table_ext ) )
+        # keep name of datebase file which we want to attach (connect)
+        self.name       = db_file
+        self.timeout    = timeout
+        self.verbose    = verbose
+        self.traceback  = traceback
 
-    def close(self):
-        self.commit()
-        self.cur.close()
-        self.con.close()
+        # if ro == True we open the database in read-only mode
+        if ro: self.name = f"file:{self.name}?mode=ro"
+
+        # Opening database connection
+        self.con    = sqlite3.connect(self.name, timeout=timeout, uri=ro)
+        # Get rid of tuple w/ length 1
+        self.con.row_factory = lambda cursor,row : row[0] if len(row)==1 else row
+        # Set up database cursor
+        self.cur    = self.con.cursor()
+
+        # apply all PRAGMA settings via a dictionary/keywords
+        for i in settings:
+            if settings[i]: exec( f"self.{i}('{settings[i]}')" )
+            elif verbose: print( i, setting )
+
+    # some useful shorthand definitions
+    commit  = lambda self         : self.con.commit()
+    attach  = lambda self, DB, AS : self.exe( f"ATTACH DATABASE '{DB}' as '{AS}'" )
+    detach  = lambda self, DB     : self.exe( f"DETACH DATABASE '{DB}'" )
+    fetch1  = lambda self         : self.cur.fetchone()
+    fetch   = lambda self         : self.cur.fetchall()
+    exe     = lambda self, *param : self.cur.execute(*param)
+    exemany = lambda self, *param : self.cur.executemany(*param)
+
+
+    def close(self, commit=True, verbose=False ):
+        """
+        Parameter:
+        ----------
+        commit : commit database after closing the connection to database and cursor
+        
+        Notes:
+        ------
+        Closes the database connection and cursor of the current database object.
+        
+        Return:
+        ------
+        True if succesfully cloesd (and committed), False if not
+        """
+        try:
+            if commit: self.commit()
+            self.cur.close()
+            self.con.close()
+        except Exception as e:
+            if verbose: gf.print_trace(e)
+            return False
+        else:
+            return True
+
+
+    # generic getter/setter PRAGMA function. it can be called by the actual pragma functions, which follow
+
+    def pragma_get_set( self, pragma, N=None, schema="" ):
+        """
+        Parameter:
+        ----------
+        pragma : name of PRAGMA statement (https://www.sqlite.org/pragma.html)
+        N : settting
+
+        Notes:
+        ------
+        query or set given PRAGMA
+        https://www.sqlite.org/pragma.html#pragma_auto_vacuum
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        if N is not None: N = f" = {N}"
+        else: N = ""
+        if schema: schema = f"'{schema}'."
+        self.exe( f"PRAGMA {schema}{pragma}{N}" )
+        if not N: return self.fetch1()
+
+
+    def analysis_limit( self, N="" ):
+        """
+        Parameter:
+        ----------
+        N : int setting the limit of the ANALYZE setting
+
+        Notes:
+        ------
+        Query or change a limit on the approximate ANALYZE setting.
+        https://www.sqlite.org/pragma.html#pragma_analysis_limit
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        # inspect.currentframe().f_code.co_name gets the name of the current function 
+        # found it here: https://www.geeksforgeeks.org/python-how-to-get-function-name/
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+
     
+    def auto_vacuum( self, N="" ):
+        """
+        Parameter:
+        ----------
+        N : setttings = [ 0 | NONE | 1 | FULL | 2 | INCREMENTAL ]
+
+        Notes:
+        ------
+        query or set the auto-vacuum status in the database
+        https://www.sqlite.org/pragma.html#pragma_auto_vacuum
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+   
+
+    def automatic_index( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : a bool turning automatic indexing on or off
+
+        Notes:
+        ------
+        Query or set automatic indexing in the database
+        https://www.sqlite.org/pragma.html#pragma_automatic_index
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean ) 
+   
+
+    def busy_timeout( self, ms="" ):
+        """
+        Parameter:
+        ----------
+        ms: int setting the timeout in milliseconds
+
+        Notes:
+        ------
+        Query or change the setting of the busy timeout.
+        https://www.sqlite.org/pragma.html#pragma_busy_timeout
+        
+        Return:
+        -------
+        setting if ms not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, ms )
+   
+
+    def cache_size( self, N="" ):
+        """
+        Parameter:
+        ----------
+        N : If the argument N is positive then the suggested cache size is set to N. If the argument N is
+        negative, then the number of cache pages is adjusted to be a number of pages that would use approximately
+        abs(N*1024) bytes of memory based on the current page size.
+
+        Notes:
+        ------
+        query or change the suggested maximum number of database disk pages that SQLite will hold in memory at
+        once per open database file
+        https://www.sqlite.org/pragma.html#pragma_cache_size
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+
+    
+    def cache_spill( self, boolean=None, schema="" ):
+        """
+        Parameter:
+        ----------
+        boolean : bool setting case sensitive like on/off for current database object
+        schema : str schema (database name)
+
+        Notes:
+        ------
+        query or change ability of pager to spill dirty cache pages to database file in the middle of transaction
+        https://www.sqlite.org/pragma.html#pragma_cache_spill
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N=boolean, schema=schema )
+   
+
+    def case_sensitive_like( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool setting case sensitive like on/off for current database object
+
+        Notes:
+        ------
+        query or change the behaviour of the LIKE operator
+        https://www.sqlite.org/pragma.html#pragma_case_sensitive_like
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+    
+    def cell_size_check( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool setting cell size check on/off for current database object
+
+        Notes:
+        ------
+        query or change additional sanity checking on database b-tree pages
+        https://www.sqlite.org/pragma.html#pragma_cell_size_check
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def defer_foreign_keys( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool setting defer foreign keys on/off for current database object
+
+        Notes:
+        ------
+        query or change enforcement of all foreign key constraints
+        https://www.sqlite.org/pragma.html#pragma_defer_foreign_keys
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+    
+    def encoding( self, N="" ):
+        """
+        Parameter:
+        ----------
+        N : encoding [UTF-8", UTF-16, UTF-16le, UTF-16be ]
+
+        Notes:
+        ------
+        query or set the encoding of the database
+        https://www.sqlite.org/pragma.html#pragma_encoding
+
+        Return:
+        -------
+        encoding of database if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+
+
+    def foreign_keys( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool setting foreign keys on/off for current database object
+
+        Notes:
+        ------
+        query, set, or clear the enforcement of foreign key constraints
+        https://www.sqlite.org/pragma.html#pragma_defer_foreign_keys
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def hard_heap_limit( self, N="" ):
+        """
+        Parameter:
+        ----------
+        N : setting
+
+        Notes:
+        ------
+        query or invoke the sqlite3_hard_heap_limit64() interface with the argument N (a non-negative integer)
+        https://www.sqlite.org/pragma.html#pragma_hard_heap_limit
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+
+
+    def ignore_check_constraints( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool enabling/disabling ignore check constraints for current database object
+
+        Notes:
+        ------
+        query, enable or disable the enforcement of CHECK constraints
+        https://www.sqlite.org/pragma.html#pragma_ignore_check_constraints
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def journal_mode( self, N="", schema="" ):
+        """
+        Parameter:
+        ----------
+        N : setting [ DELETE | TRUNCATE | PERSIST | MEMORY | WAL | OFF ]
+        schema : database name
+
+        Notes:
+        ------
+        query or set the journal mode for databases associated with the current database connection
+        https://www.sqlite.org/pragma.html#pragma_journal_mode
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N=N, schema=schema )
+
+
+    def journal_size_limit( self, N="", schema="" ):
+        """
+        Parameter:
+        ----------
+        N : setting
+        schema : database name
+
+        Notes:
+        ------
+        query or set journal_size_limit
+        https://www.sqlite.org/pragma.html#journal_size_limit
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N=N, schema=schema )
+
+
+    def legacy_alter_table( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool enabling/disabling setting
+
+        Notes:
+        ------
+        query, enable or disable legacy_alter_table
+        https://www.sqlite.org/pragma.html#legacy_alter_table
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def locking_mode( self, N="" ):
+        """
+        Parameter:
+        ----------
+        N : setting [ NORMAL | EXCLUSIVE ]
+
+        Notes:
+        ------
+        query, enable or disable locking_mode
+        https://www.sqlite.org/pragma.html#locking_mode
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+
+
+    def max_page_count( self, N="", schema="" ):
+        """
+        Parameter:
+        ----------
+        N : setting
+        schema : database name
+
+        Notes:
+        ------
+        query or set max_page_count
+        https://www.sqlite.org/pragma.html#max_page_count
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N=N, schema=schema )
+
+
+    def mmap_size( self, N="", schema="" ):
+        """
+        Parameter:
+        ----------
+        N : setting
+        schema : database name
+
+        Notes:
+        ------
+        query or set mmap_size
+        https://www.sqlite.org/pragma.html#mmap_size
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N=N, schema=schema )
+
+
+    def page_size( self, boolean="", schema="" ):
+        """
+        Parameter:
+        ----------
+        boolean : setting
+        schema : database name
+
+        Notes:
+        ------
+        query or change page_size
+        https://www.sqlite.org/pragma.html#page_size
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N=boolean, schema=schema )
+
+
+    def parser_trace( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool enabling/disabling setting
+
+        Notes:
+        ------
+        query, enable or disable parser_trace
+        https://www.sqlite.org/pragma.html#parser_trace
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def query_only( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool enabling/disabling setting
+
+        Notes:
+        ------
+        query, enable or disable query_only
+        https://www.sqlite.org/pragma.html#query_only
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def read_uncommitted( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool enabling/disabling setting
+
+        Notes:
+        ------
+        query, enable or disable read_uncommitted
+        https://www.sqlite.org/pragma.html#read_uncommitted
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def recursive_triggers( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool enabling/disabling setting
+
+        Notes:
+        ------
+        query, enable or disable recursive_triggers
+        https://www.sqlite.org/pragma.html#recursive_triggers
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def recursive_triggers( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool enabling/disabling setting
+
+        Notes:
+        ------
+        query, enable or disable recursive_triggers
+        https://www.sqlite.org/pragma.html#recursive_triggers
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def reverse_unordered_selects( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool enabling/disabling setting
+
+        Notes:
+        ------
+        query, enable or disable reverse_unordered_selects
+        https://www.sqlite.org/pragma.html#reverse_unordered_selects
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def schema_version( self, integer="", schema="" ):
+        """
+        Parameter:
+        ----------
+        integer : setting
+        schema : database name
+
+        Notes:
+        ------
+        query or change schema_version
+        https://www.sqlite.org/pragma.html#schema_version
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N=integer, schema=schema )
+
+
+    def secure_delete( self, boolean="", schema="" ):
+        """
+        Parameter:
+        ----------
+        boolean : setting
+        schema : database name
+
+        Notes:
+        ------
+        query or change secure_delete
+        https://www.sqlite.org/pragma.html#secure_delete
+
+        Return:
+        -------
+        setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N=boolean, schema=schema )
+
+    #TODO implement all remaining useful (non-debug) PRAGMA functions from documentation:
+    #https://www.sqlite.org/pragma.html
+
+    def soft_heap_limit( self, N=None ):
+        """
+        Parameter:
+        ----------
+        N : soft heap limit
+
+        Notes:
+        ------
+        query or invoke the sqlite3_soft_heap_limit64() interface with the argument N (a non-negative integer)
+        https://www.sqlite.org/pragma.html#pragma_soft_heap_limit
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+
+
+    def synchronous( self, N=None ):
+        """
+        Parameter:
+        ----------
+        N : setting [ 0 | OFF | 1 | NORMAL | 2 | FULL | 3 | EXTRA ]
+
+        Notes:
+        ------
+        query or change the synchronous setting
+        https://www.sqlite.org/pragma.html#synchronous
+
+        Return:
+        -------
+        setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+
+    
+    def temp_store( self, N=None ):
+        """
+        Parameter:
+        ----------
+        N : temp_store setting [ 0, DEFAULT, 1, FILE, 2, MEMORY ]
+
+        Notes:
+        ------
+        Query or change the setting of the "temp_store" parameter
+        https://www.sqlite.org/pragma.html#pragma_temp_store
+
+        Return:
+        -------
+        temp_store setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+
+
+    def threads( self, N=None ):
+        """
+        Parameter:
+        ----------
+        N : int number of sqlite worker threads
+
+        Notes:
+        ------
+        Query or change the value of the sqlite3_limit thread limit for the current database connection.
+        https://www.sqlite.org/pragma.html#pragma_threads
+        
+        Return:
+        -------
+        thread setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+
+    
+    def trusted_schema( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool changing the trusted schema setting
+
+        Notes:
+        ------
+        Query or change the trusted_schema setting which is a per-connection boolean that determines whether or
+        not SQL functions and virtual tables that have not been security audited are allowed to be run by views,
+        triggers, or in expressions of the schema such as CHECK constraints, DEFAULT clauses, generated columns
+        expression indexes, and/or partial indexes.
+        https://www.sqlite.org/pragma.html#pragma_trusted_schema
+
+        Return:
+        -------
+        trusted_schema setting if boolean not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    def user_version( self, schema=None, integer=None ):
+        """
+        Parameter:
+        ----------
+        integer : int changing the user version
+
+        Notes:
+        ------
+        get or set the value of the user-version integer at offset 60 in the database header
+        https://www.sqlite.org/pragma.html#pragma_user_version
+
+        Return:
+        -------
+        user_version if integer not given, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N=integer, schema=schema )
+
+
+    def wal_autocheckpoint( self, N=None ):
+        """
+        Parameter:
+        ----------
+        N : int setting write-ahead log auto-checkpoint interval
+
+        Notes:
+        ------
+        queries or sets the write-ahead log auto-checkpoint interval
+        https://www.sqlite.org/pragma.html#pragma_wal_autocheckpoints
+        
+        Return:
+        -------
+        wal_autocheckpoint setting if N not provided, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, N )
+
+    
+    def writable_schema( self, boolean=None ):
+        """
+        Parameter:
+        ----------
+        boolean : bool or RESET
+
+        Notes:
+        ------
+        Query or change the writable schema setting. When this pragma is on, and the SQLITE_DBCONFIG_DEFENSIVE
+        flag is off, the sqlite_schema table can be changed using ordinary UPDATE, INSERT, and DELETE statements.
+        https://www.sqlite.org/pragma.html#pragma_writable_schema
+
+        Return:
+        -------
+        writable_schema setting if boolean not given, else None
+        """
+        self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
+
+
+    # PRAGMA getter functions, could also be simplified with a generic function but this would save only few LOC
+
+    def collation_list( self ):
+        """
+        Return:
+        -------
+        a list of the collating sequences defined for the current database connection.
+        https://www.sqlite.org/pragma.html#pragma_collation_list
+        """
+        self.exe("PRAGMA collation_list")
+
+
+    def data_version( self, schema="" ):
+        """
+        Parameter:
+        ----------
+        schema : database schema/name
+        
+        Notes:
+        provides an indication that the database file has been modified
+        https://www.sqlite.org/pragma.html#pragma_data_version
+
+        Return:
+        -------
+        integer value (consult documentation for further information)
+        """
+        if schema: schema = f"'{schema}'."
+        self.exe("PRAGMA {schema}data_version")
+
+
+    def database_list( self ):
+        """
+        Notes:
+        ------
+        This pragma works like a query to return one row for each database attached to the current database
+        connection. The second column is "main" for the main database file, "temp" for the database file used to
+        store TEMP objects, or the name of the ATTACHed database for other database files. The third column is
+        the name of the database file itself, or an empty string if the database is not associated with a file.
+        """
+        self.exe( "PRAGMA database_list" )
+
+
+    def table_list( self, table_name=None, schema="" ):
+        """
+        Parameter:
+        ----------
+        schema: schema in which the table or view appears
+        table_name : name of the table which we want to list across all databases
+
+        Notes:
+        ------        
+        This pragma returns information about the tables and views in the schema, one table per row of output.
+        https://www.sqlite.org/pragma.html#pragma_table_list
+        """
+        if table_name:
+            self.cursor.execute( f"PRAGMA table_list('{table_name}')" )
+            return self.fetch()
+
+        if schema: schema = f"'{schema}'."
+        
+        sql = f"PRAGMA {schema}table_list"
+        self.cursor.execute( sql )
+        return self.fetch()
+
+
+    def table_info( self, table_name, schema="", hidden=False ):
+        """
+        Parameter:
+        ----------
+        table_name : name of the table or view
+        schema : schema containing the desired table
+        hidden: : bool if True show hidden column (see https://www.sqlite.org/pragma.html#pragma_table_xinfo)
+
+        Notes:
+        ------
+        This pragma returns one row for each normal column in the named table. Columns in the result set include:
+        "name" (its name); "type" (data type if given, else ''); "notnull" (whether or not the column can be
+        NULL); "dflt_value" (the default value for the column); and "pk" (either zero for columns that are not
+        part of the primary key, or the 1-based index of the column within the primary key).
+        https://www.sqlite.org/pragma.html#pragma_table_info 
+        """
+
+        if schema: schema = f"'{schema}'."
+        if hidden: hidden = "x"
+        else: hidden = ""
+
+        sql = f"PRAGMA {schema}table_{hidden}info('{table_name}')"
+
+        self.cursor.execute( sql )
+        return self.fetch()
+
+
+    def shrink_memory( self ):
+        """
+        Notes:
+        ------
+        This pragma causes the database connection on which it is invoked to free up as much memory as it can,
+        by calling sqlite3_db_release_memory().
+        """
+        self.exe( f"PRAGMA shrink_memory" )
+
+
+    # some helper functions
+
     def sql_value_list( self, params, update=False ):
+        """
+        Parameter:
+        ----------
+        params : dict from which we want to create a proper SQL value list 
+        update : bool make it compatible for an UPDATE clause
+
+        Notes:
+        ------
+        TODO
+
+        Return:
+        -------
+        complete VALUES statement
+        """
         value_list = ""
         for i in params:
             if update:
                 value_list += f'"{i}" = '
-            if params[i] in self.null_vals:
+            if params[i] in gv.null_vars:
                 value_list += "NULL, "
-            else:
-                value_list += f'"{params[i]}", '
+            else: value_list += f'"{params[i]}", '
         return value_list[:-2]
 
+
     def sql_values( self, params ):
-        column_list = '"' + '", "'.join(params.keys()) + '"'
-        value_list  = self.sql_value_list(params)
-        return f"({column_list}) VALUES ({value_list})"
+        """
+        Parameter:
+        ----------
+        params : dict from which we want to create a SQL string
 
-    def sql_insert(self, table, params, conflict = (), skip_update = () ):
-        
-        sql = f"INSERT INTO {table} " + self.sql_values(params)
-        if len(conflict) > 0:
-            if len(conflict) > 1:
-                conflict = ",".join(conflict)
-            else: conflict = conflict[0]
-            for i in skip_update:
-                try:    params.pop(i)
-                except: continue
-            sql += f" ON CONFLICT({conflict}) DO UPDATE SET " + self.sql_value_list(params,True)
-        
-        self.cur.execute( sql )
+        Return:
+        -------
+        single VALUES string
+        """
+        if len(params) == 1:
+            return f"({list(params)[0]}) VALUES ({list(params.values())[0]})"
+        else:
+            param_keys = '", "'.join(params.keys())
+            column_list = '"' + param_keys + '"'
+            value_list  = self.sql_value_list(params)
 
+            return f"({column_list}) VALUES ({value_list})"
+    
+    
+    # helper lambda function which adds IN() around a list of values
     sql_in = lambda self, what : "IN('"+"','".join(what)+"')"
+    
 
-    def select_distinct( self, column, table, where=None, what=None ):
-        sql = f"SELECT DISTINCT {column} FROM {table} "
+    def fix_table_name( self, table ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if "." not in table: return f"'{table}'"
+        return table
+
+
+    def fix_column_name( self, column ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        # if the column name starts with a number we have to 'quote' it in SQLite...
+        try: test = int(column[0])
+        except: return column
+        else: return f"'{column}'"
+
+
+    # SQL command functions like insert, select (distinct) and update (TODO)
+
+    def insert( self, table, params, replace="", conflict = False, update = "", skip_update = (), verbose=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if verbose is None: verbose = self.verbose
+        table = self.fix_table_name(table)
+
+        #https://www.sqlite.org/lang_insert.html 
+        values = self.sql_values(params)
+
+        if replace: replace = "OR REPLACE "
+
+        sql = f"INSERT {replace}INTO {table} " + values
+        if conflict:
+            print("CONFLICT")
+            if type(conflict) == bool: # -> conflict == True
+                conflict = ""
+            elif len(conflict) > 1: # list of conflict columns
+                conflict = " (" + ",".join(conflict) + ")"
+            else: conflict = conflict[0]
+            if type(update) == str:
+                if len(update) == 0: update = "NOTHING"
+                else: update = "UPDATE SET " + update
+            elif type(update) == dict:
+                update = "UPDATE SET " + self.sql_value_list(update, True)
+            elif skip_update:
+                for i in skip_update:
+                    try: params.pop(i)
+                    except: pass
+                update = "UPDATE SET " + self.sql_value_list(params, True)
+            else: update = f"UPDATE SET {update}"
+
+            sql += f" ON CONFLICT{conflict} DO " + update
+
+        try: self.exe( sql )
+        except Exception as e:
+            if traceback: print_trace(e)
+            if verbose: print(f"INSERT command '{sql}' failed!")
+            return False
+        else: return True
+
+
+    def select( self, column, table, where=None, what=None, distinct="", order=None, limit=None, fetchall=True ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        #https://www.sqlite.org/lang_select.html
+       
+        column = self.fix_column_name(column)
+        table = self.fix_table_name(table)
+
+        if distinct: distinct = "DISTINCT "
+        sql = f"SELECT {distinct}{column} FROM {table} "
+        if what and "%" in what: operator = "LIKE"
+        else: operator = "="
+
         if where:
-            if type(where) == tuple and len(where) > 1 and len(where) == len(what):
+            if type(where) in gv.array_types and len(where) > 1 and len(where) == len(what):
                 s = "WHERE "
                 for i in range(len(where)):
-                    if type(what[i]) == tuple: what_i = self.sql_in( what[i] )
-                    else: what_i = f"= '{what[i]}'"
+                    if type(what[i]) in gv.array_types:
+                        what_i = self.sql_in( what[i] )
+                    else: what_i = f"{operator} '{what[i]}'"
                     s += f"{where[i]} {what_i} AND "
                 sql += s[:-5]
-            else:  
-                if type(what) == tuple: what = self.sql_in( what )
-                else: what = f"= '{what}'"
+            else:
+                if type(what) in gv.array_types:
+                    what = self.sql_in( what )
+                else: what = f"{operator} '{what}'"
                 sql += f"WHERE {where} {what}"
-        self.cur.execute( sql )
-        data = self.cur.fetchall()
-        if data: return set(i[0] for i in data)
-        else:    return set()
 
-    def add_column( self, table, column, verbose=False ):
-        try: self.cur.execute(f'ALTER TABLE {table} ADD COLUMN "{column}"')
+        if order: sql += f"ORDER BY '{order}"
+        if limit: sql += f"LIMIT {limit}"
+
+        self.exe( sql )
+        
+        if fetchall:
+            data = self.fetch()
+            if data: return (_ for _ in data)
+            else:    return ()
+        else: return self.fetch1()
+
+
+    def select_distinct( self, column, table, where=None, what=None, order=None, limit=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        return set(self.select( column, table, where=where, what=what, distinct=True, order=order, limit=limit ))
+
+    
+    #TODO update (UPDATE ... SET ... = ... WHERE
+
+
+    def add_column( self, table, column, verbose=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """        
+        if verbose is None: verbose = self.verbose
+
+        table = self.fix_table_name(table)
+        column = self.fix_column_name(column)
+
+        try: self.exe(f"ALTER TABLE {table} ADD COLUMN {column}")
         except Exception as e:
-            if verbose:
-                print(e)
-                print("Column '{column}' already exist in table '{table}'!")
+            if self.traceback: gf.print_trace(e)
+            if verbose: print("Column '{column}' already exist in table '{table}'.")
+            return False
+        else: return True
+        
+        
+    def drop_column( self, table, column, verbose=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
 
-    def drop_column( self, table, column, verbose=False ):
-        try: self.cur.execute(f'ALTER TABLE {table} DROP COLUMN "{column}"')
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if verbose is None: verbose = self.verbose
+
+        table = self.fix_table_name(table)
+        column = self.fix_column_name(column)
+
+        try: self.exe(f"ALTER TABLE {table} DROP COLUMN {column}")
         except Exception as e:
-            if verbose:
-                print(e)
-                print("Column '{column}' does not exist in table '{table}'!")
+            if self.traceback: gf.print_trace(e)
+            if verbose: print("Column '{column}' does not exist in table '{table}'.")
+            return False
+        else: return True
+        
+    
+    def create_table( self, table, columns, exists="IF NOT EXISTS ", verbose=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
 
-    def register_file( self, name, path, source, status="locked", date="NULL", verbose=False ):
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if verbose is None: verbose = self.verbose
+
+        table = self.fix_table_name(table)
+
+        if not exists: exists = ""
+        sql = f"CREATE TABLE {exists}{table} ("
+        
+        if type(columns) == str:
+            sql += columns
+        
+        elif type(columns) == dict:
+            for i in columns:
+                sql += i + " " + columns[i] + ", "
+            sql = sql[:-2]
+        sql += ")"
+        
+        try: self.exe( sql )
+        except Exception as e:
+            if self.traceback: gf.print_trace(e)
+            return False
+        else:
+            return True
+
+
+    def drop_table( self, table, verbose=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if verbose is None: verbose = self.verbose
+
+        table = self.fix_table_name(table)
+        column = self.fix_column_name(column)
+
+        sql = f"DROP TABLE {table}"
+        try: self.exe( sql )
+        except Exception as e:
+            if self.traceback: gf.print_trace(e)
+            return False
+        else:
+            return True
+
+
+#TODO from here on move to getter_settter.py as soon as it uses the database class?
+
+
+    def register_file( self, name, path, source, status="locked", date="NULL", verbose=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if verbose is None: verbose = self.verbose
+
         values = f"VALUES ('{name}','{path}','{source}','{status}','{date}')"
-        sql    = f"INSERT INTO files (name,path,source,status,date) {values}"
+        sql = f"INSERT INTO file_table (name,path,source,status,date) {values} ON CONFLICT DO NOTHING"
         try:
-            self.cur.execute( sql )
+            self.exe( sql )
             return self.cur.lastrowid
         except Exception as e:
-            if verbose: print(e)
+            if self.traceback: gf.print_trace(e)
+            return False
+
+    
+    def register_files(self, names, paths, sources, statuses, dates, verbose=None):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if verbose is None: verbose = self.verbose
+        
+        N = len(names)
+        
+        if type(paths) == str:
+            paths = [paths] * N
+        if type(sources) == str:
+            sources = [source] * N
+        if type(statuses) == str:
+            statuses = [status] * N
+
+        values = set()
+
+        for i in range(N):
+            values.add( (names[i], paths[i], sources[i], statuses[i], dates[i]) )
+
+        sql = f"INSERT INTO file_table (?,?,?,?,?) ON CONFLICT DO NOTHING"
+        try:
+            self.executemany( sql, values )
+            return True
+        except Exception as e:
+            if self.traceback: gf.print_trace(e)
+            return False
+
 
     def file_exists( self, name, path ):
-        sql = f"SELECT COUNT(*) FROM files WHERE name = '{name}' AND path = '{path}'"
-        self.cur.execute( sql )
-        try:    return self.cur.fetchone()[0]
-        except: return None
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        sql = f"SELECT COUNT(*) FROM file_table WHERE name = '{name}' AND path = '{path}'"
+        self.exe( sql )
+        return self.fetch1()
+
 
     def get_file_id( self, name, path ):
-        sql = f"SELECT rowid FROM files WHERE name = '{name}' AND path = '{path}'"
-        self.cur.execute( sql )
-        try:    return self.cur.fetchone()[0]
-        except: return None
+        #TODO
+        """
+        Parameter:
+        ----------
 
-    def get_file_name( self, ID ):
-        sql = f"SELECT name FROM files WHERE rowid = '{ID}'"
-        self.cur.execute( sql )
-        try:    return self.cur.fetchone()[0]
-        except: return None
+        Notes:
+        ------
 
-    def get_file_path( self, ID ):
-        sql = f"SELECT path FROM files WHERE name = '{ID}'"
-        self.cur.execute( sql )
-        try:    return self.cur.fetchone()[0]
-        except: return None
+        Return:
+        -------
 
-    def get_file_source( self, ID ):
-        sql = f"SELECT source FROM files WHERE name = '{ID}'"
-        self.cur.execute( sql )
-        try:    return self.cur.fetchone()[0]
-        except: return None
+        """
+        sql = f"SELECT rowid FROM file_table WHERE name = '{name}' AND path = '{path}'"
+        self.exe( sql )
+        return self.fetch1()
 
-    def get_file_status( self, ID ):
-        sql = f"SELECT status FROM files WHERE rowid = '{ID}'"
-        self.cur.execute( sql )
-        try:    return self.cur.fetchone()[0]
-        except: return None
 
-    def set_file_status( self, ID, status, verbose=False ):
-        if status != "parsed" and verbose:
-            name = self.get_file_name( ID )
-            print(f"Setting status of FILE '{name}' to '{status}'")
-        sql = f"UPDATE files SET status = '{status}' WHERE rowid = '{ID}'"
-        try: self.cur.execute( sql )
+    def get_file_X( self, ID, X ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        sql = f"SELECT {X} FROM file_table WHERE rowid = '{ID}'"
+        self.exe( sql )
+        return self.fetch1()
+
+
+    get_file_name   = lambda self, ID : self.get_file_X( ID, "name" )
+    get_file_path   = lambda self, ID : self.get_file_X( ID, "path" )
+    get_file_date   = lambda self, ID : self.get_file_X( ID, "date" )
+    get_file_source = lambda self, ID : self.get_file_X( ID, "source" )
+    get_file_status = lambda self, ID : self.get_file_X( ID, "status" )
+
+
+    def set_file_X( self, ID, X, what ):
+        """
+        Parameter:
+        ----------
+        ID : file ID, unique int associated to file in datbase (stored in table_files)
+        X : file property we want to set
+        what: value we want to set X from the file in database
+
+        Return:
+        -------
+        True if succesful, False if not
+        """
+        sql = f"UPDATE file_table SET '{X}' = '{what}' WHERE rowid = {ID}"
+        try: self.exe( sql )
         except Exception as e:
-            if verbose: print(e)
+            if self.traceback: gf.print_trace(e)
+            return False
+        else: return True
 
-    def get_file_date( self, ID ):
-        sql = f"SELECT date FROM files WHERE rowid = '{ID}'"
-        self.cur.execute( sql )
-        date = self.cur.fetchone()[0]
-        if date: return date
-        else:    return None
 
-    def set_file_date( self, ID, date, verbose=False ):
+    set_file_name   = lambda self, ID, name : self.set_file_X( ID, "name", name )
+    set_file_path   = lambda self, ID, path : self.set_file_X( ID, "path", path )
+    set_file_source = lambda self, ID, source : self.set_file_X( ID, "source", source  )
+    
+
+    def set_file_date( self, ID, date, verbose=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if verbose is None: verbose = self.verbose
+
         if verbose:
             name = self.get_file_name( ID )
             print(f"Setting date of FILE '{name}' to '{date}'")
-        
+
         try:
-            sql = f"UPDATE files SET date = '{date}' WHERE rowid = '{ID}'"
-            self.cur.execute( sql )
+            sql = f"UPDATE file_table SET date = '{date}' WHERE rowid = '{ID}'"
+            self.exe( sql )
         except Exception as e:
-            if verbose: print(e)
-
-    def files_status( self, status, source=None ):
-        if source:
-            return self.select_distinct( "name", "files", ("status", "source"), (status, source) )
+            if self.traceback: gf.print_trace(e)
+            return False
         else:
-            return self.select_distinct( "name", "files", "status", status )
+            return True
 
-    known_stations  = lambda self : self.select_distinct( "stID", "station" )
+
+    def set_file_status( self, ID, status, verbose=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if verbose is None: verbose = self.verbose
+
+        if status != "parsed" and verbose:
+            name = self.get_file_name( ID )
+            print(f"Setting status of FILE '{name}' with ID '{ID}' to '{status}'")
+        sql = f"UPDATE file_table SET status = '{status}' WHERE rowid = '{ID}'"
+        try: self.exe( sql )
+        except Exception as e:
+            if self.traceback: gf.print_trace(e)
+            return False
+        else:
+            return True
+
+    
+    def set_file_statuses( self, file_statuses, retries=100, timeout=5, verbose=None ):
+
+        if verbose is None: verbose = self.verbose
+
+        sql = "UPDATE file_table SET status = ? WHERE rowid = ?"
+
+        while retries > 0:
+            try: self.exemany( sql, file_statuses )
+            except sqlite3.OperationalError as e:
+                message = f"Failed to update file statuses! Database locked?"
+                if verbose: print(message)
+                retries -= 1
+            else: break
+
+
+    def get_files_with_status( self, status, source=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if source:
+            return self.select_distinct( "name", "file_table", ("status","source"), (status, source) )
+        else:
+            return self.select_distinct( "name", "file_table", "status", status )
+
+
+    def get_stations( self, cluster=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if not cluster: return self.select_distinct( "location", "station_table" )
+        return self.select_distinct( "location", "station_table", "cluster", cluster )
+
+
+    def station_exists( self, location ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        sql = f"SELECT COUNT(*) FROM station_table WHERE location = '{location}'"
+        self.exe( sql )
+        return self.fetch1()
+
+
+    def add_station( self, station_data, update=False, commit=True, verbose=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if verbose is None: verbose = self.verbose
+
+        location = station_data[0]
+        if self.station_exists( location ) and update == False:
+            if verbose: print("Station", location, "already exists in database.")
+            return
+        if verbose: print("Adding", location, "to database...")
+
+        if update:
+            print("Updating station", location, "...")
+            sql = f"""UPDATE station_table SET location='?', ICAO='?', name='?', longitude=?, latitude=?,
+            elevation=?, cluster=?, orography=? WHERE location = {location}"""
+        else:
+            sql = f"INSERT INTO station_table VALUES(?,?,?,?,?,?,?,?)"
+
+        try: self.exe( sql, station_data )
+        except Exception as e:
+            if self.traceback: gf.print_trace(e)
+            return False
+        else:
+            if commit: self.commit()
+            return True

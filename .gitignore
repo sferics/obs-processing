@@ -45,3 +45,5 @@ obs.db-journal
 pid.BUFRdecode
 .bash_aliases
 .sqlite_history
+*.log
+*.tar
