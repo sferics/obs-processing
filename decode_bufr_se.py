@@ -45,9 +45,9 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         ext             = config_bufr["ext"]
         
         if "tables" in config_bufr:
-            old_path                                = os.environ['ECCODES_DEFINITION_PATH']
-            os.environ['ECCODES_DEFINITION_PATH']   = config_bufr["tables"] + ":" + old_path
-
+            old_path = ec.codes_definition_path() 
+            os.putenv('ECCODES_DEFINITION_PATH', config_bufr["tables"] + ":" + old_path)
+        
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
 

@@ -44,7 +44,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         ext             = config_bufr["ext"]
         
         if "tables" in config_bufr:
-            os.environ['METVIEW_EXTRA_GRIB_DEFINITION_PATH'] = config_bufr["tables"]
+            os.putenv('METVIEW_EXTRA_GRIB_DEFINITION_PATH', config_bufr["tables"])
         
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
