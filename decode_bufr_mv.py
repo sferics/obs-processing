@@ -1,4 +1,4 @@
-#!/home/dev/bin/miniconda3/envs/test39/bin/python
+#!${CONDA_PREFIX}/bin/python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
 import argparse, sqlite3, re, sys, os, psutil#, shelve

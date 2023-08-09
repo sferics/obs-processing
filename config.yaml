@@ -98,7 +98,7 @@ scripts:
       #output_oper:      /data/stations_oper # em24 dev
       #output_dev:       /data/stations_dev  # em24 dev
     output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations_test
+    output_dev:       /home/juri/data/stations_pd
     #output_dev:       /historical/db_amalthea/data/stations # m23
     #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation_se.yaml # TODO might be useful in future to define this by source?
@@ -130,7 +130,7 @@ scripts:
       #output_oper:      /data/stations_oper # em24 dev
       #output_dev:       /data/stations_dev  # em24 dev
     output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations
+    output_dev:       /home/juri/data/stations_mv
     #output_dev:       /historical/db_amalthea/data/stations # m23
     #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation_mv.yaml # TODO might be useful in future to define this by source?
@@ -162,7 +162,7 @@ scripts:
       #output_oper:      /data/stations_oper # em24 dev
       #output_dev:       /data/stations_dev  # em24 dev
     output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations
+    output_dev:       /home/juri/data/stations_se
     #output_dev:       /historical/db_amalthea/data/stations # m23
     #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation_se.yaml # TODO might be useful in future to define this by source?
@@ -194,7 +194,7 @@ scripts:
       #output_oper:      /data/stations_oper # em24 dev
       #output_dev:       /data/stations_dev  # em24 dev
     output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations
+    output_dev:       /home/juri/data/stations_test
     #output_dev:       /historical/db_amalthea/data/stations # m23
     #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation.yaml # TODO might be useful in future to define this by source?

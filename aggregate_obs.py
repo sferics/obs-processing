@@ -1,3 +1,4 @@
+#!${CONDA_PREFIX}/bin/python
 import sys
 from datetime import datetime as dt, timedelta as td
 from database import database

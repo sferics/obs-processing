@@ -8,6 +8,9 @@ else
     N=15
 fi
 
+python -m compileall
+source export_bufr_tables.sh
+
 echo "Starting decode_bufr.py $N times..."
 
 for (( c=1; c<=$N; c++ )); do

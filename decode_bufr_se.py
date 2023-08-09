@@ -1,4 +1,4 @@
-#!/home/dev/bin/miniconda3/envs/test39/bin/python
+#!${CONDA_PREFIX}/bin/python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
 import argparse, sqlite3, random, time, re, sys, os, psutil, shelve
@@ -139,9 +139,14 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
                 if traceback: gf.print_trace(e)
                 file_statuses.add( ("error", ID) )
                 continue
-            else: obs[ID] = {} #shelve.open(f"shelves/{ID}", writeback=True) #{}
+            else:
+                product_kind = eccodes.CODES_PRODUCT_BUFR
+                if debug: print(product_kind)
+                obs[ID] = {} #shelve.open(f"shelves/{ID}", writeback=True) #{}
             
             iterid = ec.codes_bufr_keys_iterator_new(bufr)
+            if debug: print(ec.codes_get_message(bufr)
+            
             for fun in (ec.codes_skip_computed, ec.codes_skip_function, ec.codes_skip_duplicates): fun(iterid)
 
             meta, typical   = {}, {}

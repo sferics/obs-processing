@@ -1,4 +1,4 @@
-#!/home/dev/bin/miniconda3/envs/test39/bin/python
+#!${CONDA_PREFIX}/bin/python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
 import argparse, sys, os, psutil#, shelve
@@ -164,7 +164,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
                             ec.codes_set(bufr, "extractSubsetIntervalEnd", end-1)
                         elif subset_list is not None:
                             ec.codes_set(bufr, "extractSubsetList", subset_list)
-                ec.codes_set(bufr, "doExtractSubsets", 1)
+                        ec.codes_set(bufr, "doExtractSubsets", 1)
             except Exception as e:
                 log_str = f"ERROR:  '{FILE}' ({e})"; log.error(log_str)
                 if verbose: print(log_str)                

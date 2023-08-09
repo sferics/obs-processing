@@ -1,3 +1,4 @@
+#!${CONDA_PREFIX}/bin/python
 import requests
 
 headers = {'Accept': 'application/json'}

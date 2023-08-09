@@ -1,3 +1,4 @@
+#!${CONDA_PREFIX}/bin/python
 import sys, time, requests, argparse
 import global_functions as gf
 from datetime import datetime as dt

@@ -1,4 +1,5 @@
-# 1 takes data from forge databases
-# 2 check for missig values
+#!${CONDA_PREFIX}/bin/python
+# 1 take data from forge databases
+# 2 check for missing values
 # 3 check for bad (out-of-range) values
-# 4 if all good: give audited flag
+# 4 delete bad data
