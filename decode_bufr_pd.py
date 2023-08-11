@@ -1,4 +1,4 @@
-#!${CONDA_PREFIX}/bin/python
+#!/usr/bin/env python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
 import argparse, sqlite3, random, time, re, sys, os, psutil, shelve, time, pdbufr
@@ -9,12 +9,157 @@ import numpy as np
 from glob import glob 
 import eccodes as ec        # bufr decoder by ECMWF
 import pandas as pd
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings("ignore", module="pdbufr")
 from pathlib import Path    # path operation
 from datetime import datetime as dt, timedelta as td
 from database import database; import global_functions as gf; import global_variables as gv
-from bufr_functions import clear, to_datetime, convert_keys
 
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
+
+def text_factory( value ):
+    if type(value) == pd.Timestamp:
+        return value.to_pydatetime()
+    else: return value
+
+to_datetime = lambda meta : dt(meta["year"], meta["month"], meta["day"], meta["hour"], meta["minute"])
+
+clear   = lambda keyname : str( re.sub( r"#[0-9]+#", '', keyname ) )
+number  = lambda keyname : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
+to_key  = lambda key,num : "#{num}#{key}"
+
+
+def translate_key( key, value, duration, h=None ):
+
+    key_db = bufr_translation[key]
+
+    if key_db is None: return None, None, None
+    if h is not None: # we are looking for a specific height/depth key, key_db is a dict now
+        try:    key_db = key_db[h]
+        except  KeyError:
+            print("height ERROR")
+            print(key, value, h)
+            return None, None, None
+    else: bufr_translation[key]
+
+    # add units + scale conversion
+    value = float(value) * key_db[2] + key_db[3]
+
+    # some keys always have the same duration (like pressure always 1s)
+    #print(fixed_duration); sys.exit()
+    #if key in fixed_duration: duration = key_db[1]
+    # if we already got a timePeriod from BUFR we dont need to translate it with the yaml dict
+    if not duration or key in fixed_duration:   duration = key_db[1]
+    if duration is None:                        duration = "NULL"
+
+    return key_db[0], value, duration
+
+
+def convert_keys( obs, dataset ):
+
+    time_periods = bufr_translation["timePeriod"]
+
+    if debug: print(obs)
+    obs_db = {}
+    #obs_db = shelve.open("shelves/obs_db.shelve", writeback=True)
+
+    for file in obs:
+        
+        for location in obs[file]:
+            
+            if location not in obs_db: obs_db[location] = set()
+            
+            for datetime in obs[file][location]:
+                
+                datetime_db     = datetime.to_pydatetime()
+                duration_obs    = ""
+                vertical_sigf   = 0
+                clouds_present  = False
+                cloud_cover     = None
+                cloud_ceiling   = float("inf")
+                cloud_amounts, cloud_bases  = set(), set()
+                sensor_height, sensor_depth = None, None
+
+                for time_period in obs[file][location][datetime]:
+                    
+                    try:
+                        if time_period: duration_obs = time_periods[time_period]
+                    except: continue
+                    len_data = len(obs[file][location][datetime][time_period])-1
+                    
+                    for ix, data in enumerate(obs[file][location][datetime][time_period]):
+                        
+                        #TODO do this before the loop lik in decode_bufr_se
+                        if ix == len_data and obs[file][location][datetime][time_period][-1][0] in gv.modifier_keys:
+                            continue
+                        
+                        key, val_obs = data[0], data[1]
+
+                        #if datetime.minute in {0,30}:   datetime_db = datetime - td(minutes=10)
+                        #else:                           datetime_db = copy(datetime)
+
+                        if key == "verticalSignificanceSurfaceObservations":
+                            vertical_sigf = bufr_flags[key][val_obs]; continue
+                        elif key == "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform":
+                            sensor_height = float(val_obs); continue
+                        elif key == "depthBelowLandSurface":
+                            sensor_depth  = float(val_obs) * (-1); continue
+                        else:
+                            if key in height_depth_keys:
+                                if key == "soilTemperature":
+                                    h = copy(sensor_depth)
+                                    if not h or h > 0: h = -0.05
+                                else:
+                                    h = copy(sensor_height)
+                                    if not h or h > 1: h = 2.0
+
+                                element, val_db, duration = translate_key(key, val_obs, duration_obs, h=h)
+                            elif key in {"heightOfBaseOfCloud","cloudCoverTotal","cloudAmount"}:
+                                clouds_present = True
+                                if key == "heightOfBaseOfCloud":
+                                    # we are first and foremost interested in the cloud base of the lowest cloud(ceiling)
+                                    if val_obs < cloud_ceiling: cloud_ceiling = copy(val_obs)
+
+                                    # also we want to save all unique cloud levels (base heights) which where observed
+                                    cloud_bases.add(val_obs); continue
+
+                                elif key == "cloudCoverTotal":
+                                    cloud_cover = copy(val_obs)
+                                    element, val_db, duration = translate_key(key, cloud_cover, duration_obs)
+                                    if dataset in {"DWD","test"}: val_db = int(val_db)
+
+                                #elif key == "cloudAmount":
+                                else:
+                                    cloud_amounts.add( val_obs )
+                                    if not vertical_sigf: continue
+                                    element, val_db, duration = translate_key(key, val_obs, duration_obs, h=vertical_sigf)
+                                
+                            else: element, val_db, duration = translate_key(key, val_obs, duration_obs)
+                            if element is not None:
+                                obs_db[location].add( ( datetime_db, dataset, file, element, val_db, duration ) )
+                            else: print(f"element is None for key: {key}, value: {val_obs}")
+
+
+                if clouds_present:
+                    if cloud_ceiling < float("inf"):
+                        key = "heightOfBaseOfCloud"
+                        element, val_db, duration = translate_key(key, cloud_ceiling, duration_obs )
+                        obs_db[location].add( (datetime_db, dataset, file, element, val_db, duration) )
+
+                    if cloud_cover is None and cloud_amounts: # we prefer cloud cover over cloud amount because it's in %
+                        element, val_db, duration = translate_key("cloudAmount", max(cloud_amounts), duration_obs, h=0)
+                        obs_db[location].add( (datetime_db, dataset, file, element, val_db, duration) )
+
+                    if cloud_bases:
+                        cloud_bases = sorted(cloud_bases)[:4] # convert set into a sorted list (lowest to highest level)
+                        for i, cloud_base in enumerate(cloud_bases): # get all the cloud base heights from 1-4
+                            element, val_db, duration = translate_key("cloudBase", cloud_base, duration_obs, h=i+1)
+                            obs_db[location].add( (datetime_db, dataset, file, element, val_db, duration) )
+                        cloud_bases = set()
+
+    
+    return obs_db
 
 
 def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None ):
@@ -42,13 +187,8 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         if "bufr" in config_source: config_bufr = config_source["bufr"]
         else: return
         bufr_dir        = config_bufr["dir"] + "/"
-        #priority        = config_bufr["prio"]
         ext             = config_bufr["ext"]
          
-        if "tables" in config_bufr:
-            old_path = ec.codes_definition_path()
-            os.putenv('ECCODES_DEFINITION_PATH', config_bufr["tables"] + ":" + old_path)
-        
         if "filter" in config_bufr:
             filter_keys             = set(config_bufr["filter"])
             number_of_filter_keys   = len(filter_keys)
@@ -142,44 +282,70 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         #print(df)
         df = pdbufr.read_bufr(PATH, columns=relevant_keys, required_columns=required_keys)
 
-        if len(df.columns) == 0: file_statuses.add( ("empty", ID) ); continue
+        # len(df.index) == 0 is much faster than df.empty or len(df) == 0
+        # https://stackoverflow.com/questions/19828822/how-to-check-whether-a-pandas-dataframe-is-empty
+        if len(df.index) == 0: file_statuses.add( ("empty", ID) ); continue
         # if dataframe larger than minimum keyset: drop all rows and columns which only contains NaNs
         
         #elif len(df.columns) > number_of_filter_keys:
         else:
-            if debug:
-                for ix, row in df.iteritems():
-                    print(df.loc[:, ix].notna().any())
-            
             df.dropna(how="all", inplace=True)
-            if df.empty: file_statuses.add( ("empty", ID) ); continue
-            df.dropna(how="all", axis=1, inplace=True)
+            #print(df.shape)
+            if len(df.index) == 0: file_statuses.add( ("empty", ID) ); continue
+            #df.dropna(how="all", axis=1, inplace=True)
+            #print(df.shape)
 
         #TODO use typical datetime if no datetime present
         #typical_datetime = "typical_datetime"
+        time_period = ""
 
         for ix, row in df.iterrows():
-            
-            try:    location = str(row["WMO_station_id"]) + "0"; datetime = row["data_datetime"].to_pydatetime()
-            except: continue
-            else:   del row["WMO_station_id"]; del row["data_datetime"]
-            
-            try:    obs[ID][location].append(datetime)
-            except: obs[ID][location] = [datetime]
-            skip_next = 0
 
-            for key, val in zip(row.index, row):
-                if skip_next: skip_next -= 1; continue
-                if key == "delayedDescriptorReplicationFactor":
-                    if val == 10: skip_next = copy(val)
+            try:
+                if pd.notna(row["timePeriod"]): time_period = row["timePeriod"]
+            except: pass 
+
+            try:
+                if time_period == -1 and row[gv.replication] == 10 and (pd.notna(row["presentWeather"]) or pd.notna(row["totalPrecipitationOrTotalWaterEquivalent"])):
                     continue
-                if not pd.isna(val):
-                    obs[ID][location].append( (key, val) )
-                    try:
-                        if key in modifier_keys and obs[ID][location][-2][0] in modifier_keys:
-                            del obs[ID][location][-2]
-                    except: pass
-        
+            except: pass
+            
+            location = str(row["WMO_station_id"]) + "0"
+            if location not in known_stations: continue
+            datetime = row["data_datetime"]
+            if not datetime: sys.exit("NO DATETIME")
+            for i in (gv.replication, "timePeriod", "WMO_station_id", "data_datetime"):
+                try:    del row[i]
+                except: continue
+
+            #keys_not_na = relevant_obs.intersection(row.index)
+            # in future versions of pandas we will need this next line:
+            #keys_not_na = list(relevant_obs.intersection(row.index))
+
+            #if row.loc[keys_not_na].isna().all(): continue
+            
+            #keys_not_na = relevant_obs.intersection(row.index)
+            #if not row.loc[keys_not_na].notna().any(): continue
+                
+            if location not in obs[ID]:             obs[ID][location]           = {}
+            if datetime not in obs[ID][location]:   obs[ID][location][datetime] = {}
+
+            modifier_list = []
+            for key in (gv.sensor_height, gv.sensor_depth, gv.vertical_sigf):
+                try:    
+                    if pd.notna(row[key]): modifier_list.append((key, row[key]))
+                except: continue
+                else:   del row[key]
+
+            obs_list = []
+            for key, val in zip(row.index, row):
+                if pd.notna(val): obs_list.append((key, val))
+
+            if modifier_list and obs_list: obs_list = modifier_list + obs_list
+            if obs_list:
+                try:    obs[ID][location][datetime][time_period] += obs_list
+                except: obs[ID][location][datetime][time_period] = obs_list
+
         #TODO fix memory leak or find out how restarting script works together with multiprocessing
         memory_free = psutil.virtual_memory()[1] // 1024**2
         # if less than x MB free memory: commit, close db connection and restart program
@@ -190,27 +356,21 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             db.close()
 
             print("Too much RAM used, RESTARTING...")
-            obs_db = convert_keys( obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags )
-            if obs_db: gf.obs_to_station_databases( obs_db, output_path, max_retries, timeout_station, verbose )
+            obs_db = convert_keys( obs, source )
+            if obs_db: gf.obs_to_station_databases( obs_db, output_path, max_retries, timeout_station, verbose=verbose )
             
             if pid_file: os.remove( pid_file )
             exe = sys.executable # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
 
-
     db = database(db_file, timeout=timeout_db, traceback=traceback)
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
     db.close()
 
-    obs_db = convert_keys( obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags )
+    obs_db = convert_keys( obs, source )
 
-    if obs_db: gf.obs_to_station_databases(obs_db, output_path, max_retries, timeout_station, verbose)
+    if obs_db: gf.obs_to_station_databases(obs_db, output_path, max_retries, timeout_station, verbose=verbose)
      
-    # restore previous state of ECCODES_DEFINITION_PATH environment variable
-    if "tables" in config_bufr:
-        try:    os.environ['ECCODES_DEFINITION_PATH'] = old_path
-        except: os.putenv('ECCODES_DEFINITION_PATH', old_path)
-    
     # remove file containing the pid, so the script can be started again
     if pid_file: os.remove( pid_file )
 
@@ -245,7 +405,7 @@ if __name__ == "__main__":
     #read yaml configuration file config.yaml into dictionary
     config          = gf.read_yaml( args.config )
     config_script   = config["scripts"][sys.argv[0]]
-    conda_env = os.environ['CONDA_DEFAULT_ENV']
+    conda_env       = os.environ['CONDA_DEFAULT_ENV']
     
     if config_script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
@@ -275,7 +435,7 @@ if __name__ == "__main__":
 
     if args.verbose:    verbose = True
     else:               verbose = config_script["verbose"]
-    if verbose: print(started_str)
+    if verbose: print("\n"+started_str)
 
     if args.debug:                  config_script["debug"] = True
     if config_script["debug"]:      import pdb; debug = True
@@ -328,7 +488,8 @@ if __name__ == "__main__":
     bufr_obs_time_keys  = frozenset( bufr_keys | {"timePeriod"} )
 
     # get special types of keys
-    modifier_keys, depth_keys, height_keys = set(), set(), set()
+    meta_keys = (gv.sensor_height,gv.sensor_depth,gv.vertical_sigf)
+    modifier_keys, depth_keys, height_keys, fixed_duration = set(), set(), set(), set()
 
     for i in bufr_translation:
         if type(bufr_translation[i]) == dict:
@@ -337,8 +498,11 @@ if __name__ == "__main__":
             if type(subkey[0]) == float:
                 if subkey[0] < 0:   depth_keys.add(i)
                 elif subkey[0] > 0: height_keys.add(i)
+        elif type(bufr_translation[i]) == list:
+            if bufr_translation[i][1] in {"0s","1s","1min"}:
+                fixed_duration.add(i)
         elif type(bufr_translation[i]) == type(None): modifier_keys.add(i)
-   
+
     modifier_keys.add("timePeriod")
 
     # union of both will be used later
@@ -347,6 +511,7 @@ if __name__ == "__main__":
     
     required_keys = frozenset({"WMO_station_id","data_datetime"})
     relevant_keys = frozenset( bufr_obs_time_keys | required_keys )
+    relevant_obs  = set(bufr_translation_keys) - gv.modifier_keys - {gv.replication}
 
     #parse command line arguments
     if args.source:

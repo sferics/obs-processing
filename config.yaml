@@ -69,7 +69,7 @@ general:
 
 scripts:
   add_stations_from_bufr.py:
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          1
     traceback:        1
@@ -90,8 +90,8 @@ scripts:
     traceback:        1 # enable traceback prints
     timeout:          3 # timeout for station databases
     multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
-    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_files:        5046 # zero means no maximum #15: 5395
+    min_ram:          4096 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_files:        6225 #5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
@@ -101,19 +101,43 @@ scripts:
     output_dev:       /home/juri/data/stations_pd
     #output_dev:       /historical/db_amalthea/data/stations # m23
     #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
-    bufr_translation: bufr_translation_se.yaml # TODO might be useful in future to define this by source?
+    bufr_translation: bufr_translation_pd.yaml # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
-    extract_subsets:  0
-    skip_function:    0
-    skip_computed:    0
-    skip_duplicates:  0
+    skip_status:      [parsed, empty, error, locked]
+    null_vals:        !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    time_keys:        !!python/tuple  [year, month, day, hour, minute]
+    station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
+
+  decode_bufr_fl.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        1 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_files:        6225 #5046 # zero means no maximum #15: 5395
+    max_retries:      1200 # max retries when writing into databases 
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
+      #output_oper:      /data/stations_oper # em24 dev
+      #output_dev:       /data/stations_dev  # em24 dev
+    output_oper:      #TODO not used so far, for future operational usage
+    output_dev:       /home/juri/data/stations_pd
+    #output_dev:       /historical/db_amalthea/data/stations # m23
+    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
+    bufr_translation: bufr_translation_pd.yaml # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
     skip_status:      [parsed, empty, error, locked]
     null_vals:        !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
     time_keys:        !!python/tuple  [year, month, day, hour, minute]
     station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
 
   decode_bufr_mv.py:
-    conda_env:        metview
+    conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     profiler:         0 # use profiler  TODO
@@ -145,7 +169,7 @@ scripts:
     station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
 
   decode_bufr_se.py:
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     profiler:         0 # use profiler  TODO
@@ -177,7 +201,7 @@ scripts:
     station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
 
   decode_bufr.py:
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     profiler:         0 # use profiler  TODO
@@ -194,7 +218,7 @@ scripts:
       #output_oper:      /data/stations_oper # em24 dev
       #output_dev:       /data/stations_dev  # em24 dev
     output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations_test
+    output_dev:       /home/juri/data/stations
     #output_dev:       /historical/db_amalthea/data/stations # m23
     #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation.yaml # TODO might be useful in future to define this by source?
@@ -209,17 +233,17 @@ scripts:
     station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
 
   decode_synop.py:    #TODO
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
   decode_metar.py:    #TODO
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
   decode_netcdf.py:   #TODO
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
   
   get_obs.py:         # replacement for getALL.sh and get*.sh scripts; calls get*.py as well TODO
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
     dev_mode:         1 # True : download all data in given timespan - False : download only daily data
     max_retries:      3
@@ -230,7 +254,7 @@ scripts:
   get_zamg.py:        # only historical data!
   get_knmi.py:        # dutch weather service API download script
   get_imgw.py:
-    conda_env:        test39
+    conda_env:        obs
     dev_mode:         1
     log_level:        ERROR
     verbose:          1
@@ -238,24 +262,24 @@ scripts:
     timeout:          3
     
   forge_obs.py:
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
 
   audit_obs.py:  #TODO data quality check (idea: each obs parameter gets a range in units table)
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
 
   derive_obs.py:      #TODO e.g. calculate Td from T and RH ... do we need this or can it be part of decode_bufr?
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
 
   aggregate_obs.py:
-    conda_env:        test39
+    conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     traceback:        1 # traceback prints
     dev_mode:         1 # 1 : aggregate all obs data, 0 : only aggregate current obs data (livesystem)
-    multiprocessing:  15
+    multiprocessing:  13
     station_cluster:  germany # TODO should take setting from sources instead
     params:
       FFavg_10m_10min_syn:      [10min, ~]

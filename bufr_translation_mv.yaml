@@ -50,6 +50,8 @@ cloudBase:
   4:                                [CB4_syn,     ~, 1, 0]
   #TODO see obs.cfg for cloud level thresholds
 
+#TODO seperate between keys which can have different UNIT and/or SCALE - and the ones which always have the same
+
 #timePeriod
 004023: ~
 004024: ~

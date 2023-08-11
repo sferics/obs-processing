@@ -27,7 +27,7 @@ def obs_to_station_databases( obs_db, output_path, max_retries=100, timeout=5, v
 
         while retries > 0:
             try:
-                db_station = database( f"{output_path}/{loc[0]}/{loc}.db", timeout=timeout )
+                db_station = database( f"{output_path}/{loc[0]}/{loc}.db", timeout=timeout)
                 db_station.exemany( sql, obs_db[loc] )
             except sqlite3.Error as e:
                 print(e, retries)
@@ -39,7 +39,7 @@ def obs_to_station_databases( obs_db, output_path, max_retries=100, timeout=5, v
                     print(loc)
                     loc = list(obs_db[loc])
                     for i in range(len(loc)):
-                        print(str(loc[i][0]), loc[i][3], loc[i][4], loc[i][5])
+                        print(f"{loc[i][0]} {loc[i][3]:<20} {loc[i][4]:<20} {loc[i][5]:<6}")
                     print()
                 break
 

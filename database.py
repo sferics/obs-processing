@@ -8,7 +8,7 @@ import logging as log
 
 class database:
 
-    def __init__(self, db_file="main.test.db", timeout=5, ro=False, log_level="NOTSET", verbose=0, traceback=0, settings={}):
+    def __init__(self, db_file="main.test.db", timeout=5, ro=False, log_level="NOTSET", verbose=0, traceback=0, text_factory=None, settings={}):
         
         #TODO add logging statements where it makes sense for debugging/monitoring of database activities
         if log_level: self.log_level = log_level
@@ -26,7 +26,10 @@ class database:
         # Opening database connection
         self.con    = sqlite3.connect(self.name, timeout=timeout, uri=ro)
         # Get rid of tuple w/ length 1
-        self.con.row_factory = lambda cursor,row : row[0] if len(row)==1 else row
+        self.con.row_factory  = lambda cursor,row : row[0] if len(row)==1 else row
+        # use string converter
+        if text_factory: self.con.text_factory = text_factory
+
         # Set up database cursor
         self.cur    = self.con.cursor()
 

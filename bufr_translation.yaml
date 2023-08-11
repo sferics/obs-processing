@@ -12,6 +12,7 @@ kh2kn:  &kh2kn  0.5399568034557235  # km/h to kn
 m2m30:  &m2m30  0.03333333333333333 # m  to m/30 
 ft2m30: &ft2m30 0.01016             # ft to m/30
 
+#TODO seperate between keys which can have different UNIT and/or SCALE - and the ones which always have the same
 
   ### EXTRA HELPER PARAMETERS
   #TODO use for derived paramters during decoding or remove -> derive_obs.py
@@ -196,9 +197,8 @@ maximumWindSpeed10MinuteMeanWind:   [FFmax_avg_10m_syn,1h, *ms2kn, 0] # Maximale
   #maximumInstantaneousWindSpeedOver10Minutes:  [FFmax_10m_syn, 10min, *ms2kn, 0]
 
 ### CLOUDS
-  #TODO could these keys be useful in future?
+  #TODO could this keys be useful in future?
   #cloudIndex:                      [Cindex_syn, 1s, 1,   0]
-  #verticalSignificanceSurfaceObservations: [VERTSIG_surf_syn, 1s, 1, 0]
   
   #TODO implement in derive_obs.py
   #ClNCmNChN: [CLCMCH_syn,  ~, 1, 0]  # Wolkenarten in den Stockwerken                   (zB: Cu3Ac4Cs51Cb, 1Cu)

@@ -1,4 +1,4 @@
-#!${CONDA_PREFIX}/bin/python
+#/usr/bin/env !python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
 import argparse, sqlite3, random, time, re, sys, os, psutil, shelve
@@ -11,7 +11,7 @@ import eccodes as ec        # bufr decoder by ECMWF
 from pathlib import Path    # path operation
 from datetime import datetime as dt, timedelta as td
 from database import database; import global_functions as gf; import global_variables as gv
-from bufr_functions import clear, to_datetime, convert_keys
+from bufr_functions import clear, to_datetime, convert_keys_se
 
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
 
@@ -43,11 +43,11 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         bufr_dir        = config_bufr["dir"] + "/"
         #priority        = config_bufr["prio"]
         ext             = config_bufr["ext"]
-        
+        """
         if "tables" in config_bufr:
             old_path = ec.codes_definition_path() 
             os.putenv('ECCODES_DEFINITION_PATH', config_bufr["tables"] + ":" + old_path)
-        
+        """
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
 
@@ -133,6 +133,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
                     continue
                 ec.codes_set(bufr, 'skipExtraKeyAttributes', 1)
                 ec.codes_set(bufr, "unpack", 1)
+                #ec.codes_set(bufr, "doExtractSubsets", 1)
             except Exception as e:
                 log_str = f"ERROR:  '{FILE}' ({e})"; log.error(log_str)
                 if verbose: print(log_str)                
@@ -140,12 +141,13 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
                 file_statuses.add( ("error", ID) )
                 continue
             else:
-                product_kind = eccodes.CODES_PRODUCT_BUFR
+                product_kind = ec.CODES_PRODUCT_BUFR
                 if debug: print(product_kind)
+                if product_kind not in {0,1,2,6,7}: continue
                 obs[ID] = {} #shelve.open(f"shelves/{ID}", writeback=True) #{}
-            
+                 
             iterid = ec.codes_bufr_keys_iterator_new(bufr)
-            if debug: print(ec.codes_get_message(bufr)
+            #if debug: print(ec.codes_get_message(bufr))
             
             for fun in (ec.codes_skip_computed, ec.codes_skip_function, ec.codes_skip_duplicates): fun(iterid)
 
@@ -159,10 +161,17 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
 
             if debug: pdb.set_trace()
 
-            while ec.codes_bufr_keys_iterator_next(iterid):
-                if skip_next: skip_next -= 1; continue
+            #obs = []
 
+            while ec.codes_bufr_keys_iterator_next(iterid):
+                #if skip_next: skip_next -= 1; continue
+                
                 key = ec.codes_bufr_keys_iterator_get_name(iterid)
+               
+                if debug:
+                    try:    value = ec.codes_get( bufr, key )
+                    except: print(key, ec.codes_get_array(bufr,key))
+                    obs.append((key,value)); continue
                 
                 if last_key == "typical" and last_key not in key:
                     last_key = None; skip_next = 3; continue
@@ -214,7 +223,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
                         last_key        = "typical"
                         continue
                     
-                    if location is None and clear_key in station_keys:
+                    if clear_key in station_keys:
                         #meta[clear_key] = ec.codes_get(bufr, key)
                         try: meta[clear_key] = ec.codes_get(bufr, key)
                         except: meta[clear_key] = ec.codes_get_array(bufr, key)[0]
@@ -311,7 +320,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             db.close()
 
             print("Too much RAM used, RESTARTING...")
-            obs_db = convert_keys(obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags)
+            obs_db = convert_keys_se(obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags, verbose=verbose)
             if obs_db:
                 gf.obs_to_station_databases( obs_db, output_path, max_retries, timeout_station, verbose )
             
@@ -319,22 +328,23 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             exe = sys.executable # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
     
+    
     db = database(db_file, timeout=timeout_db, traceback=traceback)
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
     db.close()
 
-    obs_db = convert_keys(obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags)
+    obs_db = convert_keys_se(obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags, verbose=verbose)
     #if use_shelve:
     #   for ID in obs: obs[ID].close()
 
-    if obs_db: gf.obs_to_station_databases(obs_db, output_path, max_retries, timeout_station, verbose)
+    if obs_db: gf.obs_to_station_databases(obs_db, output_path, max_retries, timeout_station, verbose=verbose)
      
     # restore previous state of ECCODES_DEFINITION_PATH environment variable
-    if "tables" in config_bufr: old_path = os.environ['ECCODES_DEFINITION_PATH']
+    #if "tables" in config_bufr: os.environ['ECCODES_DEFINITION_PATH'] = old_path
     
     # remove file containing the pid, so the script can be started again
     if pid_file: os.remove( pid_file )
-
+    
 
 if __name__ == "__main__":
     

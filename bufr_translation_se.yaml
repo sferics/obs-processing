@@ -20,15 +20,21 @@ timePeriod:
   -6:     6h
   -10:    10min
   -12:    12h
+  -15:    15h
   -24:    24h
-  -30:    30min
+  -25:    25h
+  -30:    30min # TODO does this overlap with 30h sometimes???
+  -36:    36h
   -60:    1h
   -180:   3h
   -360:   6h
   -720:   12h
+  -900:   15h
   -1440:  24h
-  -1470:  25h
+  -1500:  25h
   -1800:  30h
+  -2160:  36h
+
 
   ### EXTRA HELPER PARAMETERS
   #TODO use for derived paramters during decoding or remove -> derive_obs.py
@@ -219,10 +225,10 @@ verticalSignificanceSurfaceObservations:  ~
 
 # helper key, not part of BUFR tables
 cloudBase:
-  1:                                [CB1_syn,     ~, 1, 0]
-  2:                                [CB2_syn,     ~, 1, 0]
-  3:                                [CB3_syn,     ~, 1, 0]
-  4:                                [CB4_syn,     ~, 1, 0]
+  1:                                [CB1_syn,     1s, 1, 0]
+  2:                                [CB2_syn,     1s, 1, 0]
+  3:                                [CB3_syn,     1s, 1, 0]
+  4:                                [CB4_syn,     1s, 1, 0]
   #TODO see obs.cfg for cloud level thresholds
 
 cloudAmount:
