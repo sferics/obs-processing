@@ -10,15 +10,6 @@ obs:
   duration: text
   element:  text NOT NULL
   value:    text NOT NULL
-  audited:  int DEFAULT 0
+#  bad:      int DEFAULT 0
   UNIQUE:   (datetime, duration, element)
-stats:
-  RMSE:     real
-  average:  real
-  cases:    integer
-  el:       text
-  location: text
-  maximum:  real
-  minimum:  real
-  valid:    text
-  UNIQUE:   (el, location, valid)
+#forecast:

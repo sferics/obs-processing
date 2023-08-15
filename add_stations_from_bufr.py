@@ -1,4 +1,4 @@
-#!${CONDA_PREFIX}/bin/python
+#!python
 # decodes BUFRs for availabe or given sources and add new stations to main database
 
 from copy import copy

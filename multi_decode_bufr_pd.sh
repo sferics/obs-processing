@@ -16,3 +16,5 @@ echo "Starting decode_bufr_pd.py $N times..."
 for (( c=1; c<=$N; c++ )); do
 	python decode_bufr_pd.py test & sleep 2
 done
+
+#python aggregate_obs.py && echo "finished" > multi_decoder_pd.py.log

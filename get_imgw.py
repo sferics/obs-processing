@@ -1,5 +1,5 @@
-#!${CONDA_PREFIX}/bin/python
-import sys, time, requests, argparse
+#!python
+import os, sys, time, requests, argparse
 import global_functions as gf
 from datetime import datetime as dt
 import logging as log
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         for m in translation["meta"]:
             meta[translation["meta"][m]] = data[m]
         
-        location = meta["location"]
+        location = meta["location"] + "0"
         if location not in obs: obs[location] = set()
 
         date = meta["date"]; hour = int(meta["hour"])
@@ -94,9 +94,9 @@ if __name__ == "__main__":
             # if observation value is None: skip it
             if data[key] is None: continue
             element, value, duration = convert_imgw_keys(key, data)
-            obs[location].add( (datetime, "imgw", 0, element, value, duration) )
+            obs[location].add( ("imgw", 0, datetime, duration, element, value) )
 
-    gf.obs_to_station_databases(obs, output_path, max_retries_stations, timeout_stations, verbose)
+    gf.obs_to_station_databases(obs, output_path, "raw", max_retries_stations, timeout_stations, verbose)
 
     finished_str = f"FINISHED {sys.argv[0]} @ {dt.utcnow()}"; log.info(finished_str)
     if verbose: print(finished_str)

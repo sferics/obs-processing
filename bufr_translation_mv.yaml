@@ -95,7 +95,7 @@ cloudBase:
 #totalSnowDepth
 013013:                             [TOTSNOW_srf_syn, 1s, 100, 0]   # Gesamtschneehöhe [in cm]
 #depthOfFreshSnow
-013012:                             [NEWSNOW_srf_syn, 1s, 100, 0]   # Neuschneehöhe [in cm] im Bezugszeitraum
+013012:                             [NEWSNOW_srf_syn,  ~, 100, 0]   # Neuschneehöhe [in cm] im Bezugszeitraum
 
 ### PRECIPITATION
 #TODO units/scale

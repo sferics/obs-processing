@@ -50,8 +50,8 @@ def translate_key( key, value, duration, h=None ):
     #print(fixed_duration); sys.exit()
     #if key in fixed_duration: duration = key_db[1]
     # if we already got a timePeriod from BUFR we dont need to translate it with the yaml dict
-    if not duration or key in fixed_duration:   duration = key_db[1]
-    if duration is None:                        duration = "NULL"
+    if not duration or key in fixed_duration_keys:  duration = key_db[1]
+    if duration is None:                            duration = "NULL"
 
     return key_db[0], value, duration
 
@@ -82,17 +82,15 @@ def convert_keys( obs, dataset ):
                 sensor_height, sensor_depth = None, None
 
                 for time_period in obs[file][location][datetime]:
-                    
+                   
+                    if len(obs[file][location][datetime][time_period]) == 1 and obs[file][location][datetime][time_period][-1][0] in gv.modifier_keys:
+                        continue
+
                     try:
                         if time_period: duration_obs = time_periods[time_period]
                     except: continue
-                    len_data = len(obs[file][location][datetime][time_period])-1
-                    
-                    for ix, data in enumerate(obs[file][location][datetime][time_period]):
-                        
-                        #TODO do this before the loop lik in decode_bufr_se
-                        if ix == len_data and obs[file][location][datetime][time_period][-1][0] in gv.modifier_keys:
-                            continue
+                   
+                    for data in obs[file][location][datetime][time_period]:
                         
                         key, val_obs = data[0], data[1]
 
@@ -137,7 +135,7 @@ def convert_keys( obs, dataset ):
                                 
                             else: element, val_db, duration = translate_key(key, val_obs, duration_obs)
                             if element is not None:
-                                obs_db[location].add( ( datetime_db, dataset, file, element, val_db, duration ) )
+                                obs_db[location].add( ( dataset, file, datetime_db, duration, element, val_db ) )
                             else: print(f"element is None for key: {key}, value: {val_obs}")
 
 
@@ -145,17 +143,17 @@ def convert_keys( obs, dataset ):
                     if cloud_ceiling < float("inf"):
                         key = "heightOfBaseOfCloud"
                         element, val_db, duration = translate_key(key, cloud_ceiling, duration_obs )
-                        obs_db[location].add( (datetime_db, dataset, file, element, val_db, duration) )
+                        obs_db[location].add( (dataset, file, datetime_db, duration, element, val_db) )
 
                     if cloud_cover is None and cloud_amounts: # we prefer cloud cover over cloud amount because it's in %
                         element, val_db, duration = translate_key("cloudAmount", max(cloud_amounts), duration_obs, h=0)
-                        obs_db[location].add( (datetime_db, dataset, file, element, val_db, duration) )
+                        obs_db[location].add( (dataset, file, datetime_db, duration, element, val_db) )
 
                     if cloud_bases:
                         cloud_bases = sorted(cloud_bases)[:4] # convert set into a sorted list (lowest to highest level)
                         for i, cloud_base in enumerate(cloud_bases): # get all the cloud base heights from 1-4
                             element, val_db, duration = translate_key("cloudBase", cloud_base, duration_obs, h=i+1)
-                            obs_db[location].add( (datetime_db, dataset, file, element, val_db, duration) )
+                            obs_db[location].add( (dataset, file, datetime_db, duration, element, val_db) )
                         cloud_bases = set()
 
     
@@ -357,7 +355,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
 
             print("Too much RAM used, RESTARTING...")
             obs_db = convert_keys( obs, source )
-            if obs_db: gf.obs_to_station_databases( obs_db, output_path, max_retries, timeout_station, verbose=verbose )
+            if obs_db: gf.obs_to_station_databases( obs_db, output_path, "raw", max_retries, timeout_station, verbose=verbose )
             
             if pid_file: os.remove( pid_file )
             exe = sys.executable # restart program with same arguments
@@ -369,7 +367,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
 
     obs_db = convert_keys( obs, source )
 
-    if obs_db: gf.obs_to_station_databases(obs_db, output_path, max_retries, timeout_station, verbose=verbose)
+    if obs_db: gf.obs_to_station_databases(obs_db, output_path, "raw", max_retries, timeout_station, verbose=verbose)
      
     # remove file containing the pid, so the script can be started again
     if pid_file: os.remove( pid_file )
@@ -468,7 +466,7 @@ if __name__ == "__main__":
     if config_script["dev_mode"]:   output_path = config_script["output_dev"]
     else:                           output_path = config_script["output_oper"]
 
-    output_path += "/raw"; gf.create_dir(output_path)
+    gf.create_dir(output_path+"/raw")
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
@@ -489,18 +487,27 @@ if __name__ == "__main__":
 
     # get special types of keys
     meta_keys = (gv.sensor_height,gv.sensor_depth,gv.vertical_sigf)
-    modifier_keys, depth_keys, height_keys, fixed_duration = set(), set(), set(), set()
+    modifier_keys, depth_keys, height_keys, fixed_duration_keys = set(), set(), set(), set()
+
+    fixed_durations = {"0s","1s","1min"}
 
     for i in bufr_translation:
         if type(bufr_translation[i]) == dict:
-            try:    subkey = list(bufr_translation[i])
+            
+            try:    subkey = list(bufr_translation[i])[0]
             except: continue
-            if type(subkey[0]) == float:
-                if subkey[0] < 0:   depth_keys.add(i)
-                elif subkey[0] > 0: height_keys.add(i)
+
+            if bufr_translation[i][subkey][1] in fixed_durations:
+                fixed_duration_keys.add(i)
+            
+            if type(subkey) == float:
+                if subkey   < 0: depth_keys.add(i)
+                elif subkey > 0: height_keys.add(i)
+        
         elif type(bufr_translation[i]) == list:
-            if bufr_translation[i][1] in {"0s","1s","1min"}:
-                fixed_duration.add(i)
+            if bufr_translation[i][1] in fixed_durations:
+                fixed_duration_keys.add(i)
+        
         elif type(bufr_translation[i]) == type(None): modifier_keys.add(i)
 
     modifier_keys.add("timePeriod")

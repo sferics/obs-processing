@@ -10,43 +10,43 @@ import subprocess, sys
 from copy import copy
 import sqlite3
 
-
-def obs_to_station_databases( obs_db, output_path, max_retries=100, timeout=5, verbose=False ):
+#TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
+def obs_to_station_databases( obs_db, output_path, typ, max_retries=100, timeout=5, verbose=False ):
     #TODO
     """
     """
     from database import database
-    sql = ( "INSERT INTO obs (datetime,dataset,file,element,value,duration) VALUES (?,?,?,?,?,?) "
+    sql = ( "INSERT INTO obs (dataset,file,datetime,duration,element,value) VALUES (?,?,?,?,?,?) "
             "ON CONFLICT DO UPDATE SET value=excluded.value, duration=excluded.duration" )
 
     for loc in obs_db:
-        created = create_station_tables(loc, output_path, max_retries, True, True, verbose=verbose)
+        created = create_station_tables(loc, output_path, typ, max_retries, 1, 1, verbose=verbose)
         if not created: continue
        
         retries = copy(max_retries)
 
         while retries > 0:
             try:
-                db_station = database( f"{output_path}/{loc[0]}/{loc}.db", timeout=timeout)
-                db_station.exemany( sql, obs_db[loc] )
+                db_loc = database( f"{output_path}/{typ}/{loc[0]}/{loc}.db", timeout=timeout)
+                db_loc.exemany( sql, obs_db[loc] )
             except sqlite3.Error as e:
                 print(e, retries)
                 retries -= 1
                 if verbose: print(f"Retrying to insert data", retries, "times")
                 continue
             else:
-                if verbose:
+                if typ == "raw" and verbose:
                     print(loc)
                     loc = list(obs_db[loc])
                     for i in range(len(loc)):
-                        print(f"{loc[i][0]} {loc[i][3]:<20} {loc[i][4]:<20} {loc[i][5]:<6}")
+                        print(f"{loc[i][2]} {loc[i][3]:<6} {loc[i][4]:<20} {loc[i][5]}")
                     print()
                 break
 
-        db_station.close(commit=True)
+        db_loc.close(commit=True)
 
 
-def create_station_tables( location, output_path, max_retries=100, commit=True, traceback=True, verbose=None ):
+def create_station_tables( location, output_path, typ, max_retries=100, commit=True, traceback=True, verbose=None ):
     """
     Parameter:
     ----------
@@ -64,7 +64,7 @@ def create_station_tables( location, output_path, max_retries=100, commit=True, 
     True if succesful, False if not, None if tables already exists and completely setup (ready == 1)
     """
     from database import database
-    station_path = f'{output_path}/{location[0]}'
+    station_path = f'{output_path}/{typ}/{location[0]}'
     create_dir( station_path )
     db_path = f'{station_path}/{location}.db'
 
@@ -95,7 +95,7 @@ def create_station_tables( location, output_path, max_retries=100, commit=True, 
         if verbose: print("Creating table and adding columns...")
 
         # read structure file station_tables.yaml into a dict
-        tables = read_yaml( "station_tables.yaml" )
+        tables = read_yaml( f"station_tables_{typ}.yaml" )
 
         for table in tables:
             retries = copy(max_retries)
@@ -114,6 +114,12 @@ def create_station_tables( location, output_path, max_retries=100, commit=True, 
 
     db.close(commit=commit)
     return True
+
+
+def chunks(l, n):
+    """Yield n number of striped chunks from l."""
+    for i in range(0, n):
+        yield l[i::n]
 
 
 def merge_list_of_dicts( list_of_dicts ):

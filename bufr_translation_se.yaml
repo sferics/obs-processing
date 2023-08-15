@@ -65,7 +65,7 @@ delayedDescriptorReplicationFactor:                   ~
 ### SNOW
 #TODO units/scale
 totalSnowDepth:                     [TOTSNOW_srf_syn, 1s, 100, 0]   # Gesamtschneehöhe [in cm]
-depthOfFreshSnow:                   [NEWSNOW_srf_syn, 1s, 100, 0]   # Neuschneehöhe [in cm] im Bezugszeitraum
+depthOfFreshSnow:                   [NEWSNOW_srf_syn,  ~, 100, 0]   # Neuschneehöhe [in cm] im Bezugszeitraum
 
 ### PRECIPITATION
 #TODO units/scale

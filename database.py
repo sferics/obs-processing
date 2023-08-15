@@ -32,6 +32,8 @@ class database:
 
         # Set up database cursor
         self.cur    = self.con.cursor()
+        # shorthand for cursor rowcount
+        self.rowcnt = self.cur.rowcount
 
         # apply all PRAGMA settings via a dictionary/keywords
         for i in settings:
@@ -46,7 +48,6 @@ class database:
     fetch   = lambda self         : self.cur.fetchall()
     exe     = lambda self, *param : self.cur.execute(*param)
     exemany = lambda self, *param : self.cur.executemany(*param)
-
 
     def close(self, commit=True, verbose=False ):
         """

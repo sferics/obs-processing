@@ -1,4 +1,4 @@
-#!${CONDA_PREFIX}/bin/python
+#!python
 from sys import argv
 
 if len(argv) == 1: table = "obs"

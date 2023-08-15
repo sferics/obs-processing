@@ -1,13 +1,3 @@
-amalthea:
-  path:     /home/dev/amalthea
-  git:      sicherzumziel.de/amalthea/amalthea
-  branch:   main
-  version:  0.0
-  owner:    Meteo Service weather research
-  updated:  2023-08-06
-  authors:  [Andrei Arba, Morten Kretschmer, Juri Hubrig]
-
-
 database:
   connector:  database.py
   db_file:    main.test.db
@@ -52,9 +42,15 @@ database:
     writable_schema:            
 
 
+#TODO
+#bufr:
+# mode:
+# dev:
+# oper:
 general:
   skip_status:      [parsed, empty, error, locked]
   output_oper:      /home/juri/data/stations_oper #TODO not used so far, future operational usage
+    #output_dev:       /home/juri/data/stations
   output_dev:       /home/juri/data/stations
   dev_mode:         1
   station_dbs:      # settings for connections to station databases
@@ -87,11 +83,11 @@ scripts:
     profiler:         0 # use profiler  TODO
     log_level:        INFO
     debug:            0
-    traceback:        1 # enable traceback prints
+    traceback:        0 # enable traceback prints
     timeout:          3 # timeout for station databases
     multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
     min_ram:          4096 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_files:        6225 #5046 # zero means no maximum #15: 5395
+    max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
@@ -119,7 +115,7 @@ scripts:
     timeout:          3 # timeout for station databases
     multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
     min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_files:        6225 #5046 # zero means no maximum #15: 5395
+    max_files:        5046 #6225 #5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
@@ -137,7 +133,7 @@ scripts:
     station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
 
   decode_bufr_mv.py:
-    conda_env:        obs
+    conda_env:        metview
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     profiler:         0 # use profiler  TODO
@@ -158,7 +154,7 @@ scripts:
     #output_dev:       /historical/db_amalthea/data/stations # m23
     #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation_mv.yaml # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    bufr_flags:       bufr_flags_mv.yaml #TODO not used at the moment, for cloud levels it could be useful though
     extract_subsets:  0
     skip_function:    0
     skip_computed:    0
@@ -265,6 +261,15 @@ scripts:
     conda_env:        obs
     pid_file:         0 # create and use pid file
 
+  reduce_obs.py:
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    traceback:        1 # traceback prints
+    debug:            1
+    dev_mode:         1
+    station_cluster:  germany
+    multiprocessing:  16 #4
+
   audit_obs.py:  #TODO data quality check (idea: each obs parameter gets a range in units table)
     conda_env:        obs
     pid_file:         0 # create and use pid file
@@ -279,7 +284,7 @@ scripts:
     verbose:          0 # verbose output
     traceback:        1 # traceback prints
     dev_mode:         1 # 1 : aggregate all obs data, 0 : only aggregate current obs data (livesystem)
-    multiprocessing:  13
+    multiprocessing:  15
     station_cluster:  germany # TODO should take setting from sources instead
     params:
       FFavg_10m_10min_syn:      [10min, ~]

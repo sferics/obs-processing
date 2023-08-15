@@ -1,4 +1,4 @@
-#!${CONDA_PREFIX}/bin/python
+#!python
 # 1 take data from forge databases
 # 2 check for missing values
 # 3 check for bad (out-of-range) values
