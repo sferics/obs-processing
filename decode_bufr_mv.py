@@ -1,4 +1,4 @@
-#!${CONDA_PREFIX}/bin/python
+#!/usr/bin/env python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
 import argparse, sqlite3, re, sys, os, psutil#, shelve
@@ -10,7 +10,7 @@ import pandas as pd
 from pathlib import Path    # path operation
 from datetime import datetime as dt, timedelta as td
 from database import database; import global_functions as gf; import global_variables as gv
-from bufr_functions import clear, to_datetime, convert_keys
+from bufr_functions import clear, to_datetime, convert_keys_se
 
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
 
@@ -131,21 +131,22 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             #data = mv.bufr_picker(data=data, parameter=relevant_keys[:5], missing_data="ignore", fail_on_error="no", output="ncols")
             
             #https://vocabulary-manager.eumetsat.int/vocabularies/WMO-Common/WMO/Current/C13
-            cats    = 0
-            subcats = (0,1,2,6,7)
+            data = mv.obsfilter(data=data, parameter=relevant_keys, date_and_time_from="data",output="ncols", fail_on_error="yes", fail_on_empty_output="no")
+            #cats    = 0
+            #subcats = (0,1,2,6,7)
             
-            data = mv.obsfilter(data=data, parameter=relevant_keys, date_and_time_from="data", observation_types=cats, observation_subtypes=subcats, output="polar_vector", fail_on_error="yes", fail_on_empty_output="no")#, wmo_stations=tuple(known_stations))
+            #data = mv.obsfilter(data=data, parameter=relevant_keys, date_and_time_from="data", observation_types=cats, observation_subtypes=subcats, output="geopoints", fail_on_error="yes", fail_on_empty_output="no")#, wmo_stations=tuple(known_stations))
         except Exception as e:
             gf.print_trace(e)
             continue
         else:
-            print(mv.stnids(data))
-            df = data.to_dataframe()
-            print(df.describe())
+            #print(mv.stnids(data))
+            #df = data.to_dataframe()
+            #print(df.describe())
             print(data.columns())
             print(data.values())
             print(data.value_columns())
-            print(data.value2s())
+            #print(data.value2s())
 
         #TODO fix memory leak or find out how restarting script works together with multiprocessing
         memory_free = psutil.virtual_memory()[1] // 1024**2
@@ -157,7 +158,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             db.close()
 
             print("Too much RAM used, RESTARTING...")
-            obs_db = convert_keys( obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags )
+            obs_db = convert_keys_se( obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags )
             if obs_db: gf.obs_to_station_databases( obs_db, output_path, max_retries, timeout_station, verbose )
             
             if pid_file: os.remove( pid_file )
@@ -169,7 +170,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
     db.close()
 
-    obs_db = convert_keys( obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags )
+    obs_db = convert_keys_se( obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags )
 
     if obs_db: gf.obs_to_station_databases(obs_db, output_path, max_retries, timeout_station, verbose)
      
@@ -209,9 +210,11 @@ if __name__ == "__main__":
     config_script   = config["scripts"][sys.argv[0]]
     conda_env = os.environ['CONDA_DEFAULT_ENV']
     
+    """
     if config_script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
- 
+    """
+
     if args.max_files:  config_script["max_files"]  = args.max_files
     if args.sort_files: config_script["sort_files"] = args.sort_files
 

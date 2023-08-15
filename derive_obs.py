@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import global_functions as gf
 
 #TODO derive cloud layers (CL_?) from cloud bases and cloud amounts

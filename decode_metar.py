@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #TODO use ECCODES to convert to BUFR
 #https://www.ecmwf.int/sites/default/files/elibrary/2013/13982-conversion-metar-avxml-iwxxm-using-eccodes-and-pyxb.pdf
 #OR python-metar package: https://github.com/python-metar/python-metar

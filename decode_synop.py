@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #TODO use https://github.com/antarctica/pymetdecoder or SYNOP decoder from wetterturnier
 #OR https://github.com/BENR0/python_synop ?
 from pymetdecoder import synop as s

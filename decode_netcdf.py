@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import netCDF4 as nc
 from netCDF4 import Dataset
 

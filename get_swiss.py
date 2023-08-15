@@ -1,4 +1,4 @@
-#!${CONDA_PREFIX}/bin/python
+#!/usr/bin/env python
 import json, sys, os, shutil
 from glob import glob
 import pandas as pd

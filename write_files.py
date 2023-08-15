@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#exporter for MSwr old MOS system
 from constants import null_vals
 
 def write( data, output, mode="csv" ):

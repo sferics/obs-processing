@@ -1,4 +1,4 @@
-#!${CONDA_PREFIX}/bin/python
+#!/usr/bin/env python
 # Retrieving the file from one hour ago and logging deprecation
 
 import logging

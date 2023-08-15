@@ -1,4 +1,4 @@
-#!${CONDA_PREFIX}/bin/python
+#!/usr/bin/env python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
 import argparse, sys, os, psutil#, shelve
@@ -111,7 +111,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
                 file_IDs[FILE] = ID
             else:
                 file_IDs[FILE] = db.register_file(FILE,file_path,source,status="locked",date=file_date,verbose=verbose)
-        db.close(commit=True)
+        db.close(commit=1*args.redo)
 
         #TODO if multiprocessing: split file_to_parse by number of processes (eg 8) and parse files simultaneously
     
@@ -164,7 +164,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
                             ec.codes_set(bufr, "extractSubsetIntervalEnd", end-1)
                         elif subset_list is not None:
                             ec.codes_set(bufr, "extractSubsetList", subset_list)
-                        ec.codes_set(bufr, "doExtractSubsets", 1)
+                ec.codes_set(bufr, "doExtractSubsets", 1)
             except Exception as e:
                 log_str = f"ERROR:  '{FILE}' ({e})"; log.error(log_str)
                 if verbose: print(log_str)                
@@ -461,8 +461,8 @@ if __name__ == "__main__":
     if config_script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
  
-    if args.max_files:  config_script["max_files"]  = args.max_files
-    if args.sort_files: config_script["sort_files"] = args.sort_files
+    if args.max_files is not None:  config_script["max_files"]  = args.max_files
+    if args.sort_files is not None: config_script["sort_files"] = args.sort_files
 
     if "c" in args.skip:    config_script["skip_computed"]  = True
     if "f" in args.skip:    config_script["skip_function"]  = True
