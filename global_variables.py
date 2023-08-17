@@ -20,6 +20,8 @@ seasons = [('01-12', '03-01'), # added a day to avoid the variable ending of feb
 # logger level
 logger_level='WARNING' # options are: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
+# all available log levels
+log_levels = { "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG" }
 
 # regorder_rules
 # {iteration_phase : accepted_predictor_groups}
@@ -42,4 +44,4 @@ replication   = "delayedDescriptorReplicationFactor"
 sensor_height = "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform"
 sensor_depth  = "depthBelowLandSurface"
 vertical_sigf = "verticalSignificanceSurfaceObservations"
-modifier_keys = {sensor_height,sensor_depth,vertical_sigf}
+modifier_keys = { sensor_height, sensor_depth, vertical_sigf }

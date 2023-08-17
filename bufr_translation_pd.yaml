@@ -15,7 +15,7 @@ ft2m30: &ft2m30 0.01016             # ft to m/30
 
 timePeriod:
   0:      0s
-  -1:     1h
+  -1:     1h  # we need to skip all 1 min obs (weather and precipitation) to savely assume this
   -3:     3h
   -6:     6h
   -10:    10min
@@ -99,8 +99,8 @@ netLongWaveRadiationIntegratedOverPeriodSpecified:  [LONGRAD_srf_syn, ~,    0.00
 netLongWaveRadiationIntegratedOver24Hours:          [LONGRAD_srf_syn, 24h,  0.001, 0] # Langwellige Strahlung
 diffuseSolarRadiationIntegratedOverPeriodSpecified: [DIFFRAD_srf_syn, ~,    0.001, 0] # Diffusstrahlung
 diffuseSolarRadiationIntegratedOver24Hours:         [DIFFRAD_srf_syn, 24h,  0.001, 0] # Diffusstrahlung
-totalSunshine:                      [SUNDUR_srf_syn, ~, 1,  0]      # Sonnenscheindauer am Vortag 
-sunshineOverPeriodSpecified:        [SUNDUR_srf_syn, ~, 1,  0]      # Sonnenscheindauer am Vortag
+totalSunshine:                      [SUNDUR_srf_syn, ~, 1,  0]      # Sonnenscheindauer am Vortag oder 1h 
+sunshineOverPeriodSpecified:        [SUNDUR_srf_syn, ~, 1,  0]      # Sonnenscheindauer im Bezugszeitraum
 
 ### WEATHER / PHENOMENA
 presentWeather:                     [WW_syn,  1min, 1, 0]           # Signifikantes Wetter
@@ -182,6 +182,9 @@ minimumTemperatureAtHeightSpecifiedPast24Hours:
   0.05:                             [Tmin_5cm_syn,  24h,  10, *K2C]
   2.0:                              [Tmin_2m_syn,   24h,  10, *K2C]
 
+    #oceanographicWaterTemperature:      [Twater_sst_syn, 1s, 10,  *K2C] # Wassertemperatur sea surface temperature
+
+
 ### WIND
 u:                                  [u_10m_syn, ~, *ms2kn, 0]
 uAt10M:                             [u_10m_syn, ~, *ms2kn, 0]
@@ -190,8 +193,8 @@ vAt10M:                             [v_10m_syn, ~, *ms2kn, 0]
 
   #TODO how/where is the associated wind speed defined?
   #windDirectionAssociatedWithWindSpeedWhichFollows:                 [DIR_10m_syn, ~, 1, 0]
-windDirection:                      [DIR_10m_syn, 1min, 1, 0]       # Windrichtung
-windDirectionAt10M:                 [DIR_10m_syn, 1min, 1, 0]       # Windrichtung
+windDirection:                      [DIR_10m_syn, 10min, 1, 0]       # Windrichtung
+windDirectionAt10M:                 [DIR_10m_syn, 10min, 1, 0]       # Windrichtung
 windSpeed:                          [FFavg_10m_syn, 10min, *ms2kn, 0] # Windgeschwindigkeit 10-Min-Mittel kn
 windSpeedAt10M:                     [FFavg_10m_syn, 10min, *ms2kn, 0] # Mittelwind der letzten Stunde
 meanWindSpeed:                      [FFavg_10m_syn, 10min, *ms2kn, 0]
@@ -200,7 +203,7 @@ maximumMeanWindSpeed:               [FFavg_max_10m_syn,~, *ms2kn,  0]
 highestGustDuringThe10MinutePeriodPrecedingObservation: [FFmax_10m_10min_syn, 10min, *ms2kn, 0]
 meanWindSpeedFrom610minMeasurement: [FFavg_10m_syn,    1h, *ms2kn, 0] # Windgeschwindigkeit 10-Min-Mittel kn
 maximumWindGustSpeed:               [FFmax_10m_syn,     ~, *ms2kn, 0]
-maximumWindSpeed10MinuteMeanWind:   [FFmax_avg_10m_syn,1h, *ms2kn, 0] # Maximales 10min-Mittel im Bezugszeitraum
+maximumWindSpeed10MinuteMeanWind:   [FFmax_avg_10m_syn, ~, *ms2kn, 0] # Maximales 10min-Mittel im Bezugszeitraum
   #TODO what are these? how is their duration defined? Different from gust speeds or equal/comparable?
   #maximumInstantaneousWindSpeed:      [FFmax_10m_syn, ~,  *ms2kn, 0]
   #maximumInstantaneousWindSpeedOver10Minutes:  [FFmax_10m_syn, 10min, *ms2kn, 0]
@@ -224,10 +227,10 @@ verticalSignificanceSurfaceObservations:  ~
 
 # helper key, not part of BUFR tables
 cloudBase:
-  1:                                [CB1_syn,     1s, 1, 0]
-  2:                                [CB2_syn,     1s, 1, 0]
-  3:                                [CB3_syn,     1s, 1, 0]
-  4:                                [CB4_syn,     1s, 1, 0]
+  1:                                [CB1_syn,     1s, *m2m30, 0]
+  2:                                [CB2_syn,     1s, *m2m30, 0]
+  3:                                [CB3_syn,     1s, *m2m30, 0]
+  4:                                [CB4_syn,     1s, *m2m30, 0]
   #TODO see obs.cfg for cloud level thresholds
 
 cloudAmount:

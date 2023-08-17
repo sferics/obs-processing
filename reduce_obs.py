@@ -36,32 +36,16 @@ def reduce_obs(stations):
             #if debug:       pdb.set_trace()
             continue
 
-        # statement to get all desired data of raw database (WORKING? TODO CHECK!)
         #https://stackoverflow.com/questions/7745609/sql-select-only-rows-with-max-value-on-a-column
-        sql_select = "SELECT DISTINCT a.element,a.value,a.duration,a.datetime FROM obs a \
-        INNER JOIN ( SELECT element, value, duration, datetime, MAX(file) file FROM obs GROUP BY \
-        element, value, duration, datetime ) b on a.element = b.element AND a.value = b.value \
-        AND a.duration=b.duration AND a.datetime=b.datetime AND a.file=b.file WHERE a.file >= 0"
-
-        #gf.create_dir(f'/home/juri/data/stations/forge/{loc[0]}')
-
-        #TODO 3 statements to get all data and copy them to a new database (forge)
+        # 3 statements to get all data and copy them to a new database (forge)
 
         gf.create_station_tables( loc, "/home/juri/data/stations", "forge", verbose=verbose )
 
         sql = [f"ATTACH DATABASE '/home/juri/data/stations/forge/{loc[0]}/{loc}.db' AS forge"]
         
         #https://stackoverflow.com/questions/57134793/how-to-save-query-results-to-a-new-sqlite
-        """
-        sql.append("CREATE TABLE forge.obs AS SELECT a.datetime,a.element,a.value,a.duration FROM main.obs a \
-        INNER JOIN ( SELECT element, value, duration, datetime, MAX(file) file FROM main.obs GROUP element,value,duration ) b ON a.element = b.element AND a.duration=b.duration AND \
-        a.datetime=b.datetime AND a.value=b.value, AND a.file=b.file WHERE a.file > 0")
-        """
-        """
-        sql.append("CREATE TABLE forge.obs AS SELECT a.datetime,a.element,a.value,a.duration FROM main.obs a INNER JOIN ( SELECT datetime,element,value,duration,file FROM main.obs ) b ON a.file=(SELECT MAX(file) FROM main.obs WHERE a.element = b.element AND a.duration=b.duration AND \
-        a.datetime=b.datetime AND a.file > 0 AND b.file > 0)")
-        """
         sql.append("CREATE TABLE forge.obs AS SELECT a.datetime,a.element,a.value,a.duration FROM main.obs a WHERE file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration AND a.file>0 AND b.file>0 )")
+        sql.append("UPDATE forge.obs SET duration='10min' WHERE element = 'DIR_10m_syn'")
         sql.append("DETACH forge;")
         
         #print(";\n".join(sql))

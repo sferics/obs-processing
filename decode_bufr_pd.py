@@ -82,13 +82,16 @@ def convert_keys( obs, dataset ):
                 sensor_height, sensor_depth = None, None
 
                 for time_period in obs[file][location][datetime]:
-                   
-                    if len(obs[file][location][datetime][time_period]) == 1 and obs[file][location][datetime][time_period][-1][0] in gv.modifier_keys:
-                        continue
-
+                    
                     try:
-                        if time_period: duration_obs = time_periods[time_period]
+                        if len(obs[file][location][datetime][time_period]) > 0 and obs[file][location][datetime][time_period][1][0] in gv.modifier_keys:
+                            del obs[file][location][datetime][time_period][1]
+                        if len(obs[file][location][datetime][time_period]) == 0: continue
                     except: continue
+                    else:
+                        try:
+                            if time_period: duration_obs = time_periods[time_period]
+                        except: continue
                    
                     for data in obs[file][location][datetime][time_period]:
                         
@@ -108,9 +111,9 @@ def convert_keys( obs, dataset ):
                                 if key == "soilTemperature":
                                     h = copy(sensor_depth)
                                     if not h or h > 0: h = -0.05
-                                else:
+                                else: # we take 1m temperature obs as 2m as well
                                     h = copy(sensor_height)
-                                    if not h or h > 1: h = 2.0
+                                    if not h or h >= 1: h = 2.0
 
                                 element, val_db, duration = translate_key(key, val_obs, duration_obs, h=h)
                             elif key in {"heightOfBaseOfCloud","cloudCoverTotal","cloudAmount"}:
@@ -208,38 +211,45 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         if i == max_retries - 1: sys.exit(f"Can't access main database, tried {max_retries} times. Is it locked?")
 
         if "glob" in config_bufr and config_bufr["glob"]:   ext = f"{config_bufr['glob']}.{ext}"
-        else:                                               ext = f"*.{ext}" #TODO add multiple extensions (list)
+        else:                                               ext = f"*.{ext}" #TODO add possibility to use multiple extensions (set)
         
-        files_in_dir   = set((os.path.basename(i) for i in glob( bufr_dir + ext )))
+        if args.restart:
+            files_to_parse = set(db.get_files_with_status( f"locked_{args.restart}", source ))
+        else:
+            files_in_dir   = set((os.path.basename(i) for i in glob( bufr_dir + ext )))
 
-        if args.redo:   skip_files  = set()
-        else:           skip_files  = set(db.get_files_with_status( config_script["skip_status"], source ))
+            if args.redo:   skip_files  = db.get_files_with_status( r"locked_%", source )
+            else:           skip_files  = db.get_files_with_status( config_script["skip_status"], source )
 
-        files_to_parse = list( files_in_dir - skip_files )
+            files_to_parse = list( files_in_dir - skip_files )
+            
+            #TODO special sort functions for CCA, RRA and stuff...
+            #TODO implement order by datetime of files
+            if config_script["sort_files"]: files_to_parse = sorted(files_to_parse)
+            if config_script["max_files"]:  files_to_parse = files_to_parse[:config_script["max_files"]]
+
+            if verbose:
+                print("#FILES in DIR:  ",   len(files_in_dir))
+                print("#FILES to skip: ",   len(skip_files))
         
-        #TODO special sort functions for CCA, RRA and stuff...
-        #TODO implement order by datetime of files
-        if config_script["sort_files"]: files_to_parse = sorted(files_to_parse)
-        if config_script["max_files"]:  files_to_parse = files_to_parse[:config_script["max_files"]]
-
-        if verbose:
-            print("#FILES in DIR:  ",   len(files_in_dir))
-            print("#FILES to skip: ",   len(skip_files))
-            print("#FILES to parse:",   len(files_to_parse))
+        if verbose: print("#FILES to parse:",   len(files_to_parse))
 
         gf.create_dir( bufr_dir )
         
         file_IDs = {}
 
         for FILE in files_to_parse:
+            
             file_path = gf.get_file_path( bufr_dir + FILE )
             file_date = gf.get_file_date( file_path )
-            if args.redo:
-                ID = db.get_file_id(FILE, file_path)
-                if not ID: ID = db.register_file(FILE,file_path,source,status="locked",date=file_date,verbose=verbose)
-                file_IDs[FILE] = ID
-            else:
-                file_IDs[FILE] = db.register_file(FILE,file_path,source,status="locked",date=file_date,verbose=verbose)
+            
+            ID = db.get_file_id(FILE, file_path)
+            if not ID:
+                status = f"locked_{pid}"
+                ID = db.register_file(FILE, file_path, source, status, file_date, verbose=verbose)
+            
+            file_IDs[FILE] = ID
+        
         db.close(commit=True)
 
         #TODO if multiprocessing: split file_to_parse by number of processes (eg 8) and parse files simultaneously
@@ -282,9 +292,11 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
 
         # len(df.index) == 0 is much faster than df.empty or len(df) == 0
         # https://stackoverflow.com/questions/19828822/how-to-check-whether-a-pandas-dataframe-is-empty
-        if len(df.index) == 0: file_statuses.add( ("empty", ID) ); continue
+        # if the dataframe contains no data or no stations with WMO IDs, skip
+        if len(df.index) == 0 or df.loc[:, "WMO_station_id"].isna().all():
+            file_statuses.add( ("empty", ID) ); continue
+
         # if dataframe larger than minimum keyset: drop all rows and columns which only contains NaNs
-        
         #elif len(df.columns) > number_of_filter_keys:
         else:
             df.dropna(how="all", inplace=True)
@@ -299,6 +311,16 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
 
         for ix, row in df.iterrows():
 
+            #keys_not_na = relevant_obs.intersection(row.index)
+            # in future versions of pandas we will need this next line:
+            #keys_not_na = list(relevant_obs.intersection(row.index))
+
+            #if row.loc[keys_not_na].isna().all(): continue
+
+            #keys_not_na = relevant_obs.intersection(row.index)
+            #if not row.loc[keys_not_na].notna().any(): continue
+ 
+            #TODO possibly BUG in pdbufr? timePeriod=0 never exists; write bug report in github!
             try:
                 if pd.notna(row["timePeriod"]): time_period = row["timePeriod"]
             except: pass 
@@ -315,15 +337,6 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             for i in (gv.replication, "timePeriod", "WMO_station_id", "data_datetime"):
                 try:    del row[i]
                 except: continue
-
-            #keys_not_na = relevant_obs.intersection(row.index)
-            # in future versions of pandas we will need this next line:
-            #keys_not_na = list(relevant_obs.intersection(row.index))
-
-            #if row.loc[keys_not_na].isna().all(): continue
-            
-            #keys_not_na = relevant_obs.intersection(row.index)
-            #if not row.loc[keys_not_na].notna().any(): continue
                 
             if location not in obs[ID]:             obs[ID][location]           = {}
             if datetime not in obs[ID][location]:   obs[ID][location][datetime] = {}
@@ -343,6 +356,15 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             if obs_list:
                 try:    obs[ID][location][datetime][time_period] += obs_list
                 except: obs[ID][location][datetime][time_period] = obs_list
+                new_obs += 1
+
+        if new_obs:
+            file_statuses.add( ("parsed", ID) )
+            log.debug(f"PARSED: '{FILE}'")
+        else:
+            file_statuses.add( ("empty", ID) )
+            log.info(f"EMPTY:  '{FILE}'")
+
 
         #TODO fix memory leak or find out how restarting script works together with multiprocessing
         memory_free = psutil.virtual_memory()[1] // 1024**2
@@ -358,8 +380,9 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             if obs_db: gf.obs_to_station_databases( obs_db, output_path, "raw", max_retries, timeout_station, verbose=verbose )
             
             if pid_file: os.remove( pid_file )
-            exe = sys.executable # restart program with same arguments
-            os.execl(exe, exe, * sys.argv); sys.exit()
+            exe = sys.executable # restart program with same arguments and add restart flag
+            os.execl(exe, script_name, * sys.argv, "-R", pid); sys.exit()
+
 
     db = database(db_file, timeout=timeout_db, traceback=traceback)
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
@@ -374,7 +397,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
 
 
 if __name__ == "__main__":
-    
+   
     msg    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
     msg   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
     parser = argparse.ArgumentParser(description=msg)
@@ -386,7 +409,8 @@ if __name__ == "__main__":
     parser.add_argument("-f","--file", help="parse single file bufr file, will be handled as source=extra by default")
     parser.add_argument("-v","--verbose", action='store_true', help="show detailed output")
     parser.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)") #TODO -> prcs
-    parser.add_argument("-c","--config", default="config.yaml", help="set name of yaml config file")
+    parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
+    parser.add_argument("-C","--config", default="config.yaml", help="set name of yaml config file")
     parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
@@ -396,26 +420,30 @@ if __name__ == "__main__":
     parser.add_argument("-b","--debug", action='store_true', help="enable or disable debugging")
     parser.add_argument("-e","--extra", default="extra", help="source name when parsing single file (default: extra)")
     parser.add_argument("-r","--redo", action='store_true', help="decode bufr again even if already processed")
+    parser.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
     parser.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
 
     args = parser.parse_args()
 
     #read yaml configuration file config.yaml into dictionary
     config          = gf.read_yaml( args.config )
-    config_script   = config["scripts"][sys.argv[0]]
+    script_name     = os.path.basename(__file__)
+    config_script   = config["scripts"][script_name]
     conda_env       = os.environ['CONDA_DEFAULT_ENV']
     
     if config_script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
     
+    pid = str(os.getpid())
+
     if args.max_files:  config_script["max_files"]  = args.max_files
     if args.sort_files: config_script["sort_files"] = args.sort_files
 
     if args.pid_file:               config_script["pid_file"] = True
     if config_script["pid_file"]:
-        pid_file = sys.argv[0] + ".pid"
+        pid_file = script_name + ".pid"
         if gf.already_running( pid_file ):
-            sys.exit( f"{sys.argv[0]} is already running... exiting!" )
+            sys.exit( f"{script_name} is already running... exiting!" )
     else: pid_file = None
 
     if args.profiler:
@@ -427,9 +455,9 @@ if __name__ == "__main__":
     else: profile = False
     
     if args.log_level: config_script["log_level"] = args.log_level
-    log.basicConfig(filename=f"{sys.argv[0]}.log", filemode="w", level=eval(f"log.{config_script['log_level']}"))
+    log.basicConfig(filename=f"{script_name}.log", filemode="w", level=eval(f"log.{config_script['log_level']}"))
 
-    started_str = f"STARTED {sys.argv[0]} @ {dt.utcnow()}"; log.info(started_str)
+    started_str = f"STARTED {script_name} @ {dt.utcnow()}"; log.info(started_str)
 
     if args.verbose:    verbose = True
     else:               verbose = config_script["verbose"]
@@ -466,6 +494,8 @@ if __name__ == "__main__":
     if config_script["dev_mode"]:   output_path = config_script["output_dev"]
     else:                           output_path = config_script["output_oper"]
 
+    if args.clusters: config_source["clusters"] = set(args.clusters.split(",")) 
+
     gf.create_dir(output_path+"/raw")
 
     # add files table (file_table) to main database if not exists
@@ -497,7 +527,7 @@ if __name__ == "__main__":
             try:    subkey = list(bufr_translation[i])[0]
             except: continue
 
-            if bufr_translation[i][subkey][1] in fixed_durations:
+            if bufr_translation[i][subkey][1] is not None:
                 fixed_duration_keys.add(i)
             
             if type(subkey) == float:
@@ -505,10 +535,11 @@ if __name__ == "__main__":
                 elif subkey > 0: height_keys.add(i)
         
         elif type(bufr_translation[i]) == list:
-            if bufr_translation[i][1] in fixed_durations:
+            if bufr_translation[i][1] is not None:
                 fixed_duration_keys.add(i)
         
         elif type(bufr_translation[i]) == type(None): modifier_keys.add(i)
+
 
     modifier_keys.add("timePeriod")
 
@@ -539,5 +570,5 @@ if __name__ == "__main__":
             if verbose: print(f"Parsing source {SOURCE}...")
             parse_all_BUFRs( source = SOURCE, pid_file=pid_file )
 
-    finished_str = f"FINISHED {sys.argv[0]} @ {dt.utcnow()}"; log.info(finished_str)
+    finished_str = f"FINISHED {script_name} @ {dt.utcnow()}"; log.info(finished_str)
     if verbose: print(finished_str)

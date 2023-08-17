@@ -21,3 +21,4 @@ stats:
   minimum:  real
   valid:    text
   UNIQUE:   (el, location, valid)
+#coefs:

@@ -1,5 +1,3 @@
-#!/home/dev/bin/miniconda3/envs/test39/bin/python
-
 import sys, re, inspect, sqlite3 # sqlite connector python base module
 import funcy
 import global_functions as gf
@@ -30,24 +28,55 @@ class database:
         # use string converter
         if text_factory: self.con.text_factory = text_factory
 
+        # enable REGEXP function
+        def regexp(expr, item):
+            reg = re.compile(expr)
+            return reg.search(item) is not None
+
+        self.con.create_function("REGEXP", 2, regexp)
+
         # Set up database cursor
         self.cur    = self.con.cursor()
         # shorthand for cursor rowcount
         self.rowcnt = self.cur.rowcount
+        # shorthand for lastrowid
+        self.lastid = self.cur.lastrowid
 
         # apply all PRAGMA settings via a dictionary/keywords
         for i in settings:
             if settings[i]: exec( f"self.{i}('{settings[i]}')" )
             elif verbose: print( i, setting )
+    
 
     # some useful shorthand definitions
     commit  = lambda self         : self.con.commit()
-    attach  = lambda self, DB, AS : self.exe( f"ATTACH DATABASE '{DB}' as '{AS}'" )
-    detach  = lambda self, DB     : self.exe( f"DETACH DATABASE '{DB}'" )
     fetch1  = lambda self         : self.cur.fetchone()
     fetch   = lambda self         : self.cur.fetchall()
     exe     = lambda self, *param : self.cur.execute(*param)
     exemany = lambda self, *param : self.cur.executemany(*param)
+    attach  = lambda self, DB, AS : self.exe( f"ATTACH DATABASE '{DB}' as '{AS}'" )
+    detach  = lambda self, DB     : self.exe( f"DETACH DATABASE '{DB}'" )
+
+
+    # row factories
+
+    # return as dictionary
+    def dict_factory(cursor, row):
+        fields = [column[0] for column in cursor.description]
+        return {key: value for key, value in zip(fields, row)}
+
+    # return as set
+    set_factory = lambda cursor, row : {value for values in row}
+    
+    # return as list
+    list_factory = lambda cursor, row : [value for values in row]
+
+    # default from __init__ (no tuple with len==1)
+    len1_factory = lambda cursor, row : row[0] if len(row)==1 else row
+
+    # sqlite3 default
+    default_factory = lambda cursor, row : row
+
 
     def close(self, commit=True, verbose=False ):
         """
@@ -821,13 +850,13 @@ class database:
         https://www.sqlite.org/pragma.html#pragma_table_list
         """
         if table_name:
-            self.cursor.execute( f"PRAGMA table_list('{table_name}')" )
+            self.exe( f"PRAGMA table_list('{table_name}')" )
             return self.fetch()
 
         if schema: schema = f"'{schema}'."
         
         sql = f"PRAGMA {schema}table_list"
-        self.cursor.execute( sql )
+        self.exe( sql )
         return self.fetch()
 
 
@@ -854,7 +883,7 @@ class database:
 
         sql = f"PRAGMA {schema}table_{hidden}info('{table_name}')"
 
-        self.cursor.execute( sql )
+        self.exe( sql )
         return self.fetch()
 
 
@@ -915,8 +944,12 @@ class database:
             return f"({column_list}) VALUES ({value_list})"
     
     
-    # helper lambda function which adds IN() around a list of values
-    sql_in = lambda self, what : "IN('"+"','".join(what)+"')"
+    # helper function which adds IN() around a the values OR produces a LIKE statement if wildcard
+    def sql_in(self, what, regexp=False):
+        """
+        """
+        if regexp:      return "REGEXP '(" + "|".join(what) + ")'"
+        else:           return "IN('"+"','".join(what)+"')"
     
 
     def fix_table_name( self, table ):
@@ -1028,7 +1061,7 @@ class database:
 
         if distinct: distinct = "DISTINCT "
         sql = f"SELECT {distinct}{column} FROM {table} "
-        if what and "%" in what: operator = "LIKE"
+        if what and r"%" in what: operator = "LIKE"
         else: operator = "="
 
         if where:
@@ -1036,13 +1069,19 @@ class database:
                 s = "WHERE "
                 for i in range(len(where)):
                     if type(what[i]) in gv.array_types:
-                        what_i = self.sql_in( what[i] )
+                        regexp = False
+                        for j in what[i]:
+                            if "." in j: regexp = True
+                        what_i = self.sql_in( what[i], regexp )
                     else: what_i = f"{operator} '{what[i]}'"
                     s += f"{where[i]} {what_i} AND "
                 sql += s[:-5]
             else:
                 if type(what) in gv.array_types:
-                    what = self.sql_in( what )
+                    wildcard = False
+                    for i in what:
+                        if "." in i: regexp = True
+                    what = self.sql_in( what, regexp )
                 else: what = f"{operator} '{what}'"
                 sql += f"WHERE {where} {what}"
 

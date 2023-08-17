@@ -4,22 +4,8 @@ from datetime import datetime as dt, timedelta as td
 from database import database
 import global_functions as gf
 
-config          = gf.read_yaml( "config.yaml" )
-db_settings     = config["database"]["settings"]
-config_script   = config["scripts"][sys.argv[0]]
-verbose         = config_script["verbose"]
-traceback       = config_script["traceback"]
 
-db              = database( config["database"]["db_file"],verbose=0,traceback=1,settings=db_settings )
-
-cluster         = config_script["station_cluster"]
-stations        = db.get_stations( cluster ); db.close(commit=False)
-params          = config_script["params"]
-
-#TODO implement source option! for now, just stick with test
-src = "test"
-#TODO rename to aggregate_obs
-def aggregate_stations(stations):
+def aggregate_obs(stations):
     def get_distinct_months(year):
         db_loc.exe((f"SELECT DISTINCT strftime('%m', datetime) FROM obs WHERE element = '{p_old}' "
                         f"AND strftime('%Y', datetime) = '{year}'"))
@@ -207,6 +193,21 @@ def aggregate_stations(stations):
 
 if __name__ == "__main__":
     
+    #TODO implement source option! for now, just stick with test
+    src = "test"
+
+    config          = gf.read_yaml( "config.yaml" )
+    db_settings     = config["database"]["settings"]
+    config_script   = config["scripts"][sys.argv[0]]
+    verbose         = config_script["verbose"]
+    traceback       = config_script["traceback"]
+
+    db              = database( config["database"]["db_file"],verbose=0,traceback=1,settings=db_settings )
+
+    cluster         = config_script["station_cluster"]
+    stations        = db.get_stations( cluster ); db.close(commit=False)
+    params          = config_script["params"]
+
     if config_script["multiprocessing"]:
         # number of processes
         npcs = config_script["multiprocessing"]
@@ -220,7 +221,7 @@ if __name__ == "__main__":
         station_groups = np.array_split(stations, npcs)
 
         for station_group in station_groups:
-            p = mp.Process(target=aggregate_stations, args=(station_group,))
+            p = mp.Process(target=aggregate_obs, args=(station_group,))
             p.start()
 
-    else: aggregate_stations(stations)
+    else: aggregate_obss(stations)

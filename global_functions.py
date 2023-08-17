@@ -480,7 +480,7 @@ def already_running2():
     stderr=subprocess.PIPE)
     my_pid, err = process.communicate()
 
-    if len(my_pid.splitlines()) >0:
+    if len(my_pid.splitlines()) >0 :
        return True
     return False
 

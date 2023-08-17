@@ -1,16 +1,22 @@
 ### UNIT CONVERSIONS
 # excact-as-possible unit conversion factors
 # great source for these fractions: https://unitchefs.com/speed/
+
 # TEMPERATURE
-K2C:    &K2C    -2731.5             # K to C*10
+K2C:    &K2C    -2731.5               # K to C*10
+
 # WIND SPEED
-ms2kn:  &ms2kn  1.9438444924406046  # m/s to kn
-kh2kn:  &kh2kn  0.5399568034557235  # km/h to kn
+ms2kn:  &ms2kn  1.9438444924406046    # m/s to kn
+kh2kn:  &kh2kn  0.5399568034557235    # km/h to kn
+
 # LENGTH
-#m2ft:   &m2ft   3.2808398950131235  # m to ft
+#m2ft:   &m2ft   3.2808398950131235   # m to ft
 #ft2m:   &ft2m   0.3048
-m2m30:  &m2m30  0.03333333333333333 # m  to m/30 
-ft2m30: &ft2m30 0.01016             # ft to m/30
+m2m30:  &m2m30  0.03333333333333333   # m  to m/30 
+ft2m30: &ft2m30 0.01016               # ft to m/30
+
+# TIME
+#h2min: &min2h   0.016666666666666666  # min to h
 
 #TODO seperate between keys which can have different UNIT and/or SCALE - and the ones which always have the same
 
@@ -79,13 +85,12 @@ netLongWaveRadiationIntegratedOver24Hours:          [LONGRAD_srf_syn, 24h,  0.00
 diffuseSolarRadiationIntegratedOverPeriodSpecified: [DIFFRAD_srf_syn, ~,    0.001, 0] # Diffusstrahlung
 diffuseSolarRadiationIntegratedOver24Hours:         [DIFFRAD_srf_syn, 24h,  0.001, 0] # Diffusstrahlung
 totalSunshine: 
-  - min:                            [SUNDUR_srf_syn, ~, 1,  0]      # Sonnenscheindauer am Vortag
-  - h:                              [SUNDUR_srf_syn, ~, 60, 0]      # Sonnenscheindauer am Vortag 
-  #TODO how do we handle different time periods in conjunction with %?
-  #-  "%":                             [SUNDUR_srf_syn, ~, 1,  0]      # Sonnenscheindauer am Vortag
+  - min:                            [SUNDUR_srf_syn,      ~,  1, 0] # Sonnenscheindauer am Vortag oder 1h
+  - h:                              [SUNDUR_srf_syn,      ~, 60, 0] # Sonnenscheindauer am Vortag oder 1h
+  - "%":                            [SUNDUR_srf_perc_syn, ~,  1, 0] # Sonnenscheindauer am Vortag oder 1h
 sunshineOverPeriodSpecified:
-  - min:                            [SUNDUR_srf_syn, ~, 1,  0]      # Sonnenscheindauer am Vortag
-  - h:                              [SUNDUR_srf_syn, ~, 60, 0]      # Sonnenscheindauer am Vortag 
+  - min:                            [SUNDUR_srf_syn,      ~,  1, 0] # Sonnenscheindauer im Bezugszeitraum
+  - h:                              [SUNDUR_srf_syn,      ~, 60, 0] # Sonnenscheindauer im Bezugszeitraum
 
 ### WEATHER / PHENOMENA
 presentWeather:                     [WW_syn,  1min, 1, 0]           # Signifikantes Wetter
@@ -167,6 +172,9 @@ minimumTemperatureAtHeightSpecifiedPast24Hours:
   0.05:                             [Tmin_5cm_syn,  24h,  10, *K2C]
   2.0:                              [Tmin_2m_syn,   24h,  10, *K2C]
 
+oceanographicWaterTemperature:      [Twater_sst_syn, 1s, 10,  *K2C] # Wassertemperatur sea surface temperature
+
+
 ### WIND
 u:                                  [u_10m_syn, ~, *ms2kn, 0]
 uAt10M:                             [u_10m_syn, ~, *ms2kn, 0]
@@ -214,10 +222,10 @@ verticalSignificanceSurfaceObservations:  ~
 
 # helper key, not part of BUFR tables
 cloudBase:
-  1:                                [CB1_syn,     ~, 1, 0]
-  2:                                [CB2_syn,     ~, 1, 0]
-  3:                                [CB3_syn,     ~, 1, 0]
-  4:                                [CB4_syn,     ~, 1, 0]
+  1:                                [CB1_syn,     1s, *m2m30, 0]
+  2:                                [CB2_syn,     1s, *m2m30, 0]
+  3:                                [CB3_syn,     1s, *m2m30, 0]
+  4:                                [CB4_syn,     1s, *m2m30, 0]
   #TODO see obs.cfg for cloud level thresholds
 
 cloudAmount:

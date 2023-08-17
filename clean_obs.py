@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python
 # cleaning obs database in raw,live and dev (argument)
 # gets called in different frequencies for these options
 # e.g.:

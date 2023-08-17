@@ -13,7 +13,8 @@ obs:
   element:  text NOT NULL
   value:    text NOT NULL
     #TODO scale attribute could be used in future to determine precision of obs values (e.g. for BUFR obs: scale * conversion)
-  #scale:    real
+  #scale:    real DEFAULT 1
+  #parsed:  int DEFAULT 0
   #UNIQUE:   (datetime, dataset, file, duration, element, scale)
   UNIQUE:   (dataset, file, datetime, duration, element)
 stats:
