@@ -5,7 +5,7 @@ import logging as log
 
 class database:
 
-    def __init__(self, config={ "db_file":"main.test.db", "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
+    def __init__(self, db_file="main.test.db", config={ "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
         
         #TODO add logging statements where it makes sense for debugging/monitoring of database activities
         assert(config["log_level"] in gv.log_levels)
@@ -13,16 +13,16 @@ class database:
         log.basicConfig( filename=f"database.log", filemode="w", level=eval(f"log.{self.log_level}") )
 
         # keep name of datebase file which we want to attach (connect)
-        self.name       = config["db_file"]
+        self.db_file    = db_file
         self.timeout    = config["timeout"]
         self.verbose    = config["verbose"]
         self.traceback  = config["traceback"]
 
         # if ro == True we open the database in read-only mode
-        if ro: self.name = f"file:{self.name}?mode=ro"
+        if ro: self.db_file = f"file:{self.db_file}?mode=ro"
 
         # Opening database connection (uri needs to be also True if read-only)
-        self.con    = sqlite3.connect(self.name, timeout=self.timeout, uri=ro)
+        self.con    = sqlite3.connect(self.db_file, timeout=self.timeout, uri=ro)
         
         if callable(row_factory): self.con.row_factory = row_factory
         # else set to default (get rid of tuple w/ length 1)
@@ -634,8 +634,6 @@ class database:
         """
         self.pragma_get_set( inspect.currentframe().f_code.co_name, N=boolean, schema=schema )
 
-    #TODO implement all remaining useful (non-debug) PRAGMA functions from documentation:
-    #https://www.sqlite.org/pragma.html
 
     def soft_heap_limit( self, N=None ):
         """
@@ -785,8 +783,6 @@ class database:
         self.pragma_get_set( inspect.currentframe().f_code.co_name, boolean )
 
 
-    # PRAGMA getter functions, could also be simplified with a generic function but this would save only few LOC
-
     def collation_list( self ):
         """
         Return:
@@ -795,6 +791,7 @@ class database:
         https://www.sqlite.org/pragma.html#pragma_collation_list
         """
         self.exe("PRAGMA collation_list")
+        return self.fetch()
 
 
     def data_version( self, schema="" ):
@@ -813,6 +810,7 @@ class database:
         """
         if schema: schema = f"'{schema}'."
         self.exe("PRAGMA {schema}data_version")
+        return self.fetch1()
 
 
     def database_list( self ):
@@ -825,6 +823,160 @@ class database:
         the name of the database file itself, or an empty string if the database is not associated with a file.
         """
         self.exe( "PRAGMA database_list" )
+        return self.fetch()
+
+
+    def foreign_key_check( self, table_name="", schema="" ):
+        """
+        Notes:
+        ------
+        see documentation: https://www.sqlite.org/pragma.html#pragma_foreign_key_check
+        """
+        if table_name:  table_name  = f"({table_name})"
+        if schema:      schema      = f"'{schema}'."
+        self.exe( f"PRAGMA {schema}foreign_key_check{table_name}" )
+
+
+    def foreign_key_list( self, table_name="" ):
+        """
+        Notes:
+        ------
+        see documentation: https://www.sqlite.org/pragma.html#pragma_foreign_key_list
+        """
+        if table_name:  table_name  = f"({table_name})"
+        self.exe( f"PRAGMA foreign_key_list{table_name}" )
+        return self.fetch()
+
+
+    def freelist_count( self, schema="" ):
+        """
+        Notes:
+        ------
+        return the number of unused pages in the database file
+        """
+        if schema:      schema      = f"'{schema}'."
+        self.exe( f"PRAGMA {schema}freelist_count" )
+        return self.fetch1()
+
+    
+    def function_list( self ):
+        """
+        Notes:
+        ------
+        This pragma returns a list of SQL functions known to the database connection.
+        Each row of the result describes a single calling signature for a single SQL function.
+        Some SQL functions will have multiple rows in the result set if they can (for example)
+        be invoked with a varying number of arguments or can accept text in various encodings.
+        """
+        self.exe( "PRAGMA function_list" )
+        return self.fetch()
+   
+
+    def incremental_vacuum( self, N="", schema="" ):
+        """
+        Notes:
+        ------
+        The incremental_vacuum pragma causes up to N pages to be removed from the freelist.
+        The database file is truncated by the same amount. The incremental_vacuum pragma has no
+        effect if the database is not in auto_vacuum=incremental mode or if there are no pages
+        on the freelist. If there are fewer than N pages on the freelist, or if N is less than 1,
+        or if the "(N)" argument is omitted, then the entire freelist is cleared.
+        """
+        if schema:      schema      = f"'{schema}'."
+        if N:           N           = f"({N})"
+        self.exe( f"PRAGMA {schema}incremental_vacuum{N}" )
+
+    
+    def index_info( self, index_name, schema="", hidden=False ):
+        """
+        Notes:
+        ------
+        see documentation: https://www.sqlite.org/pragma.html#pragma_index_info
+        """
+        if schema:      schema      = f"'{schema}'."
+        if hidden:      return self.index_xinfo( index_name, schema )
+        self.exe( f"PRAGMA {schema}index_info{index_name}" )
+        return self.fetch()
+
+
+    def index_list( self, table_name ):
+        """
+        Notes:
+        ------
+        see documentation: https://www.sqlite.org/pragma.html#pragma_index_list
+        """
+        if schema:      schema      = f"'{schema}'." 
+        self.exe( f"PRAGMA {schema}index_list{index_name}" ) 
+        return self.fetch()
+
+
+    def index_xinfo( self, index_name ):
+        """
+        Notes:
+        ------
+        see documentation: https://www.sqlite.org/pragma.html#pragma_index_xinfo
+        """
+        if schema:      schema      = f"'{schema}'." 
+        self.exe( f"PRAGMA {schema}index_xinfo{index_name}" )
+        return self.fetch()
+
+
+    def integritiy_check( self, N_or_table, schema="" ):
+        """
+        see documentation: https://www.sqlite.org/pragma.html#pragma_integrity_check
+        """
+        if schema:      schema      = f"'{schema}'."
+        self.exe( f"PRAGMA {schema}integrity_check({N_or_table})" )
+        return self.fetch1()
+
+
+    def module_list( self ):
+        """
+        This pragma returns a list of virtual table modules registered with the database connection.
+        """
+        self.exe( "PRAGMA module_list" )
+        return self.fetch()
+
+
+    def optimize( self, mask="", schema="" ):
+        """
+        Notes:
+        ------
+        see documentation: https://www.sqlite.org/pragma.html#pragma_optimize
+        """
+        if schema:      schema      = f"'{schema}'."
+        if mask:        mask        = f"({mask})"
+        self.exe( f"PRAGMA {schema}optimize({mask}" )
+
+
+    def page_count( self, schema="" ):
+        """
+        Return the total number of pages in the database file.
+        """
+        if schema:      schema      = f"'{schema}'."
+        self.exe( f"PRAGMA {schema}page_count" )
+        return self.fetch1()
+
+
+    def pragma_list( self ):
+        """
+        This pragma returns a list of PRAGMA commands known to the database connection.
+        """
+        self.exe( "PRAGMA pragma_list" )
+        return self.fetch()
+
+
+    def quick_check( self, N_or_table, schema="" ):
+        """
+        The pragma is like integrity_check except that it does not verify UNIQUE constraints and
+        does not verify that index content matches table content. By skipping UNIQUE and index
+        consistency checks, quick_check is able to run faster. PRAGMA quick_check runs in O(N) time
+        whereas PRAGMA integrity_check requires O(NlogN) time where N is the total number of rows
+        in the database. Otherwise the two pragmas are the same.
+        """
+        if schema:      schema      = f"'{schema}'."
+        self.exe( f"PRAGMA {schema}quick_check({N_or_table})" )
+        return self.fetch1()
 
 
     def table_list( self, table_name=None, schema="" ):
@@ -866,13 +1018,26 @@ class database:
         part of the primary key, or the 1-based index of the column within the primary key).
         https://www.sqlite.org/pragma.html#pragma_table_info 
         """
-
         if schema: schema = f"'{schema}'."
-        if hidden: hidden = "x"
-        else: hidden = ""
-
+        if hidden: return self.table_xinfo( table_name, schema )
+        
         sql = f"PRAGMA {schema}table_{hidden}info('{table_name}')"
+        self.exe( sql )
+        return self.fetch()
 
+
+    def table_xinfo( self, table_name, schema="" ):
+        """
+        Notes:
+        ------
+        This pragma returns one row for each column in the named table, including generated columns
+        and hidden columns. The output has the same columns as for PRAGMA table_info plus a column,
+        "hidden", whose value signifies a normal column (0), a dynamic or stored generated column
+        (2 or 3), or a hidden column in a virtual table (1). The rows for which this field is
+        non-zero are those omitted for PRAGMA table_info.
+        """
+        if schema: schema = f"'{schema}'."
+        sql = f"PRAGMA {schema}table_xinfo('{table_name}')"
         self.exe( sql )
         return self.fetch()
 
@@ -885,6 +1050,16 @@ class database:
         by calling sqlite3_db_release_memory().
         """
         self.exe( f"PRAGMA shrink_memory" )
+
+    
+    def wal_checkpoint( self, mode="" ):
+        """
+        Notes:
+        ------
+        see documentation: https://www.sqlite.org/pragma.html#pragma_wal_checkpoint
+        """
+        if mode:    mode=f"({mode})"
+        self.exe( f"PRAGMA wal_checkpoint{mode}" )
 
 
     # some helper functions
@@ -1485,6 +1660,7 @@ class database:
         from sql_factories import dict_row, default
         self.con.row_factory = dict_row
         self.exe(sql)
+        # reset the row_factory function to default TODO is this really necessary?
         self.con.row_factory = default
         return self.fetch()
 
