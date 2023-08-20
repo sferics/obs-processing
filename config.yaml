@@ -1,8 +1,8 @@
+#classes (key name == name of class)
 database:
-  connector:  database.py
   db_file:    main.test.db
-  log_level:  ERROR
   verbose:    0
+  log_level:  ERROR
   traceback:  1
   timeout:    5 # default is 5
   settings: 
@@ -41,35 +41,33 @@ database:
     user_version:               
     writable_schema:            
 
+bufr:
+  verbose:          0
+  log_level:        ERROR
+  traceback:        1
 
-#TODO
-#bufr:
-# mode:
-# dev:
-# oper:
-general:
-  skip_status:      [parsed, empty, error, locked]
+obs:
+  verbose:
+  log_level:        WARNING
+  traceback:
+  dev_mode:         1
   output_oper:      /home/juri/data/stations_oper #TODO not used so far, future operational usage
     #output_dev:       /home/juri/data/stations
-  output_dev:       /home/juri/data/stations
-  dev_mode:         1
-  station_dbs:      # settings for connections to station databases
-    max_retries:    1200
-    timeout:        3
-    settings:       {} # add SQLite PRAGMA settings analog to settings of main database here
-  bufr:
-    null_vals:      !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
-    time_keys:      !!python/tuple  [year, month, day, hour, minute]
-    station_keys:   !!python/tuple  [shortStationName, stationNumber, blockNumber]
+  output_path:      /home/juri/data/stations
+  max_retries:      1200
+  timeout:          3
+  commit:           True
+  settings:         {} # add SQLite PRAGMA settings analog to settings of main database here
 
 
+#script configurations (key name == script name)
 scripts:
   add_stations_from_bufr.py:
     conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          1
     traceback:        1
-    max_files:        0
+    max_files:        0 # 0 or None (~) means no limit
     max_retries:      100
     multiprocessing:  15
     station_info:     bufr_station_info.yaml
@@ -88,22 +86,20 @@ scripts:
     timeout:          3 # timeout for station databases
     multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
     min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
     max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
-    max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    stations:         wmo
+    clusters:         germany
     dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
       #output_oper:      /data/stations_oper # em24 dev
       #output_dev:       /data/stations_dev  # em24 dev
     output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations_pd
+    output_path:      /home/juri/data/stations_pd
     #output_dev:       /historical/db_amalthea/data/stations # m23
     #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
-    bufr_translation: bufr_translation_pd.yaml # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags.yaml
-    skip_status:      ["locked_.", parsed, empty, error]
-    null_vals:        !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
-    time_keys:        !!python/tuple  [year, month, day, hour, minute]
-    station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
+    bufr_translation: bufr_translation_pd.yaml  # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags.yaml           # code flag table conversions
 
   decode_bufr_mv.py:
     conda_env:        metview
@@ -128,10 +124,6 @@ scripts:
     #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation_mv.yaml # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags_mv.yaml #TODO not used at the moment, for cloud levels it could be useful though
-    extract_subsets:  0
-    skip_function:    0
-    skip_computed:    0
-    skip_duplicates:  0
     skip_status:      [parsed, empty, error, locked]
     null_vals:        !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
     time_keys:        !!python/tuple  [year, month, day, hour, minute]
@@ -202,7 +194,7 @@ scripts:
     station_keys:     !!python/tuple  [shortStationName, stationNumber, blockNumber]
 
 
-  decode_bufr.py:
+  decode_bufr_us.py:
     conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
@@ -273,16 +265,37 @@ scripts:
     traceback:        0 # traceback prints
     debug:            0
     dev_mode:         1
-    station_cluster:  germany
+    clusters:         germany
     multiprocessing:  15 #4
 
   audit_obs.py:  #TODO data quality check (idea: each obs parameter gets a range in units table)
     conda_env:        obs
     pid_file:         0 # create and use pid file
 
-  derive_obs.py:      #TODO e.g. calculate Td from T and RH ... do we need this or can it be part of decode_bufr?
+  derive_obs.py:
     conda_env:        obs
     pid_file:         0 # create and use pid file
+    verbose:          1
+    traceback:        0
+    dev_mode:         1
+    multiprocessing:  15
+    clusters:         germany
+    replacements:
+      DIR_10m_syn:    DIR_5m_syn
+      FFavg_10m_syn:  FFavg_5m_syn
+      TCC_LC_syn:     TCC_1C_syn, TCC_ceiling_syn
+      TCC_MC_syn:     TCC_2C_syn
+      TCC_HC_syn:     TCC_3C_syn
+      TCC_1C_syn:     TCC_LC_syn, TCC_ceiling_syn
+      TCC_2C_syn:     TCC_MC_syn
+      TCC_3C_syn:     TCC_HC_syn
+      VIS_syn:        MOR_syn, VIS_min, MOR_min, VIS_pre, VIS_run, VIS_sea, MOR_max
+    combinations:
+      CL[1-4]_syn:    [TCC_%dC_syn, round(CB%d_syn)]
+        #CL1_syn:      TCC_1C_syn + round(CB1_syn)
+        #CL2_syn:      TCC_2C_syn + round(CB2_syn)
+        #CL3_syn:      TCC_3C_syn + round(CB3_syn)
+      CLCMCH_syn:     [TCC_LC_syn, TCC_MC_syn, TCC_HC_syn]
 
   aggregate_obs.py:
     conda_env:        obs
@@ -291,29 +304,29 @@ scripts:
     traceback:        1 # traceback prints
     dev_mode:         1 # 1 : aggregate all obs data, 0 : only aggregate current obs data (livesystem)
     multiprocessing:  15
-    station_cluster:  germany # TODO should take setting from sources instead
+    clusters:         germany # TODO should take setting from sources instead
     params:
       FFavg_10m_10min_syn:      [10min, ~]
       FFmax_10m_10min_syn:      [10min, ~]
-      FFavg_10m_1h_syn:         [1h,    AVG]
-      FFmax_10m_1h_syn:         [1h,    MAX]
-      FFmax_avg_10m_1h_syn:     [1h,    MAX]
-      PRATE_srf_1h_syn:         [1h,    SUM]
-      PRATE_srf_24h_syn:        [24h,   SUM,  6]
-      GLRAD_srf_1h_syn:         [1h,    SUM]
-      LONGRAD_srf_1h_syn:       [1h,    SUM]
-      DIFFRAD_srf_1h_syn:       [1h,    SUM]
-      Tmin_5cm_24h_syn:         [24h,   MIN,  0]
-      Tmin_2m_24h_syn:          [24h,   MIN,  0]
-      Tmax_5cm_24h_syn:         [24h,   MAX,  0]
-      Tmax_2m_24h_syn:          [24h,   MAX,  0]
-      Tmin_5cm_12h_syn:         [12h,   MIN,  18]
-      Tmin_2m_12h_syn:          [12h,   MIN,  18]
-      Tmax_5cm_12h_syn:         [12h,   MAX,  6]
-      Tmax_2m_12h_syn:          [12h,   MAX,  6]
-      SUNDUR_srf_1h_syn:        [1h,    SUM]
-      SUNDUR_srf_24h_syn:       [24h,   SUM,  0]
-      PDUR_srf_1h_syn:          [1h,    SUM]
+      FFavg_10m_1h_syn:         [1h,    avg]
+      FFmax_10m_1h_syn:         [1h,    max]
+      FFmax_avg_10m_1h_syn:     [1h,    max]
+      PRATE_srf_1h_syn:         [1h,    sum]
+      PRATE_srf_24h_syn:        [24h,   sum,  6]
+      GLRAD_srf_1h_syn:         [1h,    sum]
+      LONGRAD_srf_1h_syn:       [1h,    sum]
+      DIFFRAD_srf_1h_syn:       [1h,    sum]
+      Tmin_5cm_24h_syn:         [24h,   min,  0]
+      Tmin_2m_24h_syn:          [24h,   min,  0]
+      Tmax_5cm_24h_syn:         [24h,   max,  0]
+      Tmax_2m_24h_syn:          [24h,   max,  0]
+      Tmin_5cm_12h_syn:         [12h,   min,  18]
+      Tmin_2m_12h_syn:          [12h,   min,  18]
+      Tmax_5cm_12h_syn:         [12h,   max,  6]
+      Tmax_2m_12h_syn:          [12h,   max,  6]
+      SUNDUR_srf_1h_syn:        [1h,    sum]
+      SUNDUR_srf_24h_syn:       [24h,   sum,  0]
+      PDUR_srf_1h_syn:          [1h,    sum]
 
 clusters:
   germany:
@@ -339,38 +352,37 @@ sources:
       skip1:  2 
       skip2:  11
       skip3:  4
-      filter:
-      #  # these keys are guaranteed to be always present and we filter them to make sure no NaN values are present 
-        - WMO_station_id
-        - data_datetime
-        - airTemperature
-        - heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform
-    stations: wmo
-    cluster:  germany
+      #filter: [WMO_station_id, data_datetime, airTemperature, heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform]
+    general:
+      stations: wmo
+      clusters: germany
  
   dwd_germany:
     bufr:
       ext:    bin
       url:    https://opendata.dwd.de/weather/weather_reports/synoptic/germany/
       dir:    /home/juri/data/live/dwd/bufr/germany
-    stations: wmo
-    cluster:  germany
+    general:
+      stations: wmo
+      clusters: germany
 
   cod:
     bufr:
       ext:    bufr
       url:    https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
       dir:    /home/juri/data/live/cod/bufr
-    stations: wmo
-    cluster:  germany
+    general:
+      stations: wmo
+      clusters: germany
 
   DWD: # German weather service
     bufr:
       ext:    bin
       prio:   0
       dir:    /home/dev/bufr-decoder/DWD # em24 dev
-    stations: wmo,dwd
-    clusters: germany,europe,usa
+    general:
+      stations: wmo,dwd
+      clusters: germany,europe,usa
   
   KNMI: # Dutch weather service
     bufr:
@@ -407,7 +419,11 @@ sources:
       wget: "-nc -nd -np -r"
       prio: 0
       dir:        /home/dev/bufr-decoder/RMI
-  
+
+  MeteoLUX:
+    data: https://data.public.lu/en/datasets/?organization=56f54cc20d6ceb552e37f07c
+    obs:  https://data.public.lu/en/datasets/present-weather-condition-at-luxembourg-airport-ellx-decoded-from-metar-message/
+ 
   SWISS: #TODO import from wetterturnier
     ext:  csv
     url:  https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA98.csv
@@ -427,6 +443,19 @@ sources:
     ext:  json
     url:  https://opendata.smhi.se/apidocs/metobs/data.html
     prio: 1
+
+  DMI: # danish weather service
+    ext:  zip
+    bulk:  https://confluence.govcloud.dk/pages/viewpage.action?pageId=30016125
+    info: https://confluence.govcloud.dk/pages/viewpage.action?pageId=41717088#Request&ResponseExamples(metObs)-IntroductiontoRequests
+    package: "pip install dmi-open-data"
+
+  FMI: # weather service of Finland
+    url:  https://en.ilmatieteenlaitos.fi/open-data
+    python: https://github.com/pnuu/fmiopendata
+
+  FROST: # norwegian weather service
+    url:  https://frost.met.no/howto.html
 
   IMGW: # Polish meteo+hydrological service
     url:    https://danepubliczne.imgw.pl/api/data/synop

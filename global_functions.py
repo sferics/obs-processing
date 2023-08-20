@@ -11,23 +11,25 @@ from copy import copy
 import sqlite3
 
 #TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
-def obs_to_station_databases( obs_db, output_path, typ, max_retries=100, timeout=5, verbose=False ):
+def obs_to_station_databases( obs_db, source, output_path, max_retries=100, timeout=5, verbose=0 ):
     #TODO
     """
     """
     from database import database
-    sql = ( "INSERT INTO obs (dataset,file,datetime,duration,element,value) VALUES (?,?,?,?,?,?) "
-            "ON CONFLICT DO UPDATE SET value=excluded.value, duration=excluded.duration" )
+    # insert values or update value if we have a newer cor, then set parsed = 0 as well
+    sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES " 
+        f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
+        f"file = excluded.file WHERE excluded.cor > obs.cor" )
 
     for loc in obs_db:
-        created = create_station_tables(loc, output_path, typ, max_retries, 1, 1, verbose=verbose)
+        created = create_station_tables(loc, output_path, "raw", max_retries, 1, 1, verbose=verbose)
         if not created: continue
        
         retries = copy(max_retries)
 
         while retries > 0:
             try:
-                db_loc = database( f"{output_path}/{typ}/{loc[0]}/{loc}.db", timeout=timeout)
+                db_loc = database( f"{output_path}/raw/{loc[0]}/{loc}.db", timeout=timeout)
                 db_loc.exemany( sql, obs_db[loc] )
             except sqlite3.Error as e:
                 print(e, retries)
@@ -35,11 +37,13 @@ def obs_to_station_databases( obs_db, output_path, typ, max_retries=100, timeout
                 if verbose: print(f"Retrying to insert data", retries, "times")
                 continue
             else:
-                if typ == "raw" and verbose:
+                if verbose:
                     print(loc)
                     loc = list(obs_db[loc])
                     for i in range(len(loc)):
-                        print(f"{loc[i][2]} {loc[i][3]:<6} {loc[i][4]:<20} {loc[i][5]}")
+                        if loc[i][5]:   cor = "CC" + chr(64+loc[i][5])
+                        else:           cor = ""
+                        print(f"{loc[i][1]} {loc[i][2]:<6} {loc[i][3]:<20} {loc[i][4]:<21} {cor}")
                     print()
                 break
 
@@ -122,13 +126,19 @@ def chunks(l, n):
         yield l[i::n]
 
 
-def merge_list_of_dicts( list_of_dicts ):
+def merge_list_of_dicts( list_of_dicts, add_keys=True ):
     # flatten a list of dict to a single dict, inspired by:
     #https://stackoverflow.com/questions/3494906/how-do-i-merge-a-list-of-dicts-into-a-single-dict#comment129437582_60139123
-    from operator import __ior__
-    from functools import reduce
-    return reduce( __ior__, list_of_dicts, {} )
-
+    if add_keys:
+        from operator import __ior__
+        from functools import reduce
+        return reduce( __ior__, list_of_dicts, {} )
+    else:
+        out_dict = list_of_dicts[0]
+        for i in range(1, len(list_of_dicts)):
+            for key in list_of_dicts[i]:
+                if key in list_of_dicts[i-1]: out_dict[key] = list_of_dicts[i][key]
+        return out_dict
 
 def fname():
     # get the frame object of the frame or function

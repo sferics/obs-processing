@@ -12,6 +12,13 @@ kh2kn:  &kh2kn  0.5399568034557235  # km/h to kn
 m2m30:  &m2m30  0.03333333333333333 # m  to m/30 
 ft2m30: &ft2m30 0.01016             # ft to m/30
 
+# helper key, not part of BUFR tables
+cloudBase:
+  1:                                [CB1_syn,     1s, *m2m30, 0]
+  2:                                [CB2_syn,     1s, *m2m30, 0]
+  3:                                [CB3_syn,     1s, *m2m30, 0]
+  4:                                [CB4_syn,     1s, *m2m30, 0]
+  #TODO see obs.cfg for cloud level thresholds
 
 timePeriod:
   0:      0s
@@ -51,10 +58,6 @@ timePeriod:
   #vapourPressure:                     [VP_2m_syn,  1s,  1,    0]
   #vapourDensity:                      [VD_2m_syn,  1s,  1,    0]
 
-### META INFORMATION (HEIGHT OF SENSORS AND REPLICATION FACTORS)
-heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform: ~
-depthBelowLandSurface:                                ~
-delayedDescriptorReplicationFactor:                   ~
   #TODO apparently not present in DWD BUFRs but could be useful for other data sources in future...
   #representativeHeightOfSensorAboveStation:            ~
   #modificationOfSensorHeightToAnotherValue:            ~
@@ -115,8 +118,8 @@ additionalWeatherPhenomena:         [natWW,   1min, 1, 0]           # Zusätzlic
   #phenomenaOccurrence:                [PH_occ, ~, 1, 0]              # 
   #specialPhenomena:                   [PH_spl, ~, 1, 0]              # 
   #otherWeatherPhenomena:              [PH_oth, ~, 1, 0]              # 
-#TODO check if this matches!
-generalWeatherIndicatorTafOrMetar:  [WWN_syn, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
+#this parameter is not equivalent to old METAR parameter
+#generalWeatherIndicatorTafOrMetar:  [WWN_syn, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
 
 ### VISIBILITY
 #TODO which of these visibility/optical range parameters should have priority? how do we order them?
@@ -182,7 +185,7 @@ minimumTemperatureAtHeightSpecifiedPast24Hours:
   0.05:                             [Tmin_5cm_syn,  24h,  10, *K2C]
   2.0:                              [Tmin_2m_syn,   24h,  10, *K2C]
 
-    #oceanographicWaterTemperature:      [Twater_sst_syn, 1s, 10,  *K2C] # Wassertemperatur sea surface temperature
+oceanographicWaterTemperature:      [Twater_sst_syn, 1s, 10,  *K2C] # Wassertemperatur sea surface temperature
 
 
 ### WIND
@@ -195,8 +198,10 @@ vAt10M:                             [v_10m_syn, ~, *ms2kn, 0]
   #windDirectionAssociatedWithWindSpeedWhichFollows:                 [DIR_10m_syn, ~, 1, 0]
 windDirection:                      [DIR_10m_syn, 10min, 1, 0]       # Windrichtung
 windDirectionAt10M:                 [DIR_10m_syn, 10min, 1, 0]       # Windrichtung
+windDirectionAt5M:                  [DIR_5m_syn, 10min, 1, 0]       # Windrichtung
 windSpeed:                          [FFavg_10m_syn, 10min, *ms2kn, 0] # Windgeschwindigkeit 10-Min-Mittel kn
 windSpeedAt10M:                     [FFavg_10m_syn, 10min, *ms2kn, 0] # Mittelwind der letzten Stunde
+windSpeedAt5M:                      [FFavg_5m_syn, 10min, *ms2kn, 0] # Mittelwind der letzten Stunde
 meanWindSpeed:                      [FFavg_10m_syn, 10min, *ms2kn, 0]
 minimumMeanWindSpeed:               [FFavg_min_10m_syn,~, *ms2kn,  0]
 maximumMeanWindSpeed:               [FFavg_max_10m_syn,~, *ms2kn,  0]
@@ -222,20 +227,9 @@ maximumWindSpeed10MinuteMeanWind:   [FFmax_avg_10m_syn, ~, *ms2kn, 0] # Maximale
   #NC4XXX:    [CL4_syn,     ~, 1, 0]  # 4.Wolkenschicht                                  (zB: 2CB080)
   #NC1XXX:    [CL?_syn,     ~, 1, 0]  # Wolkenschicht Bedeckung+Untergrenze              (zB: 2020, 5300, 2080)
 
-# helper key to find out correct cloud layers and cloud ceiling
-verticalSignificanceSurfaceObservations:  ~
-
-# helper key, not part of BUFR tables
-cloudBase:
-  1:                                [CB1_syn,     1s, *m2m30, 0]
-  2:                                [CB2_syn,     1s, *m2m30, 0]
-  3:                                [CB3_syn,     1s, *m2m30, 0]
-  4:                                [CB4_syn,     1s, *m2m30, 0]
-  #TODO see obs.cfg for cloud level thresholds
-
 cloudAmount:
   0:                                [TCC_total_syn, 1s,   1,  0]    # Bedeckungsgrad gesamt
-  C:                                [TCC_ceiling_syn, 1s, 1,  0]    # Bedeckungsgrad der niedrigsten Schicht (Nh)
+  C:                                [TCC_ceiling_syn, 1s, 1,  0]    # Bedeckungsgrad der niedrigsten Schicht (TODO Nh?)
   L:                                [TCC_LC_syn,    1s,   1,  0]    # Bedeckungsgrad der niedrigen Wolken
   M:                                [TCC_MC_syn,    1s,   1,  0]    # Bedeckungsgrad der mitteleren Wolken
   H:                                [TCC_HC_syn,    1s,   1,  0]    # Bedeckungsgrad der hohen Wolken

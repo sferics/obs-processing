@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import global_functions as gf
 import global_variables as gv
+import sql_factories as sf
 from database import database
-from bufr import bufr
 from obs import obs
 
 #TODO HIGH PRIORITY! ESSENTIAL!
@@ -13,24 +13,40 @@ from obs import obs
   #NC2XXX:    [CL2_syn,     ~, 1, 0]  # 2.Wolkenschicht                                  (zB: 4AC100) -> 4100
   #NC3XXX:    [CL3_syn,     ~, 1, 0]  # 3.Wolkenschicht                                  (zB: 5CS300) -> 5300
   #NC4XXX:    [CL4_syn,     ~, 1, 0]  # 4.Wolkenschicht                                  (zB: 2CB080) -> 2080
-  #NC1XXX:    [CL?_syn,     ~, 1, 0]  # Wolkenschicht Bedeckung+Untergrenze              (zB: 2020, 5300, 2080)
+  #NC1XXX:    [CL?_syn,     ~, 1, 0]  # Wolkenschicht Bedeckung+Untergrenze              (zB: 1015, 5300, 2080)
+
+#TODO if no TCC_LC_syn: take TCC_ceiling_syn
 
 #TODO derive total cloud cover per height level (CL, CM, CH)
 
 #TODO derive cloud layers (CL_?) from cloud bases and cloud amounts
 
+# only in station_test: first devide cloud height by 30
+
+# CL?_syn = TCC_?C_syn + CB?_syn
+# if no TCC_[1-3]C_syn present:
+# CL1_syn = TCC_LC_syn + CB1_syn
+# CL2_syn = TCC_MC_syn + CB2_syn
+# CL3_syn = TCC_HC_syn + CB3_syn
+
 #TODO derive CLCMCH_syn (cloud amounts in the layers)
+# CLCMCH_syn = TCC_LC_syn + TCC_MC_syn + TCC_HC_syn
+# OR if no TCC_LC_sy, TCC_MC_syn, TCC_HC_syn:
+# CLCMCH_syn = TCC_1C_syn + TCC_2C_syn + TCC_3C_syn
+#TODO what about TCC_4C_syn ???
 
 #TODO derive VIS_syn from MOR_syn, MOR_min, MOR_max, VIS_min, VIS_pre, VIS_run, VIS_sea
 # if no VIS_syn: VIS_syn = MOR_syn
 # [if no VIS_syn and no MOR_syn: VIS_min, MOR_min, VIS_pre, VIS_run, VIS_sea, MOR_max (priorities)]
+
+# if key is not found, try to take replacements[key], else ignore
 
 def derive_obs(stations):
     for loc in stations:
 
         sql_values = set()
 
-        try: db_loc = database( f"/home/juri/data/stations_test/forge/{loc[0]}/{loc}.db", verbose=True, traceback=True )
+        try: db_loc = database( f"/home/juri/data/stations_test/forge/{loc[0]}/{loc}.db", row_factory=sf.list_row, verbose=True, traceback=True )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
@@ -39,19 +55,23 @@ def derive_obs(stations):
         try: db_loc.exe( f"SELECT DISTINCT strftime('%Y', datetime) FROM obs" )
         except: continue
 
-        sql = "SELECT datetime,duration,element,value FROM obs WHERE element LIKE 'CL%_syn' GROUP BY datetime,duration,element"
+        #sql = "SELECT datetime,duration,element,value FROM obs WHERE element LIKE 'CL%_syn' GROUP BY datetime,duration,element"
 
-        sql = "SELECT datetime,duration,element,value FROM obs WHERE element LIKE 'TCC_%C_syn' GROUP BY datetime,duration,element"
+        #sql = "SELECT datetime,duration,element,value FROM obs WHERE element LIKE 'TCC_%C_syn' GROUP BY datetime,duration,element"
+        
+        sql = "SELECT datetime,duration,element,value FROM obs WHERE element = %s"
+        
+        for replace in replacements:
+            #db_loc.cur.con.row_factory = db_loc.list_factory
+            db_loc.exe(sql % replacements[replace])
+            data = db_loc.fetch()
+            for i in data:
+                i[2] = replace
+                sql = "INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT IGNORE"
+                db_loc.exe(sql, i)
 
-        sql = "SELECT datetime,duration,element,value FROM obs WHERE element = MOR_syn"
-        #db_loc.cur.con.row_factory = db_loc.list_factory
-        db_loc.exe(sql)
-        data = db_loc.fetch()
-        for i in data:
-            i=list(i) #TODO use row_factory 'list_factory' instead
-            i[2] = "VIS_syn"
-            sql = "INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT IGNORE"
-            db_loc.exe(sql, i)
+        for combine in combinations:
+            pass
 
 if __name__ == "__main__":
     
@@ -64,11 +84,13 @@ if __name__ == "__main__":
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
 
-    db              = database( config["database"]["db_file"],verbose=0,traceback=1,settings=db_settings )
+    db              = database( config["database"] )
 
-    cluster         = config_script["station_cluster"]
+    clusters        = set(config_source["clusters"].split(","))
     stations        = db.get_stations( cluster ); db.close(commit=False)
-    params          = config_script["params"]
+
+    replacements = config_script["replacements"]
+    combinations = config_script["combinations"]
 
     if config_script["multiprocessing"]:
         # number of processes
@@ -142,3 +164,7 @@ elif rh in obs and ( (T in obs and sensor_height[0] == 2) or T2 in obs ):
 # derive total sunshine duration in min from % (using astral package; see wetterturnier)
 
 # derive precipitation amount from duration and intensity
+
+
+if __name__ == "__main__":
+    pass

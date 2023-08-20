@@ -168,10 +168,7 @@ def parse_all_BUFRs_flat( source=None, file=None, known_stations=None, pid_file=
                 pdb.set_trace()
                 obs_debug = []
 
-            expanded = ec.codes_get(bufr, "expandedDescriptors")
-            print(expanded); sys.exit()
-
-            while ec.codes_bufr_keys_iterator_next(iterid):
+            while ec.codes_bufr_keys_iterator_next(iterid) is not None:
                 if skip_next: skip_next -= 1; continue
                 
                 key = ec.codes_bufr_keys_iterator_get_name(iterid)
@@ -325,6 +322,8 @@ def parse_all_BUFRs_flat( source=None, file=None, known_stations=None, pid_file=
         #TODO fix memory leak or find out how restarting script works together with multiprocessing
         #TODO idea for true multiprocessing: if memory is full. tell all processes to stop after current file
         # then, call convert_obs() and join all dict together before inserting to databases
+        # or only restart processes? see: https://superfastpython.com/restart-a-process-in-python/
+
         memory_free = psutil.virtual_memory()[1] // 1024**2
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
@@ -514,6 +513,11 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             subsets = (ec.codes_get_long(bufr, "numberOfSubsets") > 1)
             
             while ec.codes_bufr_keys_iterator_next(iterid):
+                
+                key = ec.codes_bufr_keys_iterator_get_name(iterid)
+
+                if "observationSequenceNumber" in key:
+                    print(key, ec.codes_get(bufr,key))
 
                 if skip_next: skip_next -= 1; continue
                 
@@ -653,8 +657,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
 
                                 else: skip_obs = True
 
-
-            # end of while loop
+            # end of while loop: delete keys iterator
             ec.codes_keys_iterator_delete(iterid)
 
         # end of with clause (closes file handle)

@@ -1,6 +1,7 @@
 #!python
 import os, sys, time, requests, argparse
 import global_functions as gf
+from obs import obs
 from datetime import datetime as dt
 import logging as log
 
@@ -16,6 +17,8 @@ if __name__ == "__main__":
     conda_env       = os.environ['CONDA_DEFAULT_ENV']
     if config_script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
+
+    OBS = obs("imgw", config["obs"])
 
     config_source   = config["sources"]["IMGW"]
     config_general  = config["general"]
@@ -69,14 +72,14 @@ if __name__ == "__main__":
     elif config_general["dev_mode"]:    config_script["dev_mode"] = True
     if config_script["dev_mode"]:       output_path = config_general["output_dev"]
     else:                               output_path = config_general["output_oper"]
-    output_path += "/raw"; gf.create_dir(output_path)
+    gf.create_dir(output_path)
 
     translation = gf.read_yaml("imgw_translation.yaml")
     elements    = translation["elements"]
 
     config_station_dbs = config_general["station_dbs"]
     timeout_stations = config_station_dbs["timeout"]
-    max_retries_stations = config_station_dbs["max_retries"]
+    retries_stations = config_station_dbs["max_retries"]
 
     meta, obs = {}, {}
 
@@ -94,9 +97,9 @@ if __name__ == "__main__":
             # if observation value is None: skip it
             if data[key] is None: continue
             element, value, duration = convert_imgw_keys(key, data)
-            obs[location].add( ("imgw", 0, datetime, duration, element, value) )
+            obs[location].add( (0, datetime, duration, element, value, 0) )
 
-    gf.obs_to_station_databases(obs, output_path, "raw", max_retries_stations, timeout_stations, verbose)
+    OBS.to_station_databases(obs)
 
     finished_str = f"FINISHED {sys.argv[0]} @ {dt.utcnow()}"; log.info(finished_str)
     if verbose: print(finished_str)

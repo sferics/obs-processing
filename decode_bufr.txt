@@ -1,0 +1,17 @@
+other possible programming languages/version of the script
+
+pure C version with eccodes bindings
+modules:	https://sites.ecmwf.int/docs/eccodes/modules.html
+examples:	https://confluence.ecmwf.int/display/ECC/BUFR+examples?src=contextnavpagetreemode
+howto:		https://confluence.ecmwf.int/display/ECC/How-to+Articles#HowtoArticles-BUFRHowtos
+
+rust version with eccodes bindings
+low level:	https://docs.rs/eccodes-sys		(unsafe, not recommended!)		
+high level:	https://docs.rs/eccodes/latest/eccodes	(safe, BUFR not supported yet)
+git repository:	https://github.com/ScaleWeather/eccodes	(high level interface)
+
+perl version using Geo::BUFR module
+cpan:		https://metacpan.org/pod/Geo::BUFR
+readme:		https://www.cpan.org/modules/by-module/Geo/Geo-BUFR-1.38.readme
+wiki:		https://wiki.met.no/bufr.pm/start
+freshports:	https://www.freshports.org/science/p5-Geo-BUFR/

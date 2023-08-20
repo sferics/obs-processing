@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # THIS IS A CHAIN SCRIPT
 
+import os, sys
+
 # 1 reduce_obs.py (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
 #   copy all remaining elements from raw to forge databases [datetime,duration,element,value]
 # -in forge databases do:
@@ -12,3 +14,11 @@
 #   copy all relevant obs elements (main database element_table) from forge to dev or oper database,
 #   depending on operation mode; if this action is complete, maybe do some last checks? afterwards:
 #   clear all forge databases (they are just temporary and will be rebuilt in every chain cycle)
+
+scripts = ("reduce", "audit", "derive", "aggregate", "conclude" )
+
+args = ()
+
+for script in scripts:
+    try:    os.execv( "python", script, *args )
+    except: continue

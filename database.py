@@ -1,32 +1,37 @@
 import sys, re, inspect, sqlite3 # sqlite connector python base module
-import funcy
 import global_functions as gf
 import global_variables as gv
 import logging as log
 
 class database:
 
-    def __init__(self, db_file="main.test.db", timeout=5, ro=False, log_level="NOTSET", verbose=0, traceback=0, text_factory=None, settings={}):
+    def __init__(self, config={ "db_file":"main.test.db", "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
         
         #TODO add logging statements where it makes sense for debugging/monitoring of database activities
-        if log_level: self.log_level = log_level
+        assert(config["log_level"] in gv.log_levels)
+        self.log_level = config["log_level"]
         log.basicConfig( filename=f"database.log", filemode="w", level=eval(f"log.{self.log_level}") )
 
         # keep name of datebase file which we want to attach (connect)
-        self.name       = db_file
-        self.timeout    = timeout
-        self.verbose    = verbose
-        self.traceback  = traceback
+        self.name       = config["db_file"]
+        self.timeout    = config["timeout"]
+        self.verbose    = config["verbose"]
+        self.traceback  = config["traceback"]
 
         # if ro == True we open the database in read-only mode
         if ro: self.name = f"file:{self.name}?mode=ro"
 
-        # Opening database connection
-        self.con    = sqlite3.connect(self.name, timeout=timeout, uri=ro)
-        # Get rid of tuple w/ length 1
-        self.con.row_factory  = lambda cursor,row : row[0] if len(row)==1 else row
+        # Opening database connection (uri needs to be also True if read-only)
+        self.con    = sqlite3.connect(self.name, timeout=self.timeout, uri=ro)
+        
+        if callable(row_factory): self.con.row_factory = row_factory
+        # else set to default (get rid of tuple w/ length 1)
+        else: # all row and text factories are outsourced to a seperate file
+            from sql_factories import tuple_len1_row
+            self.con.row_factory = tuple_len1_row
+
         # use string converter
-        if text_factory: self.con.text_factory = text_factory
+        if callable(text_factory): self.con.text_factory = text_factory
 
         # enable REGEXP function
         def regexp(expr, item):
@@ -34,6 +39,8 @@ class database:
             return reg.search(item) is not None
 
         self.con.create_function("REGEXP", 2, regexp)
+        #TODO self.con.create_function("median", 2, median)
+        #TODO add SD,median,tercile,quartile,quintile,quantile and percentile statistical functions
 
         # Set up database cursor
         self.cur    = self.con.cursor()
@@ -42,10 +49,13 @@ class database:
         # shorthand for lastrowid
         self.lastid = self.cur.lastrowid
 
-        # apply all PRAGMA settings via a dictionary/keywords
+        # apply all PRAGMA settings from the settings dictionary
+        settings = config["settings"]
         for i in settings:
+            # if setting i is set: change to new value
             if settings[i]: exec( f"self.{i}('{settings[i]}')" )
-            elif verbose: print( i, setting )
+            # elif verbose: print current setting
+            elif self.verbose: print( i, setting )
     
 
     # some useful shorthand definitions
@@ -56,26 +66,6 @@ class database:
     exemany = lambda self, *param : self.cur.executemany(*param)
     attach  = lambda self, DB, AS : self.exe( f"ATTACH DATABASE '{DB}' as '{AS}'" )
     detach  = lambda self, DB     : self.exe( f"DETACH DATABASE '{DB}'" )
-
-
-    # row factories
-
-    # return as dictionary
-    def dict_factory(cursor, row):
-        fields = [column[0] for column in cursor.description]
-        return {key: value for key, value in zip(fields, row)}
-
-    # return as set
-    set_factory = lambda cursor, row : {value for values in row}
-    
-    # return as list
-    list_factory = lambda cursor, row : [value for values in row]
-
-    # default from __init__ (no tuple with len==1)
-    len1_factory = lambda cursor, row : row[0] if len(row)==1 else row
-
-    # sqlite3 default
-    default_factory = lambda cursor, row : row
 
 
     def close(self, commit=True, verbose=False ):
@@ -1488,6 +1478,66 @@ class database:
         """
         if not cluster: return self.select_distinct( "location", "station_table" )
         return self.select_distinct( "location", "station_table", "cluster", cluster )
+
+
+    def get_station_info(self, location ):
+        sql = f"SELECT ICAO,name,longitude,latitude,elevation,cluster,orography FROM station_table WHERE location={location}"
+        from sql_factories import dict_row, default
+        self.con.row_factory = dict_row
+        self.exe(sql)
+        self.con.row_factory = default
+        return self.fetch()
+
+
+    def get_station_X(self, location, X):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        sql = f"SELECT {X} FROM station_table WHERE location = '{location}'"
+        self.exe( sql )
+        return self.fetch1()
+
+
+    get_station_icao        = lambda self, location : self.get_station_X(location, "ICAO")
+    get_station_name        = lambda self, location : self.get_station_X(location, "name")
+    get_station_longitude   = lambda self, location : self.get_station_X(location, "longitude")
+    get_station_latitude    = lambda self, location : self.get_station_X(location, "latitude")
+    get_station_elevation   = lambda self, location : self.get_station_X(location, "elevation")
+    get_station_cluster     = lambda self, location : self.get_station_X(location, "cluster")
+    get_station_orography   = lambda self, location : self.get_station_X(location, "orography")
+
+
+    def get_station_location( self, name=None, icao=None, cluster=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+        get station location (wmo ID) by name or ICAO
+        if name is given, additionally cluster can be provided
+
+        Return:
+        -------
+
+        """
+        sql = "SELECT location FROM station_table WHERE "
+        if name:
+            sql += f"name='{name}'"
+            if cluster: sql += " AND cluster = '{cluster}'"
+        elif icao:  sql += f"ICAO='{icao}'"
+        self.exe(sql)
+        return self.fetch1(sql)
 
 
     def station_exists( self, location ):

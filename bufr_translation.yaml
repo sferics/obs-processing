@@ -18,6 +18,14 @@ ft2m30: &ft2m30 0.01016               # ft to m/30
 # TIME
 #h2min: &min2h   0.016666666666666666  # min to h
 
+# helper key, not part of BUFR tables
+cloudBase:
+  1:                                [CB1_syn,     1s, *m2m30, 0]
+  2:                                [CB2_syn,     1s, *m2m30, 0]
+  3:                                [CB3_syn,     1s, *m2m30, 0]
+  4:                                [CB4_syn,     1s, *m2m30, 0]
+  #TODO see obs.cfg for cloud level thresholds
+
 #TODO seperate between keys which can have different UNIT and/or SCALE - and the ones which always have the same
 
   ### EXTRA HELPER PARAMETERS
@@ -36,10 +44,6 @@ ft2m30: &ft2m30 0.01016               # ft to m/30
   #vapourPressure:                     [VP_2m_syn,  1s,  1,    0]
   #vapourDensity:                      [VD_2m_syn,  1s,  1,    0]
 
-### META INFORMATION (HEIGHT OF SENSORS AND REPLICATION FACTORS)
-heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform: ~
-depthBelowLandSurface:                                ~
-delayedDescriptorReplicationFactor:                   ~
   #TODO apparently not present in DWD BUFRs but could be useful for other data sources in future...
   #representativeHeightOfSensorAboveStation:            ~
   #modificationOfSensorHeightToAnotherValue:            ~
@@ -106,7 +110,7 @@ additionalWeatherPhenomena:         [natWW,   1min, 1, 0]           # Zusätzlic
   #specialPhenomena:                   [PH_spl, ~, 1, 0]              # 
   #otherWeatherPhenomena:              [PH_oth, ~, 1, 0]              # 
 #TODO check if this matches!
-generalWeatherIndicatorTafOrMetar:  [WWN_syn, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
+#generalWeatherIndicatorTafOrMetar:  [WWN_syn, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
 
 ### VISIBILITY
 #TODO which of these visibility/optical range parameters should have priority? how do we order them?
@@ -203,30 +207,6 @@ maximumWindSpeed10MinuteMeanWind:   [FFmax_avg_10m_syn,1h, *ms2kn, 0] # Maximale
   #TODO what are these? how is their duration defined? Different from gust speeds or equal/comparable?
   #maximumInstantaneousWindSpeed:      [FFmax_10m_syn, ~,  *ms2kn, 0]
   #maximumInstantaneousWindSpeedOver10Minutes:  [FFmax_10m_syn, 10min, *ms2kn, 0]
-
-### CLOUDS
-  #TODO could this keys be useful in future?
-  #cloudIndex:                      [Cindex_syn, 1s, 1,   0]
-  
-  #TODO implement in derive_obs.py
-  #ClNCmNChN: [CLCMCH_syn,  ~, 1, 0]  # Wolkenarten in den Stockwerken                   (zB: Cu3Ac4Cs51Cb, 1Cu)
-  #ClNCmNChN: [CLCMCH_syn,  ~, 1, 0]  # -> Wolkenmenegen in den Stockwerken              (zB: 3451, 1///)
-  #NC1XXX:    [CL1_syn,     ~, 1, 0]  # unterste Wolkenschicht Bedeckung/Art/Untergrenze (zB: 2ST020 oder OBS///)
-  #NC2XXX:    [CL2_syn,     ~, 1, 0]  # 2.Wolkenschicht                                  (zB: 4AC100)
-  #NC3XXX:    [CL3_syn,     ~, 1, 0]  # 3.Wolkenschicht                                  (zB: 5CS300)
-  #NC4XXX:    [CL4_syn,     ~, 1, 0]  # 4.Wolkenschicht                                  (zB: 2CB080)
-  #NC1XXX:    [CL?_syn,     ~, 1, 0]  # Wolkenschicht Bedeckung+Untergrenze              (zB: 2020, 5300, 2080)
-
-# helper key to find out correct cloud layers and cloud ceiling
-verticalSignificanceSurfaceObservations:  ~
-
-# helper key, not part of BUFR tables
-cloudBase:
-  1:                                [CB1_syn,     1s, *m2m30, 0]
-  2:                                [CB2_syn,     1s, *m2m30, 0]
-  3:                                [CB3_syn,     1s, *m2m30, 0]
-  4:                                [CB4_syn,     1s, *m2m30, 0]
-  #TODO see obs.cfg for cloud level thresholds
 
 cloudAmount:
   0:                                [TCC_total_syn, 1s,   1,  0]    # Bedeckungsgrad gesamt

@@ -1,4 +1,4 @@
-#!/usr/bin/venv python
+#!/usr/bin/env python
 import sys
 from datetime import datetime as dt, timedelta as td
 from database import database
@@ -186,7 +186,7 @@ def aggregate_obs(stations):
                                     sql_values.add( (dt_ts, dur, p_new, v_new) )
                                     break
 
-        sql=(f"INSERT INTO obs VALUES(?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value")
+        sql=(f"INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value")
         db_loc.exemany(sql, sql_values)
         db_loc.close(commit=True)
 
@@ -202,10 +202,10 @@ if __name__ == "__main__":
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
 
-    db              = database( config["database"]["db_file"],verbose=0,traceback=1,settings=db_settings )
+    db              = database( config["database"] )
 
-    cluster         = config_script["station_cluster"]
-    stations        = db.get_stations( cluster ); db.close(commit=False)
+    clusters        = set(config_source["clusters"].split(","))
+    stations        = db.get_stations( clusters ); db.close(commit=False)
     params          = config_script["params"]
 
     if config_script["multiprocessing"]:

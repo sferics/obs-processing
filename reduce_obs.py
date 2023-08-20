@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import logging as log
 from datetime import datetime as dt, timedelta as td
 from database import database
 import global_functions as gf
@@ -13,7 +14,7 @@ traceback       = config_script["traceback"]
 debug           = config_script["debug"]
 #if debug: import pdb
 
-db              = database( config["database"]["db_file"],ro=1,verbose=0,traceback=1,settings=db_settings )
+db              = database( config["database"], ro=1 )
 
 cluster         = config_script["station_cluster"]
 stations        = db.get_stations( cluster ); db.close(commit=False)
@@ -29,36 +30,42 @@ def reduce_obs(stations):
 
         sql_values = set()
 
-        try: db_loc = database( f"/home/juri/data/stations_pd/raw/{loc[0]}/{loc}.db", ro=True, verbose=True, traceback=True )
+        try: db_loc = database( f"/home/juri/data/stations_pd/raw/{loc[0]}/{loc}.db", ro=True, verbose=False, traceback=False )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
-            #if debug:       pdb.set_trace()
+            if debug:       pdb.set_trace()
             continue
 
         #https://stackoverflow.com/questions/7745609/sql-select-only-rows-with-max-value-on-a-column
         # 3 statements to get all data and copy them to a new database (forge)
 
-        gf.create_station_tables( loc, "/home/juri/data/stations", "forge", verbose=verbose )
+        #gf.create_station_tables( loc, "/home/juri/data/stations", "forge", verbose=verbose )
+        
+        #TODO the CREATE TABLE command below already creates the table; is there another solution?
+        # problem: we might want/need the actual table structure from station_tables_forge.yaml
+
+        gf.create_dir( "/home/juri/data/stations/{loc[0]}" )
 
         sql = [f"ATTACH DATABASE '/home/juri/data/stations/forge/{loc[0]}/{loc}.db' AS forge"]
         
         #https://stackoverflow.com/questions/57134793/how-to-save-query-results-to-a-new-sqlite
-        sql.append("CREATE TABLE forge.obs AS SELECT a.datetime,a.element,a.value,a.duration FROM main.obs a WHERE file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration AND a.file>0 AND b.file>0 )")
-        sql.append("UPDATE forge.obs SET duration='10min' WHERE element = 'DIR_10m_syn'")
+        #oper mode when we want to keep all CORs
+        #sql.append("CREATE TABLE forge.obs AS SELECT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )") #AND a.file>=0 AND b.file>=0 )")
+        #dev mode when we only want to keep latest COR
+        sql.append("CREATE TABLE forge.obs AS SELECT datetime,duration,element,value FROM main.obs WHERE reduced=0")
+        #sql.append("UPDATE forge.obs SET duration='10min' WHERE element = 'DIR_10m_syn'")
         sql.append("DETACH forge;")
-        
-        #print(";\n".join(sql))
-        
+       
+        #"DELETE FROM main.obs a WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )"
+        #"UPDATE main.obs a set reduced=1 WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )"
+
         for sql in sql:
-            try:    db_loc.exe(sql)
+            try: db_loc.exe(sql)
             except Exception as e:
-                print(e); pass
+                if verbose: print(e)
         
-        if verbose:
-            print(loc)
-            print(db_loc.rowcnt)
-            #print(db_loc.fetch()) 
+        db_loc.close()
 
     return
 

@@ -2,7 +2,6 @@ bcolors==1.0.4
 constants==2023.2.0
 eccodes==1.6.0
 functions==0.7.0
-funcy==2.0
 Jinja2==3.1.2
 metar==1.11.0
 metview==1.15.0
