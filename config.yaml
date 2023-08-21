@@ -1,6 +1,6 @@
 #classes (key name == name of class)
 database:
-  db_file:    main.test.db
+  #db_file:    main.test.db
   verbose:    0
   log_level:  ERROR
   traceback:  1

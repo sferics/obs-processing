@@ -52,7 +52,7 @@ class obs:
 
             while retries > 0:
                 try:
-                    db_loc = database( f"{output_path}/raw/{loc[0]}/{loc}.db", timeout=timeout, traceback=traceback, settings=settings, verbose=verbose)
+                    db_loc = database( f"{output_path}/raw/{loc[0]}/{loc}.db", {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose} )
                     db_loc.exemany( sql, obs_db[loc] )
                 except sqlite3.Error as e:
                     print(e, retries)
@@ -109,7 +109,7 @@ class obs:
 
         while retries > 0:
             try:
-                db_loc = database( db_path, timeout=timeout, traceback=traceback, settings=settings, verbose=verbose )
+                db_loc = database( db_path, {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose} )
                 # get number of tables in attached DB
                 db_loc.exe(f"SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
                 n_tables = db.fetch1()

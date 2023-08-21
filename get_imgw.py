@@ -18,12 +18,8 @@ if __name__ == "__main__":
     if config_script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
 
-    OBS = obs("imgw", config["obs"])
-
+    OBS             = obs("imgw", config["obs"])
     config_source   = config["sources"]["IMGW"]
-    config_general  = config["general"]
-    output_oper     = config_general["output_oper"]
-    output_dev      = config_general["output_dev"]
 
     msg    = "Get latest obs from polish weather service and insert observatio data into database."
     parser = argparse.ArgumentParser(description=msg)
@@ -68,18 +64,13 @@ if __name__ == "__main__":
     timeout_db  = config["database"]["timeout"]
     db_file     = config["database"]["db_file"]
 
-    if args.dev_mode:                   config_script["dev_mode"] = True
-    elif config_general["dev_mode"]:    config_script["dev_mode"] = True
-    if config_script["dev_mode"]:       output_path = config_general["output_dev"]
-    else:                               output_path = config_general["output_oper"]
-    gf.create_dir(output_path)
+    #if args.dev_mode:                   config_script["dev_mode"] = True
+    #elif config_general["dev_mode"]:    config_script["dev_mode"] = True
+    #if config_script["dev_mode"]:       output_path = config_general["output_dev"]
+    #else:                               output_path = config_general["output_oper"]
 
     translation = gf.read_yaml("imgw_translation.yaml")
     elements    = translation["elements"]
-
-    config_station_dbs = config_general["station_dbs"]
-    timeout_stations = config_station_dbs["timeout"]
-    retries_stations = config_station_dbs["max_retries"]
 
     meta, obs = {}, {}
 

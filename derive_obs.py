@@ -1,9 +1,9 @@
 #!/usr/bin/env python
+import os
 import global_functions as gf
 import global_variables as gv
 import sql_factories as sf
 from database import database
-from obs import obs
 
 #TODO HIGH PRIORITY! ESSENTIAL!
 
@@ -45,8 +45,9 @@ def derive_obs(stations):
     for loc in stations:
 
         sql_values = set()
-
-        try: db_loc = database( f"/home/juri/data/stations_test/forge/{loc[0]}/{loc}.db", row_factory=sf.list_row, verbose=True, traceback=True )
+        
+        db_file = f"/home/juri/data/stations_test/forge/{loc[0]}/{loc}.db"
+        try: db_loc = database( db_file, row_factory=sf.list_row )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
@@ -68,7 +69,12 @@ def derive_obs(stations):
             for i in data:
                 i[2] = replace
                 sql = "INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT IGNORE"
-                db_loc.exe(sql, i)
+                #db_loc.exe(sql, i)
+
+        sql = "SELECT datetime,duration,element,value from obs WHERE element IN (TCC_{i}C_syn, CB{i}_syn) ORDER BY datetime"
+
+        for i in range(1,5):
+            db_loc.exe(sql % i)
 
         for combine in combinations:
             pass
@@ -167,4 +173,15 @@ elif rh in obs and ( (T in obs and sensor_height[0] == 2) or T2 in obs ):
 
 
 if __name__ == "__main__":
-    pass
+    script_name     = os.path.basename(__file__)
+    config          = gf.read_yaml( "config.yaml" )
+    config_script   = config["scripts"][script_name]
+    verbose         = config_script["verbose"]
+    traceback       = config_script["traceback"]
+    debug           = config_script["debug"]
+    #if debug: import pdb
+
+    db              = database( config["database"], ro=1 )
+    
+    cluster         = config_script["station_cluster"]
+    stations        = db.get_stations( cluster ); db.close(commit=False)

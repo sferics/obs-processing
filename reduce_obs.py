@@ -1,23 +1,10 @@
 #!/usr/bin/env python
-
+import os
 import sys
 import logging as log
 from datetime import datetime as dt, timedelta as td
 from database import database
 import global_functions as gf
-
-config          = gf.read_yaml( "config.yaml" )
-db_settings     = config["database"]["settings"]
-config_script   = config["scripts"][sys.argv[0]]
-verbose         = config_script["verbose"]
-traceback       = config_script["traceback"]
-debug           = config_script["debug"]
-#if debug: import pdb
-
-db              = database( config["database"], ro=1 )
-
-cluster         = config_script["station_cluster"]
-stations        = db.get_stations( cluster ); db.close(commit=False)
 
 #TODO implement source/dataset priority order OR use scale column! for now, just stick with dataset test
 #dataset = "test"
@@ -29,8 +16,9 @@ def reduce_obs(stations):
     for loc in stations:
 
         sql_values = set()
-
-        try: db_loc = database( f"/home/juri/data/stations_pd/raw/{loc[0]}/{loc}.db", ro=True, verbose=False, traceback=False )
+        
+        db_file = f"/home/juri/data/stations_pd/raw/{loc[0]}/{loc}.db"
+        try: db_loc = database( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
@@ -51,9 +39,9 @@ def reduce_obs(stations):
         
         #https://stackoverflow.com/questions/57134793/how-to-save-query-results-to-a-new-sqlite
         #oper mode when we want to keep all CORs
-        #sql.append("CREATE TABLE forge.obs AS SELECT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )") #AND a.file>=0 AND b.file>=0 )")
+        #sql.append("CREATE TABLE forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )") #AND a.file>=0 AND b.file>=0 )")
         #dev mode when we only want to keep latest COR
-        sql.append("CREATE TABLE forge.obs AS SELECT datetime,duration,element,value FROM main.obs WHERE reduced=0")
+        sql.append("CREATE TABLE forge.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs WHERE reduced=0")
         #sql.append("UPDATE forge.obs SET duration='10min' WHERE element = 'DIR_10m_syn'")
         sql.append("DETACH forge;")
        
@@ -71,6 +59,19 @@ def reduce_obs(stations):
 
 
 if __name__ == "__main__":
+
+    script_name     = os.path.basename(__file__)
+    config          = gf.read_yaml( "config.yaml" )
+    config_script   = config["scripts"][script_name]
+    verbose         = config_script["verbose"]
+    traceback       = config_script["traceback"]
+    debug           = config_script["debug"]
+    #if debug: import pdb
+
+    db              = database( config["database"], ro=1 )
+
+    cluster         = config_script["station_cluster"]
+    stations        = db.get_stations( cluster ); db.close(commit=False)
 
     if config_script["multiprocessing"]:
         # number of processes
