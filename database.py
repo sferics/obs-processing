@@ -8,15 +8,22 @@ class database:
     def __init__(self, db_file="main.test.db", config={ "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
         
         #TODO add logging statements where it makes sense for debugging/monitoring of database activities
-        assert(config["log_level"] in gv.log_levels)
-        self.log_level = config["log_level"]
+        if "log_level" in config and config["log_level"] in gv.log_levels:
+            self.log_level = config["log_level"]
+        else: self.log_level = "NOTSET"
         log.basicConfig( filename=f"database.log", filemode="w", level=eval(f"log.{self.log_level}") )
 
         # keep name of datebase file which we want to attach (connect)
         self.db_file    = db_file
-        self.timeout    = config["timeout"]
-        self.verbose    = config["verbose"]
-        self.traceback  = config["traceback"]
+        if "timeout" in config and type(config["timeout"]) in {int,float}:
+            self.timeout = config["timeout"]
+        else: self.timeout = 5
+        if "verbose" in config and type(config["verbose"]) in {int,bool}:
+            self.verbose = config["verbose"]
+        else: self.verbose = False
+        if "traceback" in config and type(config["traceback"]) in {int,bool}:
+            self.traceback  = config["traceback"]
+        else: self.traceback = False
 
         # if ro == True we open the database in read-only mode
         if ro: self.db_file = f"file:{self.db_file}?mode=ro"
@@ -50,12 +57,13 @@ class database:
         self.lastid = self.cur.lastrowid
 
         # apply all PRAGMA settings from the settings dictionary
-        settings = config["settings"]
-        for i in settings:
-            # if setting i is set: change to new value
-            if settings[i]: exec( f"self.{i}('{settings[i]}')" )
-            # elif verbose: print current setting
-            elif self.verbose: print( i, setting )
+        if "settings" in config:
+            settings = config["settings"]
+            for i in settings:
+                # if setting i is set: change to new value
+                if settings[i]: exec( f"self.{i}('{settings[i]}')" )
+                # elif verbose: print current setting
+                elif self.verbose: print( i, setting )
     
 
     # some useful shorthand definitions
@@ -1109,7 +1117,7 @@ class database:
             return f"({column_list}) VALUES ({value_list})"
     
     
-    # helper function which adds IN() around a the values OR produces a LIKE statement if wildcard
+    # helper function which adds IN() around a the values OR produces a REGEXP statement (for ".")
     def sql_in(self, what, regexp=False):
         """
         """
@@ -1243,7 +1251,7 @@ class database:
                 sql += s[:-5]
             else:
                 if type(what) in gv.array_types:
-                    wildcard = False
+                    regexp = False
                     for i in what:
                         if "." in i: regexp = True
                     what = self.sql_in( what, regexp )

@@ -114,9 +114,9 @@ additionalWeatherPhenomena:         [natWW,   1min, 1, 0]           # Zusätzlic
 
 ### VISIBILITY
 #TODO which of these visibility/optical range parameters should have priority? how do we order them?
-meteorologicalOpticalRange:         [MOR_syn,     0s, 0.001, 0]     # Horizontale Sichtweite
-minimumMeteorologicalOpticalRange:  [MOR_min_syn, 0s, 0.001, 0]     # Horizontale Sichtweite
-maximumMeteorologicalOpticalRange:  [MOR_max_syn, 0s, 0.001, 0]     # Horizontale Sichtweite
+meteorologicalOpticalRange:         [VIS_syn,     0s, 0.001, 0]     # Horizontale Sichtweite
+minimumMeteorologicalOpticalRange:  [MIS_min_syn, 0s, 0.001, 0]     # Horizontale Sichtweite
+maximumMeteorologicalOpticalRange:  [VIS_max_syn, 0s, 0.001, 0]     # Horizontale Sichtweite
 horizontalVisibility:               [VIS_syn,     0s, 0.001, 0]     # Horizontale Sichtweite
 minimumHorizontalVisibility:        [VIS_min_syn, 0s, 0.001, 0]     # Horizontale Sichtweite
 prevailingHorizontalVisibility:     [VIS_pre_syn, 0s, 0.001, 0]     # Horizontale Sichtweite
@@ -210,7 +210,7 @@ maximumWindSpeed10MinuteMeanWind:   [FFmax_avg_10m_syn,1h, *ms2kn, 0] # Maximale
 
 cloudAmount:
   0:                                [TCC_total_syn, 1s,   1,  0]    # Bedeckungsgrad gesamt
-  C:                                [TCC_ceiling_syn, 1s, 1,  0]    # Bedeckungsgrad der niedrigsten Schicht (Nh)
+  C:                                [TCC_1C_syn,    1s,   1,  0]    # Bedeckungsgrad der niedrigsten Schicht (Nh)
   L:                                [TCC_LC_syn,    1s,   1,  0]    # Bedeckungsgrad der niedrigen Wolken
   M:                                [TCC_MC_syn,    1s,   1,  0]    # Bedeckungsgrad der mitteleren Wolken
   H:                                [TCC_HC_syn,    1s,   1,  0]    # Bedeckungsgrad der hohen Wolken

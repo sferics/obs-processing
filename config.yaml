@@ -272,30 +272,40 @@ scripts:
     conda_env:        obs
     pid_file:         0 # create and use pid file
 
+  delete_duplicate_obs.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          1
+    traceback:        0
+    dev_mode:         1
+    multiprocessing:  1
+    clusters:         germany
+
   derive_obs.py:
     conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          1
     traceback:        0
     dev_mode:         1
-    multiprocessing:  15
+    multiprocessing:  1
     clusters:         germany
     replacements:
       DIR_10m_syn:    DIR_5m_syn
       FFavg_10m_syn:  FFavg_5m_syn
-      TCC_LC_syn:     TCC_1C_syn, TCC_ceiling_syn
-      TCC_MC_syn:     TCC_2C_syn
-      TCC_HC_syn:     TCC_3C_syn
-      TCC_1C_syn:     TCC_LC_syn, TCC_ceiling_syn
-      TCC_2C_syn:     TCC_MC_syn
-      TCC_3C_syn:     TCC_HC_syn
-      VIS_syn:        MOR_syn, VIS_min, MOR_min, VIS_pre, VIS_run, VIS_sea, MOR_max
+        #TCC_LC_syn:     TCC_1C_syn, TCC_ceiling_syn
+        #TCC_MC_syn:     TCC_2C_syn
+        #TCC_HC_syn:     TCC_3C_syn
+      TCC_1C_syn:     TCC_ceiling_syn
+        #TCC_2C_syn:     TCC_MC_syn
+        #TCC_3C_syn:     TCC_HC_syn
+        #VIS_syn:        MOR_syn,VIS_min_syn,MOR_min_syn,VIS_pre_syn,VIS_run_syn,VIS_sea_syn,MOR_max_syn
     combinations:
-      CL[1-4]_syn:    [TCC_%dC_syn, round(CB%d_syn)]
-        #CL1_syn:      TCC_1C_syn + round(CB1_syn)
-        #CL2_syn:      TCC_2C_syn + round(CB2_syn)
-        #CL3_syn:      TCC_3C_syn + round(CB3_syn)
-      CLCMCH_syn:     [TCC_LC_syn, TCC_MC_syn, TCC_HC_syn]
+      #CL[1-4]_syn:    [TCC_%dC_syn, round(CB%d_syn)]
+      CL1_syn:        [TCC_1C_syn, round(CB1_syn)]
+      CL2_syn:        [TCC_2C_syn, round(CB2_syn)]
+      CL3_syn:        [TCC_3C_syn, round(CB3_syn)]
+      CL4_syn:        [TCC_4C_syn, round(CB4_syn)]
+        #CLCMCH_syn:     [TCC_LC_syn, TCC_MC_syn, TCC_HC_syn]
 
   aggregate_obs.py:
     conda_env:        obs
@@ -327,6 +337,17 @@ scripts:
       SUNDUR_srf_1h_syn:        [1h,    sum]
       SUNDUR_srf_24h_syn:       [24h,   sum,  0]
       PDUR_srf_1h_syn:          [1h,    sum]
+
+  conclude_obs.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          1
+    traceback:        0
+    debug:            0
+    dev_mode:         1
+    multiprocessing:  1
+    clusters:         germany
+
 
 clusters:
   germany:

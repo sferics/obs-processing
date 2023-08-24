@@ -63,10 +63,17 @@
   61:
   62:
 
-#presentWeather
-#TODO
+#presentWeather https://confluence.ecmwf.int/display/ECC/WMO%3D35+code-flag+table#WMO=35codeflagtable-CF_020003
+020003: #TODO
+  0:    0
+  100:  0
+  
+  508:  0
+  509:  ~
+  510:  ~
+  511:  0
 
-#pastWeather1
+#pastWeather1 https://confluence.ecmwf.int/display/ECC/WMO%3D35+element+table#WMO=35elementtable-CL_20
 020004:
   0:  0
   1:  1
@@ -101,7 +108,7 @@
   30:
   31:
 
-#pastWeather2
+#pastWeather2 https://confluence.ecmwf.int/display/ECC/WMO%3D35+element+table#WMO=35elementtable-CL_20
 020005:
   0:  0
   1:  1

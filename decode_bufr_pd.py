@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
-import argparse, sqlite3, random, time, re, sys, os, psutil, shelve, time, pdbufr
+import argparse, sys, os, psutil, pdbufr
 import logging as log
-from copy import copy
-import random, time
 import numpy as np
 from glob import glob 
 import eccodes as ec        # bufr decoder by ECMWF
 import pandas as pd
-from pathlib import Path    # path operation
+from collections import defaultdict
 from datetime import datetime as dt, timedelta as td
 from database import database
 from bufr import bufr
@@ -65,7 +63,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
 
-        db = database(config_database)
+        db = database(config=config_database)
 
         for i in range(max_retries):
             try:    known_stations = db.get_stations( clusters )
@@ -128,7 +126,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         bufr_dir        = "/".join(file.split("/")[:-1]) + "/"
         source          = args.extra # default: extra
 
-        db = database(config_database)
+        db = database(config=config_database)
         known_stations  = db.get_stations()
 
         ID = db.get_file_id(FILE, file_path)
@@ -142,6 +140,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         config_bf   = gf.merge_list_of_dicts( [config["bufr"], config_script] )
         bf          = bufr(config_bf, script=script_name[-5:-3])
 
+    #TODO use defaultdic instead
     obs_bufr, file_statuses = {}, set()
     new_obs = 0
 
@@ -252,7 +251,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= bf.min_ram:
             
-            db = database(config_database)
+            db = database(config=config_database)
             db.set_file_statuses(file_statuses, retries=bf.max_retries, timeout=bf.timeout)
             db.close()
 
@@ -275,7 +274,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
             os.execl(exe, exe, * sys.argv, "-R", pid); sys.exit()
 
 
-    db = database(config_database)
+    db = database(config=config_database)
     db.set_file_statuses(file_statuses, retries=bf.max_retries, timeout=bf.timeout)
     db.close()
     
@@ -296,8 +295,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=msg)
  
     # add arguments to the parser
-    log_levels = gv.log_levels
-    parser.add_argument("-l","--log_level", choices=log_levels, default="NOTSET", help="set log level")
+    parser.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set log level")
     parser.add_argument("-i","--pid_file", action='store_true', help="create a pid file to check if script is running")
     parser.add_argument("-f","--file", help="parse single file bufr file, will be handled as source=extra by default")
     parser.add_argument("-v","--verbose", action='store_true', help="show detailed output")
@@ -315,6 +313,7 @@ if __name__ == "__main__":
     parser.add_argument("-r","--redo", action='store_true', help="decode bufr again even if already processed")
     parser.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
     parser.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
+    #TODO add shelve option to save some RAM
 
     args = parser.parse_args()
 
@@ -382,7 +381,7 @@ if __name__ == "__main__":
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
-    db = database(config_database)
+    db = database(config=config_database)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
 

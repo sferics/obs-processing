@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+from collections import defaultdict
 import global_functions as gf
 import global_variables as gv
 import sql_factories as sf
@@ -29,12 +30,6 @@ from database import database
 # CL2_syn = TCC_MC_syn + CB2_syn
 # CL3_syn = TCC_HC_syn + CB3_syn
 
-#TODO derive CLCMCH_syn (cloud amounts in the layers)
-# CLCMCH_syn = TCC_LC_syn + TCC_MC_syn + TCC_HC_syn
-# OR if no TCC_LC_sy, TCC_MC_syn, TCC_HC_syn:
-# CLCMCH_syn = TCC_1C_syn + TCC_2C_syn + TCC_3C_syn
-#TODO what about TCC_4C_syn ???
-
 #TODO derive VIS_syn from MOR_syn, MOR_min, MOR_max, VIS_min, VIS_pre, VIS_run, VIS_sea
 # if no VIS_syn: VIS_syn = MOR_syn
 # [if no VIS_syn and no MOR_syn: VIS_min, MOR_min, VIS_pre, VIS_run, VIS_sea, MOR_max (priorities)]
@@ -42,42 +37,87 @@ from database import database
 # if key is not found, try to take replacements[key], else ignore
 
 def derive_obs(stations):
+    
     for loc in stations:
 
         sql_values = set()
         
-        db_file = f"/home/juri/data/stations_test/forge/{loc[0]}/{loc}.db"
+        db_file = f"/home/juri/data/stations/forge/{loc[0]}/{loc}.db"
         try: db_loc = database( db_file, row_factory=sf.list_row )
         except Exception as e:
+            gf.print_trace(e)
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
             continue
 
-        try: db_loc.exe( f"SELECT DISTINCT strftime('%Y', datetime) FROM obs" )
+        sql = "UPDATE OR IGNORE obs SET element='TCC_1C_syn' WHERE element='TCC_ceiling_syn'"
+        try:    db_loc.exe(sql)
         except: continue
+        else:   db_loc.commit()
 
-        #sql = "SELECT datetime,duration,element,value FROM obs WHERE element LIKE 'CL%_syn' GROUP BY datetime,duration,element"
+        """
+        sql1="SELECT datetime,duration,element,value FROM obs WHERE element = '%s'"
+        sql2="INSERT INTO obs (datetime,duration,element,value) VALUES(?,?,?,?) ON CONFLICT IGNORE"
 
-        #sql = "SELECT datetime,duration,element,value FROM obs WHERE element LIKE 'TCC_%C_syn' GROUP BY datetime,duration,element"
-        
-        sql = "SELECT datetime,duration,element,value FROM obs WHERE element = %s"
-        
+        found = False
+
         for replace in replacements:
-            #db_loc.cur.con.row_factory = db_loc.list_factory
-            db_loc.exe(sql % replacements[replace])
-            data = db_loc.fetch()
-            for i in data:
-                i[2] = replace
-                sql = "INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT IGNORE"
-                #db_loc.exe(sql, i)
+            print(replace)
+            replace_order = replacements[replace].split(",")
+            for i in range(len(replace_order)):
+                #if found: break
+                db_loc.con.row_factory = sf.list_row
+                db_loc.exe(sql1 % replace_order[i])
+                #print(sql1 % replace_order[i])
+                data = db_loc.fetch()
+                #if data: found = True
+                for j in data:
+                    print(j)
+                    j[2] = replace
+                    print(j)
+                    sql_values.add( tuple(j) )
 
-        sql = "SELECT datetime,duration,element,value from obs WHERE element IN (TCC_{i}C_syn, CB{i}_syn) ORDER BY datetime"
+        print(sql_values)
+        db_loc.exemany(sql2, sql_values)
+        """    
+    
+        sql = "SELECT datetime,element,round(value) from obs WHERE element IN ('TCC_{i}C_syn', 'CB{i}_syn') ORDER BY datetime asc, element desc"
+        
+        # https://discourse.techart.online/t/python-group-nested-list-by-first-element/3637
+
+        sql_values = set()
 
         for i in range(1,5):
-            db_loc.exe(sql % i)
+            #print(sql.format(i=i))
+            db_loc.exe(sql.format(i=i))
+            data = db_loc.fetch()
+            
+            CL              = defaultdict(str)
+            cloud_covers    = set()
 
-        for combine in combinations:
-            pass
+            for j in data:
+                if j[1] == f"TCC_{i}C_syn" and j[0] not in cloud_covers:
+                    CL[j[0]]    += str(int(j[-1]))
+                    cloud_covers.add(j[0])
+                elif j[1] == f"CB{i}_syn" and j[0] in cloud_covers:
+                    CL[j[0]]    += str(int(j[-1])).rjust(3,"0")
+
+            CL = dict(CL)
+
+            for k in CL:
+                if len(CL[k]) == 1:
+                    CL[k] += "///"
+                sql_values.add( (k, f"CL{i}_syn", CL[k]) )
+
+        sql = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,?,?,'1s') ON CONFLICT DO NOTHING"
+        try:    db_loc.exemany(sql, sql_values)
+        except: continue
+
+        # https://stackoverflow.com/a/49975954
+        db_loc.close(commit=True)
+    
+    return
+
 
 if __name__ == "__main__":
     
@@ -86,14 +126,14 @@ if __name__ == "__main__":
 
     config          = gf.read_yaml( "config.yaml" )
     db_settings     = config["database"]["settings"]
-    config_script   = config["scripts"][sys.argv[0]]
+    script_name     = os.path.basename(__file__)
+    config_script   = config["scripts"][script_name]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
 
-    db              = database( config["database"] )
-
-    clusters        = set(config_source["clusters"].split(","))
-    stations        = db.get_stations( cluster ); db.close(commit=False)
+    db              = database( config=config["database"], ro=True )
+    clusters        = set(config_script["clusters"].split(","))
+    stations        = db.get_stations( clusters ); db.close(commit=False)
 
     replacements = config_script["replacements"]
     combinations = config_script["combinations"]
@@ -111,11 +151,10 @@ if __name__ == "__main__":
         station_groups = np.array_split(stations, npcs)
 
         for station_group in station_groups:
-            p = mp.Process(target=derive_stations, args=(station_group,))
+            p = mp.Process(target=derive_obs, args=(station_group,))
             p.start()
 
     else: derive_obs(stations)
-
 
 #TODO medium priority, nice-to-have...
 
@@ -170,18 +209,3 @@ elif rh in obs and ( (T in obs and sensor_height[0] == 2) or T2 in obs ):
 # derive total sunshine duration in min from % (using astral package; see wetterturnier)
 
 # derive precipitation amount from duration and intensity
-
-
-if __name__ == "__main__":
-    script_name     = os.path.basename(__file__)
-    config          = gf.read_yaml( "config.yaml" )
-    config_script   = config["scripts"][script_name]
-    verbose         = config_script["verbose"]
-    traceback       = config_script["traceback"]
-    debug           = config_script["debug"]
-    #if debug: import pdb
-
-    db              = database( config["database"], ro=1 )
-    
-    cluster         = config_script["station_cluster"]
-    stations        = db.get_stations( cluster ); db.close(commit=False)

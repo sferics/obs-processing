@@ -231,12 +231,12 @@ cloudBase:
 ### VISIBILITY
 #TODO which of these visibility/optical range parameters should have priority? how do we order them?
 #meteorologicalOpticalRange:
-015051:                             [MOR_syn,     0s, 0.001, 0]     # Horizontale Sichtweite
-020237:                             [MOR_syn,     0s, 0.001, 0]     # Horizontale Sichtweite (DWD)
+015051:                             [VIS_syn,     0s, 0.001, 0]     # Horizontale Sichtweite
+020237:                             [VIS_syn,     0s, 0.001, 0]     # Horizontale Sichtweite (DWD)
 #minimumMeteorologicalOpticalRange:
-020238:                             [MOR_min_syn, 0s, 0.001, 0]     # Horizontale Sichtweite (DWD)
+020238:                             [VIS_min_syn, 0s, 0.001, 0]     # Horizontale Sichtweite (DWD)
 #maximumMeteorologicalOpticalRange:
-020239:                             [MOR_max_syn, 0s, 0.001, 0]     # Horizontale Sichtweite (DWD)
+020239:                             [VIS_max_syn, 0s, 0.001, 0]     # Horizontale Sichtweite (DWD)
 #horizontalVisibility:
 020001:                             [VIS_syn,     0s, 0.001, 0]     # Horizontale Sichtweite
 #minimumHorizontalVisibility:
@@ -426,7 +426,7 @@ cloudBase:
 #cloudAmount:
 020011:
   0:                                [TCC_total_syn, 1s,   1,  0]    # Bedeckungsgrad gesamt
-  C:                                [TCC_ceiling_syn, 1s, 1,  0]    # Bedeckungsgrad der niedrigsten Schicht (Nh)
+  C:                                [TCC_1C_syn,    1s,   1,  0]    # Bedeckungsgrad der niedrigsten Schicht (Nh)
   L:                                [TCC_LC_syn,    1s,   1,  0]    # Bedeckungsgrad der niedrigen Wolken
   M:                                [TCC_MC_syn,    1s,   1,  0]    # Bedeckungsgrad der mitteleren Wolken
   H:                                [TCC_HC_syn,    1s,   1,  0]    # Bedeckungsgrad der hohen Wolken

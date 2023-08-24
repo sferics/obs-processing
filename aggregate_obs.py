@@ -188,9 +188,11 @@ def aggregate_obs(stations):
                                     sql_values.add( (dt_ts, dur, p_new, v_new) )
                                     break
 
-        sql=(f"INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value")
+        sql = f"INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value"
         db_loc.exemany(sql, sql_values)
         db_loc.close(commit=True)
+    
+    return
 
 
 if __name__ == "__main__":

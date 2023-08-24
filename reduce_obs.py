@@ -14,9 +14,6 @@ def reduce_obs(stations):
     # for st in stations:
     # get only data rows with highest file ID and copy the remaining data to forge databases
     for loc in stations:
-
-        sql_values = set()
-        
         db_file = f"/home/juri/data/stations_pd/raw/{loc[0]}/{loc}.db"
         try: db_loc = database( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
         except Exception as e:
@@ -32,16 +29,16 @@ def reduce_obs(stations):
         
         #TODO the CREATE TABLE command below already creates the table; is there another solution?
         # problem: we might want/need the actual table structure from station_tables_forge.yaml
+        
+        gf.create_dir( f"/home/juri/data/stations/forge_test/{loc[0]}" )
 
-        gf.create_dir( "/home/juri/data/stations/{loc[0]}" )
-
-        sql = [f"ATTACH DATABASE '/home/juri/data/stations/forge/{loc[0]}/{loc}.db' AS forge"]
+        sql = [f"ATTACH DATABASE '/home/juri/data/stations/forge_test/{loc[0]}/{loc}.db' AS forge"]
         
         #https://stackoverflow.com/questions/57134793/how-to-save-query-results-to-a-new-sqlite
         #oper mode when we want to keep all CORs
-        #sql.append("CREATE TABLE forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )") #AND a.file>=0 AND b.file>=0 )")
+        sql.append("CREATE TABLE forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )") #AND a.file>=0 AND b.file>=0 )")
         #dev mode when we only want to keep latest COR
-        sql.append("CREATE TABLE forge.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs WHERE reduced=0")
+        #sql.append("CREATE TABLE forge.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs WHERE reduced=0")
         #sql.append("UPDATE forge.obs SET duration='10min' WHERE element = 'DIR_10m_syn'")
         sql.append("DETACH forge;")
        
@@ -49,6 +46,7 @@ def reduce_obs(stations):
         #"UPDATE main.obs a set reduced=1 WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )"
 
         for sql in sql:
+            if verbose: print(sql)
             try: db_loc.exe(sql)
             except Exception as e:
                 if verbose: print(e)
@@ -68,9 +66,8 @@ if __name__ == "__main__":
     debug           = config_script["debug"]
     #if debug: import pdb
 
-    db              = database( config["database"], ro=1 )
-
-    cluster         = config_script["station_cluster"]
+    cluster         = set( config_script["clusters"].split(",") )
+    db              = database( config=config["database"], ro=1 )
     stations        = db.get_stations( cluster ); db.close(commit=False)
 
     if config_script["multiprocessing"]:
