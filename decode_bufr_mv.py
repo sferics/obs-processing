@@ -9,7 +9,9 @@ import metview as mv
 import pandas as pd
 from pathlib import Path    # path operation
 from datetime import datetime as dt, timedelta as td
-from database import database; import global_functions as gf; import global_variables as gv
+from database import database_class
+import global_functions as gf
+import global_variables as gv
 from bufr_functions import clear, to_datetime, convert_keys_se
 
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
@@ -49,7 +51,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
 
-        db = database(db_file, timeout=timeout_db, traceback=traceback)
+        db = database_class(db_file, timeout=timeout_db, traceback=traceback)
         
         for i in range(max_retries):
             try:    known_stations = db.get_stations( clusters )
@@ -103,7 +105,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         bufr_dir        = "/".join(file.split("/")[:-1]) + "/"
         source          = args.extra # default: extra
 
-        db = database(db_file, timeout=timeout_db, traceback=traceback)
+        db = database_class(db_file, timeout=timeout_db, traceback=traceback)
         known_stations  = db.get_stations()
 
         ID = db.get_file_id(FILE, file_path)
@@ -153,7 +155,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
             
-            db = database(db_file, timeout=timeout_db, traceback=traceback)
+            db = database_class(db_file, timeout=timeout_db, traceback=traceback)
             db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
             db.close()
 
@@ -166,7 +168,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             os.execl(exe, exe, * sys.argv); sys.exit()
 
 
-    db = database(db_file, timeout=timeout_db, traceback=traceback)
+    db = database_class(db_file, timeout=timeout_db, traceback=traceback)
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
     db.close()
 
@@ -279,7 +281,7 @@ if __name__ == "__main__":
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
-    db = database(db_file, timeout=timeout_db, traceback=traceback)
+    db = database_class(db_file, timeout=timeout_db, traceback=traceback)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
 

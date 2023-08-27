@@ -38,11 +38,3 @@ not_types = ( None, 0, False, "", {}, [], (), set(), frozenset() )
 
 # all array-like python types; you can check "X in array_types"
 array_types = { list, tuple, set, frozenset }
-
-# for BUFR obs decoding scrips
-replication   = "delayedDescriptorReplicationFactor"
-sensor_height = "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform"
-sensor_depth  = "depthBelowLandSurface"
-vertical_sigf = "verticalSignificanceSurfaceObservations"
-obs_sequence  = "observationSequenceNumber"
-modifier_keys = { sensor_height, sensor_depth, vertical_sigf }

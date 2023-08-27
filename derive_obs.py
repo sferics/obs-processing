@@ -4,7 +4,7 @@ from collections import defaultdict
 import global_functions as gf
 import global_variables as gv
 import sql_factories as sf
-from database import database
+from database import database_class
 
 #TODO HIGH PRIORITY! ESSENTIAL!
 
@@ -43,14 +43,18 @@ def derive_obs(stations):
         sql_values = set()
         
         db_file = f"/home/juri/data/stations/forge/{loc[0]}/{loc}.db"
-        try: db_loc = database( db_file, row_factory=sf.list_row )
+        try: db_loc = database_class( db_file, row_factory=sf.list_row )
         except Exception as e:
             gf.print_trace(e)
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
             continue
+        
+        sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('Tmax_2m_syn','Tmax_5cm_syn','Tmin_2m_syn','Tmin_5cm_syn') AND strftime('%H', datetime) = '09'"
 
-        sql = "UPDATE OR IGNORE obs SET element='TCC_1C_syn' WHERE element='TCC_ceiling_syn'"
+        sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element LIKE 'CB%_syn'"
+
+        #sql = "UPDATE OR IGNORE obs SET element='TCC_1C_syn' WHERE element='TCC_ceiling_syn'"
         try:    db_loc.exe(sql)
         except: continue
         else:   db_loc.commit()
@@ -96,10 +100,10 @@ def derive_obs(stations):
             cloud_covers    = set()
 
             for j in data:
-                if j[1] == f"TCC_{i}C_syn" and j[0] not in cloud_covers:
+                if len(CL[j[0]]) == 0 and j[1] == f"TCC_{i}C_syn" and j[0] not in cloud_covers:
                     CL[j[0]]    += str(int(j[-1]))
                     cloud_covers.add(j[0])
-                elif j[1] == f"CB{i}_syn" and j[0] in cloud_covers:
+                elif len(CL[j[0]]) == 1 and j[1] == f"CB{i}_syn" and j[0] in cloud_covers:
                     CL[j[0]]    += str(int(j[-1])).rjust(3,"0")
 
             CL = dict(CL)
@@ -109,13 +113,17 @@ def derive_obs(stations):
                     CL[k] += "///"
                 sql_values.add( (k, f"CL{i}_syn", CL[k]) )
 
-        sql = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,?,?,'1s') ON CONFLICT DO NOTHING"
+        sql = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,?,?,'1s') ON CONFLICT DO UPDATE SET value=excluded.value" #NOTHING"
         try:    db_loc.exemany(sql, sql_values)
         except: continue
 
         # https://stackoverflow.com/a/49975954
+        sql = "DELETE FROM obs WHERE length(value) > 4 AND element LIKE 'CL%_syn'"
+        try:    db_loc.exe(sql)
+        except: continue
+        
         db_loc.close(commit=True)
-    
+
     return
 
 
@@ -126,12 +134,12 @@ if __name__ == "__main__":
 
     config          = gf.read_yaml( "config.yaml" )
     db_settings     = config["database"]["settings"]
-    script_name     = os.path.basename(__file__)
+    script_name     = gf.get_script_name(__file__)
     config_script   = config["scripts"][script_name]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
 
-    db              = database( config=config["database"], ro=True )
+    db              = database_class( config=config["database"], ro=True )
     clusters        = set(config_script["clusters"].split(","))
     stations        = db.get_stations( clusters ); db.close(commit=False)
 

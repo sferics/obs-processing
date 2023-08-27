@@ -2,16 +2,15 @@
 # decodes BUFRs for availabe or given sources and saves obs to database
 
 import argparse, sys, os, psutil, pdbufr
-import logging as log
 import numpy as np
 from glob import glob 
 import eccodes as ec        # bufr decoder by ECMWF
 import pandas as pd
 from collections import defaultdict
 from datetime import datetime as dt, timedelta as td
-from database import database
-from bufr import bufr
-from obs import obs
+from database import database_class
+from bufr import bufr_class
+from obs import obs_class
 import global_functions as gf
 import global_variables as gv
 import warnings
@@ -42,13 +41,14 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
     """
     if source:
         config_source   = config_sources[source]
-        if "bufr" in config_source: config_bufr = config_source["bufr"]
+        if "bufr" in config_source:
+             config_bufr = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
         else: return
         
         # previous dict entries will get overwritten by next list item during merge (right before left)
-        config_bf = gf.merge_list_of_dicts( [config["bufr"], config_script, config_bufr] )
+        config_bf = gf.merge_list_of_dicts( config_bufr )
 
-        bf = bufr(config_bf, script=script_name[-5:-3])
+        bf = bufr_class(config_bf, script=script_name[-5:-3])
 
         bufr_dir = bf.dir + "/"
         
@@ -63,7 +63,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
 
-        db = database(config=config_database)
+        db = database_class(config=config_database)
 
         for i in range(max_retries):
             try:    known_stations = db.get_stations( clusters )
@@ -126,7 +126,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         bufr_dir        = "/".join(file.split("/")[:-1]) + "/"
         source          = args.extra # default: extra
 
-        db = database(config=config_database)
+        db = database_class(config=config_database)
         known_stations  = db.get_stations()
 
         ID = db.get_file_id(FILE, file_path)
@@ -138,7 +138,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         file_IDs = {FILE:ID}
         
         config_bf   = gf.merge_list_of_dicts( [config["bufr"], config_script] )
-        bf          = bufr(config_bf, script=script_name[-5:-3])
+        bf          = bufr_class(config_bf, script=script_name[-5:-3])
 
     #TODO use defaultdic instead
     obs_bufr, file_statuses = {}, set()
@@ -146,8 +146,8 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
 
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
-    config_OBS  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
-    OBS         = obs(source, config_OBS)
+    config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
+    obs         = obs_class("raw", config_obs, source)
 
     for FILE in files_to_parse:
         
@@ -251,13 +251,13 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= bf.min_ram:
             
-            db = database(config=config_database)
+            db = database_class(config=config_database)
             db.set_file_statuses(file_statuses, retries=bf.max_retries, timeout=bf.timeout)
             db.close()
 
             print("Too much RAM used, RESTARTING...")
             obs_db = bf.convert_keys_pd( obs_bufr, source )
-            if obs_db: OBS.to_station_databases(obs_db)
+            if obs_db: obs.to_station_databases(obs_db)
             
             if pid_file: os.remove( pid_file )
 
@@ -274,15 +274,15 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
             os.execl(exe, exe, * sys.argv, "-R", pid); sys.exit()
 
 
-    db = database(config=config_database)
+    db = database_class(config=config_database)
     db.set_file_statuses(file_statuses, retries=bf.max_retries, timeout=bf.timeout)
-    db.close()
+    db.close(commit=True)
     
     if verbose: print(obs_bufr)
     obs_db = bf.convert_keys_pd( obs_bufr, source )
 
     if verbose: print(obs_db)
-    if obs_db: OBS.to_station_databases(obs_db)
+    if obs_db: obs.to_station_databases(obs_db)
      
     # remove file containing the pid, so the script can be started again
     if pid_file: os.remove( pid_file )
@@ -319,7 +319,7 @@ if __name__ == "__main__":
 
     #read yaml configuration file config.yaml into dictionary
     config          = gf.read_yaml( args.config )
-    script_name     = os.path.basename(__file__)
+    script_name     = gf.get_script_name(__file__)
     config_script   = config["scripts"][script_name]
     conda_env       = os.environ['CONDA_DEFAULT_ENV']
     
@@ -347,14 +347,15 @@ if __name__ == "__main__":
     else: profile = False
     
     if args.log_level: config_script["log_level"] = args.log_level
-    log.basicConfig(filename=f"{script_name}.log", filemode="w", level=eval(f"log.{config_script['log_level']}"))
+    log = gf.get_logger(script_name)
 
-    started_str = f"STARTED {script_name} @ {dt.utcnow()}"; log.info(started_str)
+    start_time  = dt.utcnow()
+    started_str = f"STARTED {script_name} @ {start_time}"; log.info(started_str)
 
-    if args.verbose:    config_script["verbose"] = verbose = True
-    else:               verbose = config_script["verbose"]
-    if verbose: print("\n"+started_str)
-
+    if args.verbose is not None: config_script["verbose"] = args.verbose
+    verbose = config_script["verbose"]
+    if verbose: print(started_str)
+    
     if args.debug:                  config_script["debug"] = True
     if config_script["debug"]:      import pdb; debug = True
     else:                           debug = False 
@@ -381,7 +382,7 @@ if __name__ == "__main__":
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
-    db = database(config=config_database)
+    db = database_class(config=config_database)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
 
@@ -404,5 +405,9 @@ if __name__ == "__main__":
             if verbose: print(f"Parsing source {SOURCE}...")
             decode_bufr_pd( source = SOURCE, pid_file=pid_file )
 
-    finished_str = f"FINISHED {script_name} @ {dt.utcnow()}"; log.info(finished_str)
-    if verbose: print(finished_str)
+    stop_time = dt.utcnow()
+    finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)
+    if verbose:
+        print(finished_str)
+        time_taken = stop_time - start_time
+        print(f"{time_taken.seconds}.{time_taken.microseconds} s")

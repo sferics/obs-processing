@@ -1,13 +1,17 @@
+import sqlite3
 from copy import copy
-from database import database
+from database import database_class
 import global_functions as gf
 import global_variables as gv
 
 
-class obs:
-    def __init__(self, source, config={"output_path":"", "max_retries":100, "commit":True, "timeout":5, "log_level":"DEBUG", "traceback":True, "verbose":False, "settings":{} }, typ="raw"):
+class obs_class:
+    def __init__(self, typ="raw", config={"output_path":"", "max_retries":100, "commit":True, "timeout":5, "log_level":"DEBUG", "traceback":True, "verbose":False, "settings":{} }, source="test"):
         
-        assert( type(config) == dict and config["output_path"] )
+        #TODO add mode = {"dev","oper","test"}
+        #TODO can we remove typ and replace it by mode? when would we ever want to insert obs into databases which are not RAW?
+
+        assert( type(config) == dict and "output_path" in config and config["output_path"] )
         
         self.source         = source
         self.typ            = typ
@@ -20,11 +24,15 @@ class obs:
         self.verbose        = config["verbose"]
         self.settings       = config["settings"]
 
-        assert(config["log_level"] in gv.log_levels)
+        if "log_level" in config and config["log_level"] in gv.log_levels:
+            self.log_level = config["log_level"]
+        else: self.log_level = "NOTSET"
+
+        self.log = gf.get_logger( self.__class__.__name__, self.log_level )
 
 
     #TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
-    def to_station_databases( obs_db, source, typ=None, output_path=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings=None ):
+    def to_station_databases(self, obs_db, source=None, typ=None, output_path=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings=None):
         #TODO
         """
         """
@@ -40,19 +48,25 @@ class obs:
         if settings is None:    settings    = self.settings
 
         # insert values or update value if we have a newer cor, then set parsed = 0 as well
-        sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES "
-            f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
-            f"file = excluded.file WHERE excluded.cor > obs.cor" )
-
+        #TODO statements for different typs
+        match typ:
+            case "raw":
+                sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES "
+                    f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
+                    f"file = excluded.file WHERE excluded.cor > obs.cor and excluded.file > obs.file" )
+            case "forge" | "dev" | "oper":
+                sql = ( f"INSERT INTO obs (dataset,datetime,duration,value) VALUES(?,?,?,?) "
+                        f"ON CONFLICT DO UPDATE SET value=excluded.value" )
+        
         for loc in obs_db:
-            created = self.create_station_tables(loc, output_path, "raw", max_retries, 1, 1, verbose=verbose)
+            created = self.create_station_tables(loc, output_path, typ, max_retries, 1, 1, verbose=verbose)
             if not created: continue
 
             retries = copy(max_retries)
 
             while retries > 0:
                 try:
-                    db_loc = database( f"{output_path}/raw/{loc[0]}/{loc}.db", {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose} )
+                    db_loc = database_class( f"{output_path}/{typ}/{loc[0]}/{loc}.db", {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose} )
                     db_loc.exemany( sql, obs_db[loc] )
                 except sqlite3.Error as e:
                     print(e, retries)
@@ -60,7 +74,7 @@ class obs:
                     if verbose: print(f"Retrying to insert data", retries, "times")
                     continue
                 else:
-                    if verbose:
+                    if typ == "raw" and verbose:
                         print(loc)
                         loc = list(obs_db[loc])
                         for i in range(len(loc)):
@@ -73,7 +87,7 @@ class obs:
             db_loc.close(commit=True)
 
 
-    def create_station_tables( loc, output_path=None, typ=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings=None ):
+    def create_station_tables( self, loc, output_path=None, typ=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings=None ):
         """
         Parameter:
         ----------
@@ -100,7 +114,7 @@ class obs:
         if settings is None:    settings    = self.settings
 
         station_path = f'{output_path}/{typ}/{loc[0]}'
-        create_dir( station_path )
+        gf.create_dir( station_path )
         db_path = f'{station_path}/{loc}.db'
 
         ready = False
@@ -109,16 +123,20 @@ class obs:
 
         while retries > 0:
             try:
-                db_loc = database( db_path, {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose} )
+                db_loc = database_class( db_path, {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose} )
                 # get number of tables in attached DB
                 db_loc.exe(f"SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
-                n_tables = db.fetch1()
+                n_tables = db_loc.fetch1()
             except sqlite3.Error as e:
                 print(e, retries)
                 retries -= 1
                 continue
             else:
-                ready = ( n_tables == 3 ) # 3 is hardcoded for performance reasons, remember to change!
+                match typ:
+                    case "raw" | "dev":     typ_tables = 3
+                    case "forge":           typ_tables = 1
+                    case "oper":            typ_tables = 2
+                ready = ( n_tables == typ_tables ) # is hardcoded for performance reasons, remember to change!
                 break
 
         if retries == 0: return False

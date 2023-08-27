@@ -2,13 +2,15 @@
 # decodes BUFRs for availabe or given sources and saves obs to database
 
 import argparse, sys, os, psutil#, shelve
-import logging as log
 import numpy as np
 from glob import glob 
 import eccodes as ec        # bufr decoder by ECMWF
 from datetime import datetime as dt, timedelta as td
-from database import database; import global_functions as gf; import global_variables as gv
-from bufr_functions import clear, to_datetime, convert_keys_units
+import global_functions as gf
+import global_variables as gv
+from database import database_class
+from bufr import bufr_class
+from obs import obs_class
 
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
 #TODO raises error "API not implemented in CFFI porting"
@@ -16,7 +18,7 @@ from bufr_functions import clear, to_datetime, convert_keys_units
 #ec.codes_no_fail_on_wrong_length(True)
 
 
-def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None ):
+def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None ):
     #TODO
     """
     Parameter:
@@ -56,66 +58,84 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
 
     if source:
         config_source   = config_sources[source]
-        if "bufr" in config_source: config_bufr = config_source["bufr"]
+        if "bufr" in config_source:
+             config_bufr = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
         else: return
-        bufr_dir        = config_bufr["dir"] + "/"
-        #priority        = config_bufr["prio"]
-        ext             = config_bufr["ext"]
-        
-        if "tables" in config_bufr:
-            old_path                                = os.environ['ECCODES_DEFINITION_PATH']
-            os.environ['ECCODES_DEFINITION_PATH']   = config_bufr["tables"] + ":" + old_path
+
+        # previous dict entries will get overwritten by next list item during merge (right before left)
+        config_bf = gf.merge_list_of_dicts( config_bufr )
+
+        bf = bufr_class(config_bf, script=script_name[-5:-3])
+
+        bufr_dir = bf.dir + "/"
+
+        if hasattr(bf, "filter"):
+            filter_keys             = set(bf.filter)
+            number_of_filter_keys   = len(filter_keys)
+
+            fun = lambda x : not pd.isnull(x);      filters     = {}
+            for i in filter_keys:                   filters[i]  = fun
+        else: filters = {}; number_of_filter_keys = float("inf")
 
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
 
-        db = database(db_file, timeout=timeout_db, traceback=traceback)
-        
+        db = database_class(config=config_database)
+
         for i in range(max_retries):
             try:    known_stations = db.get_stations( clusters )
             except: pass
             else:   break
-        
+
         if i == max_retries - 1: sys.exit(f"Can't access main database, tried {max_retries} times. Is it locked?")
 
-        if "glob" in config_bufr and config_bufr["glob"]:   ext = f"{config_bufr['glob']}.{ext}"
-        else:                                               ext = f"*.{ext}" #TODO add multiple extensions (list)
-        
-        files_in_dir   = set((os.path.basename(i) for i in glob( bufr_dir + ext )))
+        if hasattr(bf, "glob") and bf.glob: ext = f"{bf.glob}.{bf.ext}"
+        else:                               ext = f"*.{bf.ext}" #TODO add possibility to use multiple extensions (set)
 
-        if args.redo:   skip_files  = set()
-        else:           skip_files  = set(db.get_files_with_status( config_script["skip_status"], source ))
+        if args.restart:
+            files_to_parse = set(db.get_files_with_status( f"locked_{args.restart}", source ))
+        else:
+            files_in_dir   = set((os.path.basename(i) for i in glob( bufr_dir + ext )))
 
-        files_to_parse = list( files_in_dir - skip_files )
-        
-        #TODO special sort functions for CCA, RRA and stuff...
-        #TODO implement order by datetime of files
-        if config_script["sort_files"]: files_to_parse = sorted(files_to_parse)
-        if config_script["max_files"]:  files_to_parse = files_to_parse[:config_script["max_files"]]
+            if args.redo:   skip_files  = db.get_files_with_status( r"locked_%", source )
+            else:           skip_files  = db.get_files_with_status( bf.skip_status, source )
 
-        if verbose:
-            print("#FILES in DIR:  ",   len(files_in_dir))
-            print("#FILES to skip: ",   len(skip_files))
-            print("#FILES to parse:",   len(files_to_parse))
+            files_to_parse = list( files_in_dir - skip_files )
 
-        gf.create_dir( bufr_dir )
-        
+            #TODO special sort functions for CCA, RRA and stuff in case we dont have sequence key
+            #TODO implement order by datetime of files
+            if bf.sort_files: files_to_parse = sorted(files_to_parse)
+            if bf.max_files:  files_to_parse = files_to_parse[:bf.max_files]
+
+            if verbose:
+                print("#FILES in DIR:  ",   len(files_in_dir))
+                print("#FILES to skip: ",   len(skip_files))
+
+        if verbose: print("#FILES to parse:",   len(files_to_parse))
+
+        gf.create_dir( bf.dir )
+
         file_IDs = {}
 
         for FILE in files_to_parse:
+
             file_path = gf.get_file_path( bufr_dir + FILE )
             file_date = gf.get_file_date( file_path )
-            if args.redo:
-                ID = db.get_file_id(FILE, file_path)
-                if not ID: ID = db.register_file(FILE,file_path,source,status="locked",date=file_date,verbose=verbose)
-                file_IDs[FILE] = ID
-            else:
-                file_IDs[FILE] = db.register_file(FILE,file_path,source,status="locked",date=file_date,verbose=verbose)
-        db.close(commit=1*args.redo)
+
+            ID = db.get_file_id(FILE, file_path)
+            if not ID:
+                status = f"locked_{pid}"
+                ID = db.register_file(FILE, file_path, source, status, file_date, verbose=verbose)
+
+            file_IDs[FILE] = ID
+
+        db.close(commit=True)
 
         #TODO if multiprocessing: split file_to_parse by number of processes (eg 8) and parse files simultaneously
-    
+        #see https://superfastpython.com/restart-a-process-in-python/
+
     elif file:
+
         FILE            = file.split("/")[-1]
         files_to_parse  = (FILE,)
         file_path       = gf.get_file_path(args.file)
@@ -123,7 +143,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         bufr_dir        = "/".join(file.split("/")[:-1]) + "/"
         source          = args.extra # default: extra
 
-        db = database(db_file, timeout=timeout_db, traceback=traceback)
+        db = database_class(config=config_database)
         known_stations  = db.get_stations()
 
         ID = db.get_file_id(FILE, file_path)
@@ -134,9 +154,20 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
 
         file_IDs = {FILE:ID}
 
+        config_bf   = gf.merge_list_of_dicts( [config["bufr"], config_script] )
+        bf          = bufr_class(config_bf, script=script_name[-5:-3])
+
+    #TODO use defaultdic instead
+    obs_bufr, file_statuses = {}, set()
+    new_obs = 0
+
+    # initialize obs class (used for saving obs into station databases)
+    # in this merge we are adding only already present keys; while again overwriting them
+    config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
+    obs         = obs_class("raw", config_obs, source)
+
     obs, file_statuses = {}, set()
     file_statuses = set()
-    #keys = []
 
     for FILE in files_to_parse:
         if debug: print(bufr_dir + FILE) 
@@ -395,7 +426,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
             
-            db = database(db_file, timeout=timeout_db, traceback=traceback)
+            db = database_class(config=config_database)
             db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
             db.close()
 
@@ -408,7 +439,7 @@ def parse_all_BUFRs( source=None, file=None, known_stations=None, pid_file=None 
             exe = sys.executable # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
     
-    db = database(db_file, timeout=timeout_db, traceback=traceback)
+    db = database_class(config=config_database)
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
     db.close()
 
@@ -437,7 +468,8 @@ if __name__ == "__main__":
     parser.add_argument("-f","--file", help="parse single file bufr file, will be handled as source=extra by default")
     parser.add_argument("-v","--verbose", action='store_true', help="show detailed output")
     parser.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)") #TODO -> prcs
-    parser.add_argument("-c","--config", default="config.yaml", help="set name of yaml config file")
+    parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
+    parser.add_argument("-C","--config", default="config.yaml", help="set name of yaml config file")
     parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
@@ -449,30 +481,32 @@ if __name__ == "__main__":
     parser.add_argument("-k","--skip", default="", help="skip [c]omputed, [f]unction and/or [d]uplicate keys")
     parser.add_argument("-e","--extra", default="extra", help="source name when parsing single file (default: extra)")
     parser.add_argument("-r","--redo", action='store_true', help="decode bufr again even if already processed")
+    parser.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
     parser.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
+
+    #TODO add shelve option to save some RAM
 
     args = parser.parse_args()
 
     #read yaml configuration file config.yaml into dictionary
     config          = gf.read_yaml( args.config )
-    config_script   = config["scripts"][sys.argv[0]]
-    conda_env = os.environ['CONDA_DEFAULT_ENV']
-    
+    script_name     = gf.get_script_name(__file__)
+    config_script   = config["scripts"][script_name]
+    conda_env       = os.environ['CONDA_DEFAULT_ENV']
+
     if config_script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
- 
+
+    pid = str(os.getpid())
+
     if args.max_files is not None:  config_script["max_files"]  = args.max_files
-    if args.sort_files is not None: config_script["sort_files"] = args.sort_files
+    if args.sort_files: config_script["sort_files"] = args.sort_files
 
-    if "c" in args.skip:    config_script["skip_computed"]  = True
-    if "f" in args.skip:    config_script["skip_function"]  = True
-    if "d" in args.skip:    config_script["skip_duplicate"] = True
-
-    if args.pid_file:               config_script["pid_file"] = True
+    if args.pid_file: config_script["pid_file"] = True
     if config_script["pid_file"]:
-        pid_file = sys.argv[0] + ".pid"
+        pid_file = script_name + ".pid"
         if gf.already_running( pid_file ):
-            sys.exit( f"{sys.argv[0]} is already running... exiting!" )
+            sys.exit( f"{script_name} is already running... exiting!" )
     else: pid_file = None
 
     if args.profiler:
@@ -482,89 +516,46 @@ if __name__ == "__main__":
         profiler    = importlib.import_module(config_script["profiler"])
         profile     = True
     else: profile = False
-    
+
     if args.log_level: config_script["log_level"] = args.log_level
-    log.basicConfig(filename=f"{sys.argv[0]}.log", filemode="w", level=eval(f"log.{config_script['log_level']}"))
+    log = gf.get_logger(script_name)
+    
+    start_time  = dt.utcnow()
+    started_str = f"STARTED {script_name} @ {start_time}"; log.info(started_str)
 
-    started_str = f"STARTED {sys.argv[0]} @ {dt.utcnow()}"; log.info(started_str)
-
-    if args.verbose:    verbose = True
-    else:               verbose = config_script["verbose"]
+    if args.verbose is not None: config_script["verbose"] = args.verbose
+    verbose = config_script["verbose"]
     if verbose: print(started_str)
 
     if args.debug:                  config_script["debug"] = True
     if config_script["debug"]:      import pdb; debug = True
-    else:                           debug = False 
+    else:                           debug = False
 
-    if args.traceback:  traceback = True
-    else:               traceback = config_script["traceback"]
+    if args.traceback:              config_script["traceback"] = traceback = True
+    else:                           traceback = config_script["traceback"]
 
-    null_vals = { ec.CODES_MISSING_LONG, ec.CODES_MISSING_DOUBLE } # (2147483647, -1e+100)
-    for i in config_script["null_vals"]: null_vals.add( i )
+    if args.timeout:                config_script["timeout"] = timeout_station = args.timeout
+    else:                           timeout_station = config_script["timeout"]
 
-    station_keys        = frozenset(config_script["station_keys"])
-    time_keys           = frozenset(config_script["time_keys"])
-    time_keys_hour      = frozenset(config_script["time_keys"][:4])
-    typical_time_keys   = frozenset({ "typical"+i.capitalize() for i in time_keys })
-    typical_keys        = frozenset(typical_time_keys | {"typicalDate","typicalTime"})
-    sorted_time_keys    = sorted(time_keys)
-    sorted_typical_keys = sorted(typical_time_keys)
+    if args.max_retries:            config_script["max_retries"] = max_retries = args.max_retries
+    else:                           max_retries = config_script["max_retries"]
 
-    if args.timeout:        timeout_station = args.timeout
-    else:                   timeout_station = config_script["timeout"]
-    
-    if args.max_retries:    max_retries = args.max_retries
-    else:                   max_retries = config_script["max_retries"]
+    #if args.dev_mode:               config_script["dev_mode"] = True
+    #if config_script["dev_mode"]:   output_path = config_script["output_dev"]
+    #else:                           output_path = config_script["output_oper"]
 
-    timeout_db  = config["database"]["timeout"]
-    db_file     = config["database"]["db_file"]
+    output_path = config_script["output_path"]
 
-    if args.dev_mode:               config_script["dev_mode"] = True
-    if config_script["dev_mode"]:   output_path = config_script["output_dev"]
-    else:                           output_path = config_script["output_oper"]
+    if args.clusters: config_source["clusters"] = set(args.clusters.split(","))
 
-    output_path += "/raw"; gf.create_dir(output_path)
+    # get configuration for the initialization of the database class
+    config_database = config["database"]
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
-    db = database(db_file, timeout=timeout_db, traceback=traceback)
+    db = database_class(config=config_database)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
-
-    # parse the BUFR translation and bufr flags yaml files into dictionaries
-    bufr_translation    = gf.read_yaml( config_script["bufr_translation"] )
-    bufr_flags          = gf.read_yaml( config_script["bufr_flags"] )
-
-    # get the keys from the conversion dictionary, skip the first 5 which are used for unit conversions
-    bufr_translation_keys = list(bufr_translation)[5:]; bufr_translation_keys.remove("cloudBase")
-
-    bufr_keys           = frozenset( bufr_translation_keys )
-    bufr_obs_time_keys  = frozenset( bufr_keys | {"timePeriod"} )
-
-    # get special types of keys
-    modifier_keys, unit_keys, depth_keys, height_keys = (set() for _ in range(4))
-
-    for i in bufr_translation:
-        if type(bufr_translation[i]) == list and type(bufr_translation[i][0]) == dict:
-            unit_keys.add(i)
-        elif type(bufr_translation[i]) == dict:
-            try:    subkey = list(bufr_translation[i])
-            except: continue
-            if type(subkey[0]) == float:
-                if subkey[0] < 0:   depth_keys.add(i)
-                elif subkey[0] > 0: height_keys.add(i)
-        elif type(bufr_translation[i]) == type(None): modifier_keys.add(i)
-   
-    modifier_keys.add("timePeriod")
-
-    # skip cloud base; timePeriod key also needs a unit
-    unit_keys = frozenset( unit_keys | {"timePeriod"} )
-
-    # union of both will be used later
-    height_keys, depth_keys = frozenset(height_keys), frozenset(depth_keys)
-    height_depth_keys       = frozenset( height_keys | depth_keys )
-
-    relevant_keys = bufr_obs_time_keys | station_keys | typical_keys | time_keys | {"subsetNumber"}
 
     #parse command line arguments
     if args.source:
@@ -576,14 +567,18 @@ if __name__ == "__main__":
                 config_sources[s] = config["sources"][s]
 
         else: config_sources = { args.source : config["sources"][args.source] }
-   
-    elif args.file: parse_all_BUFRs( file=args.file, pid_file=pid_file )
+
+    elif args.file: decode_bufr_us( file=args.file, pid_file=pid_file )
     else:           config_sources = config["sources"]
-    
+
     if not args.file:
         for SOURCE in config_sources:
             if verbose: print(f"Parsing source {SOURCE}...")
-            parse_all_BUFRs( source = SOURCE, pid_file=pid_file )
+            decode_bufr_us( source = SOURCE, pid_file=pid_file )
 
-    finished_str = f"FINISHED {sys.argv[0]} @ {dt.utcnow()}"; log.info(finished_str)
-    if verbose: print(finished_str)
+    stop_time = dt.utcnow()
+    finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)
+    if verbose:
+        print(finished_str)
+        time_taken = stop_time - start_time
+        print(f"{time_taken.seconds}.{time_taken.microseconds} s")

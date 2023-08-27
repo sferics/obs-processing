@@ -2,6 +2,7 @@
 # THIS IS A CHAIN SCRIPT
 
 import os, sys
+import subprocess
 
 # 1 reduce_obs.py (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
 #   copy all remaining elements from raw to forge databases [datetime,duration,element,value]
@@ -15,10 +16,14 @@ import os, sys
 #   depending on operation mode; if this action is complete, maybe do some last checks? afterwards:
 #   clear all forge databases (they are just temporary and will be rebuilt in every chain cycle)
 
-scripts = ("reduce", "audit", "derive", "aggregate", "conclude" )
+# delete_duplicate needs to be removed as soon as the bug which cause duplicates is fixed!!!
+scripts = ("reduce", "audit", "derive", "aggregate", "delete_duplicate", "conclude" )
 
+#TODO
 args = ()
 
+# https://stackoverflow.com/questions/8953119/waiting-for-external-launched-process-finish
+
 for script in scripts:
-    try:    os.execv( "python", script, *args )
+    try:    os.execv( "python", script+"_obs.py", *args )
     except: continue

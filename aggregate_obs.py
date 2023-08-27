@@ -2,7 +2,7 @@
 import os
 import sys
 from datetime import datetime as dt, timedelta as td
-from database import database
+from database import database_class
 import global_functions as gf
 
 
@@ -29,7 +29,7 @@ def aggregate_obs(stations):
         sql_values = set()
         
         db_file = f"/home/juri/data/stations/forge/{loc[0]}/{loc}.db"
-        try: db_loc = database( db_file, {"verbose":verbose, "traceback":traceback} )
+        try: db_loc = database_class( db_file, {"verbose":verbose, "traceback":traceback} )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
@@ -200,15 +200,15 @@ if __name__ == "__main__":
     #TODO implement source option! for now, just stick with test
     src = "test"
 
-    script_name     = os.path.basename(__file__)
+    script_name     = gf.get_script_name(__file__)
     config          = gf.read_yaml( "config.yaml" )
     config_script   = config["scripts"][script_name]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
 
-    db              = database( config=config["database"] )
+    db              = database_class( config=config["database"] )
 
-    clusters        = set(config_source["clusters"].split(","))
+    clusters        = set(config_script["clusters"].split(","))
     stations        = db.get_stations( clusters ); db.close(commit=False)
     params          = config_script["params"]
 

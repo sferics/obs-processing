@@ -3,19 +3,55 @@
 from pathlib import Path
 from datetime import datetime as dt, timezone as tz
 import numpy as np
-from os import getpid
-from os.path import exists
+import os
 from psutil import pid_exists, Process
 import subprocess, sys
 from copy import copy
 import sqlite3
+
+
+#TODO maybe we need a log_class???
+def get_logger(script_name, log_level="NOTSET", log_path="log", mode="w", formatter=""):
+    """
+    inspired by: https://stackoverflow.com/a/69693313
+    """
+    from global_variables import log_levels
+    assert(log_level in log_levels)
+    import logging, logging.handlers
+
+    if not os.path.exists(log_path): os.makedirs(log_path)
+    
+    logger = logging.getLogger(script_name)
+    logger.setLevel(eval(f"logging.{log_level}"))
+    
+    if formatter:
+        #formatter = logging.Formatter('%(asctime)s:%(levelname)s : %(name)s : %(message)s')
+        formatter = logging.Formatter(formatter)
+        file_handler.setFormatter(formatter)
+    
+    file_handler = logging.FileHandler(f"{log_path}/{script_name}.log", mode=mode)
+    if logger.hasHandlers(): logger.handlers.clear()
+    logger.addHandler(file_handler)
+    
+    return logger
+
+
+def get_script_name(FILE, realpath=True):
+    """
+    returns the name of the current script. if realpath is True, symlinks are resolved
+    """
+    if realpath:
+        path = os.path.realpath(FILE)
+        return path.split("/")[-1]
+    else: return os.path.basename(FILE)
+
 
 #TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
 def obs_to_station_databases( obs_db, source, output_path, max_retries=100, timeout=5, verbose=0 ):
     #TODO
     """
     """
-    from database import database
+    from database import database_class
     # insert values or update value if we have a newer cor, then set parsed = 0 as well
     sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES " 
         f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
@@ -29,7 +65,7 @@ def obs_to_station_databases( obs_db, source, output_path, max_retries=100, time
 
         while retries > 0:
             try:
-                db_loc = database( f"{output_path}/raw/{loc[0]}/{loc}.db", timeout=timeout)
+                db_loc = database_class( f"{output_path}/raw/{loc[0]}/{loc}.db", timeout=timeout)
                 db_loc.exemany( sql, obs_db[loc] )
             except sqlite3.Error as e:
                 print(e, retries)
@@ -67,7 +103,7 @@ def create_station_tables( location, output_path, typ, max_retries=100, commit=T
     -------
     True if succesful, False if not, None if tables already exists and completely setup (ready == 1)
     """
-    from database import database
+    from database import database_class
     station_path = f'{output_path}/{typ}/{location[0]}'
     create_dir( station_path )
     db_path = f'{station_path}/{location}.db'
@@ -78,7 +114,7 @@ def create_station_tables( location, output_path, typ, max_retries=100, commit=T
 
     while retries > 0:
         try:
-            db = database( db_path )
+            db = database_class( db_path )
             # get number of tables in attached DB
             db.exe(f"SELECT count(*) FROM sqlite_master WHERE type='table'")
             n_tables = db.fetch1()
@@ -195,11 +231,12 @@ def read_file(file_name):
     return Path( file_name ).read_text()
 
 
-def read_yaml(file_path="config.yaml", typ="safe", pure=True, duplicate_keys=False, values={}, autoformat=False):
+def read_yaml(file_name="config.yaml", directory="yaml", typ="safe", pure=True, duplicate_keys=False, values={}, autoformat=False):
     """
     Parameter:
     ----------
-    file_path : full or relative path to the yaml file we want to parse
+    file_name : name of the yaml file we want to parse
+    directory : dir (or path without file_name) of the file
     typ : input for ruamel.yaml.YAML() can be [ safe, rt, jinja2 ]
     pure : bool, see https://stackoverflow.com/questions/51316491/ruamel-yaml-clarification-on-typ-and-pure-true
     duplicate_keys : allow duplicate keys (which violate the yaml specification, so be careful!)
@@ -296,7 +333,7 @@ def read_yaml(file_path="config.yaml", typ="safe", pure=True, duplicate_keys=Fal
 
 
     # this is the important part; load the file read-only with the chosen method and return it as dict
-    with open(file_path, "rt") as f:
+    with open(directory + "/" + file_name, "rt") as f:
         
         if typ == "rt":
             res = loader.load(f)
@@ -465,10 +502,10 @@ def already_running( pid_file = "pid.txt" ):
     True if pid file exists, False if not
     """ 
     #https://stackoverflow.com/a/73363976
-    if exists( pid_file ):
+    if os.path.exists( pid_file ):
         return True
     with open( pid_file, 'w' ) as f:
-        f.write( str(getpid()) )
+        f.write( str(os.getpid()) )
     return False
 
 

@@ -7,7 +7,8 @@ from collections import defaultdict
 import global_functions as gf
 import global_variables as gv
 import sql_factories as sf
-from database import database
+from database import database_class
+
 
 def delete_duplicate_obs(stations):
     
@@ -18,7 +19,7 @@ def delete_duplicate_obs(stations):
         sql_values = set()
         
         db_file = f"/home/juri/data/stations/forge/{loc[0]}/{loc}.db"
-        try: db_loc = database( db_file )
+        try: db_loc = database_class( db_file )
         except Exception as e:
             gf.print_trace(e)
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
@@ -26,18 +27,26 @@ def delete_duplicate_obs(stations):
             continue
 
         # https://sqlite.org/forum/info/ad235e398f502740e74e3485d64d6d391922de1dec34bdf7b463cd6a84fd8105
-        sql = "DELETE FROM obs WHERE rowid NOT IN(SELECT max(rowid) from obs GROUP BY datetime,duration,value)"
+        sql = "DELETE FROM obs WHERE rowid NOT IN(SELECT max(rowid) from obs GROUP BY datetime,duration,element,value)"
         try:    db_loc.exe(sql)
         except: continue
 
+        if verbose:
+            sql = ["SELECT * FROM obs WHERE rowid NOT IN(SELECT max(rowid) from obs GROUP BY datetime,duration,element,value)"]
+            sql.append("SELECT * FROM obs")
+            for sql in sql:
+                try:    db_loc.exe(sql)
+                except: continue
 
-        sql = ["SELECT * FROM obs WHERE rowid NOT IN(SELECT max(rowid) from obs GROUP BY datetime,duration,value)"]
-        sql.append("SELECT * FROM obs")
-        for sql in sql:
-            try:    db_loc.exe(sql)
-            except: continue
+        sql = "CREATE UNIQUE INDEX IF NOT EXISTS unique_obs ON obs(datetime,duration,element)"
+        try:    db_loc.exe(sql)
+        except Exception as e:
+            gf.print_trace(e)
+            continue
 
         db_loc.close(commit=True)
+    
+    return
 
 
 if __name__ == "__main__":
@@ -47,12 +56,12 @@ if __name__ == "__main__":
 
     config          = gf.read_yaml( "config.yaml" )
     db_settings     = config["database"]["settings"]
-    script_name     = os.path.basename(__file__)
+    script_name     = gf.get_script_name(__file__)
     config_script   = config["scripts"][script_name]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
 
-    db              = database( config=config["database"] )
+    db              = database_class( config=config["database"] )
 
     clusters        = set(config_script["clusters"].split(","))
     stations        = db.get_stations( clusters ); db.close(commit=False)

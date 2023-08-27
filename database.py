@@ -1,9 +1,8 @@
 import sys, re, inspect, sqlite3 # sqlite connector python base module
 import global_functions as gf
 import global_variables as gv
-import logging as log
 
-class database:
+class database_class:
 
     def __init__(self, db_file="main.test.db", config={ "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
         
@@ -11,7 +10,8 @@ class database:
         if "log_level" in config and config["log_level"] in gv.log_levels:
             self.log_level = config["log_level"]
         else: self.log_level = "NOTSET"
-        log.basicConfig( filename=f"database.log", filemode="w", level=eval(f"log.{self.log_level}") )
+        
+        self.log = gf.get_logger( self.__class__.__name__, self.log_level )
 
         # keep name of datebase file which we want to attach (connect)
         self.db_file    = db_file
@@ -101,7 +101,15 @@ class database:
             return True
 
 
-    # generic getter/setter PRAGMA function. it can be called by the actual pragma functions, which follow
+    def pragma( self, pragma, setting="" ):
+        """
+        simple pragma function inspired by aspw (SQLite wrapper, https://github.com/rogerbinns/apsw)
+        """
+        if setting: setting = " = {setting}"
+        self.exe( f"PRAGMA {pragma}{setting}" )
+
+
+    # generic getter/setter PRAGMA function. can be called by actual pragma functions, which follow
 
     def pragma_get_set( self, pragma, N=None, schema="" ):
         """
@@ -843,6 +851,7 @@ class database:
         if table_name:  table_name  = f"({table_name})"
         if schema:      schema      = f"'{schema}'."
         self.exe( f"PRAGMA {schema}foreign_key_check{table_name}" )
+        return self.fetch()
 
 
     def foreign_key_list( self, table_name="" ):
@@ -929,13 +938,13 @@ class database:
         return self.fetch()
 
 
-    def integritiy_check( self, N_or_table, schema="" ):
+    def integrity_check( self, N_or_table, schema="" ):
         """
         see documentation: https://www.sqlite.org/pragma.html#pragma_integrity_check
         """
         if schema:      schema      = f"'{schema}'."
         self.exe( f"PRAGMA {schema}integrity_check({N_or_table})" )
-        return self.fetch1()
+        return self.fetch()
 
 
     def module_list( self ):
@@ -955,7 +964,7 @@ class database:
         if schema:      schema      = f"'{schema}'."
         if mask:        mask        = f"({mask})"
         self.exe( f"PRAGMA {schema}optimize({mask}" )
-
+        
 
     def page_count( self, schema="" ):
         """
@@ -984,7 +993,7 @@ class database:
         """
         if schema:      schema      = f"'{schema}'."
         self.exe( f"PRAGMA {schema}quick_check({N_or_table})" )
-        return self.fetch1()
+        return self.fetch()
 
 
     def table_list( self, table_name=None, schema="" ):
@@ -1002,12 +1011,11 @@ class database:
         if table_name:
             self.exe( f"PRAGMA table_list('{table_name}')" )
             return self.fetch()
-
-        if schema: schema = f"'{schema}'."
-        
-        sql = f"PRAGMA {schema}table_list"
-        self.exe( sql )
-        return self.fetch()
+        else:
+            if schema: schema = f"'{schema}'."
+            sql = f"PRAGMA {schema}table_list"
+            self.exe( sql )
+            return self.fetch()
 
 
     def table_info( self, table_name, schema="", hidden=False ):
@@ -1339,7 +1347,8 @@ class database:
             if verbose: print("Column '{column}' does not exist in table '{table}'.")
             return False
         else: return True
-        
+
+    #TODO add more ALTER TABLE commands https://www.sqlite.org/lang_altertable.html
     
     def create_table( self, table, columns, exists="IF NOT EXISTS ", verbose=None ):
         #TODO
@@ -1404,8 +1413,10 @@ class database:
         else:
             return True
 
+    #TODO add CREATE INDEX statement https://www.sqlite.org/lang_createindex.html
 
-#TODO from here on move to getter_settter.py as soon as it uses the database class?
+
+    #TODO from here on move to getter_settter.py as soon as it uses the database class?
 
 
     def register_file( self, name, path, source, status="locked", date="NULL", verbose=None ):
@@ -1777,3 +1788,8 @@ class database:
         else:
             if commit: self.commit()
             return True
+
+    def get_elements( self ):
+        sql = "SELECT DISTINCT element FROM element_table WHERE role='obs'"
+        self.exe(sql)
+        return self.fetch()

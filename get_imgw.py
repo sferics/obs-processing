@@ -1,7 +1,7 @@
 #!python
 import os, sys, time, requests, argparse
 import global_functions as gf
-from obs import obs
+from obs import obs_class
 from datetime import datetime as dt
 import logging as log
 
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     if config_script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
 
-    OBS             = obs("imgw", config["obs"])
+    obs             = obs_class("raw", config["obs"], "imgw")
     config_source   = config["sources"]["IMGW"]
 
     msg    = "Get latest obs from polish weather service and insert observatio data into database."
@@ -72,14 +72,14 @@ if __name__ == "__main__":
     translation = gf.read_yaml("imgw_translation.yaml")
     elements    = translation["elements"]
 
-    meta, obs = {}, {}
+    meta, obs_db = {}, {}
 
     for data in r.json():
         for m in translation["meta"]:
             meta[translation["meta"][m]] = data[m]
         
         location = meta["location"] + "0"
-        if location not in obs: obs[location] = set()
+        if location not in obs_db: obs_db[location] = set()
 
         date = meta["date"]; hour = int(meta["hour"])
         datetime = dt(int(date[:4]), int(date[5:7]), int(date[8:10]), hour)
@@ -88,9 +88,9 @@ if __name__ == "__main__":
             # if observation value is None: skip it
             if data[key] is None: continue
             element, value, duration = convert_imgw_keys(key, data)
-            obs[location].add( (0, datetime, duration, element, value, 0) )
+            obs_db[location].add( (0, datetime, duration, element, value, 0) )
 
-    OBS.to_station_databases(obs)
+    obs.to_station_databases(obs_db)
 
     finished_str = f"FINISHED {sys.argv[0]} @ {dt.utcnow()}"; log.info(finished_str)
     if verbose: print(finished_str)
