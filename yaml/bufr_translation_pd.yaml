@@ -72,7 +72,7 @@ depthOfFreshSnow:                   [NEWSNOW_srf_syn,  ~, 100, 0]   # Neuschneeh
 ### PRECIPITATION
 #TODO units/scale
 totalPrecipitationOrTotalWaterEquivalent: [PRATE_srf_syn,~,1,0]     # Niederschlagsmenge
-totalPrecipitationPast1Hour:        [PRATE_srf_1h_syn,1h, 1, 0]
+totalPrecipitationPast1Hour:        [PRATE_srf_syn, 1h,   1, 0]
 totalPrecipitationPast3Hours:       [PRATE_srf_syn, 3h,   1, 0]
 totalPrecipitationPast6Hours:       [PRATE_srf_syn, 6h,   1, 0]
 totalPrecipitationPast12Hours:      [PRATE_srf_syn, 12h,  1, 0]
@@ -155,16 +155,16 @@ groundTemperature:                  [T_srf_syn,   1s, 10, *K2C]     # Erdbodente
   #durationOfTimeRelatingToFollowingValue:
 
 temperature: # in Celsius! 
-  0.05:                             [T_5cm_syn, 1s, 10, 0]          # 5cm-Lufttemperatur
-  2.0:                              [T_2m_syn,  1s, 10, 0]          # 2m-Lufttemperatur
+  0.05:                             [T_5cm_syn,     1s, 10, 0]      # 5cm-Lufttemperatur
+  2.0:                              [T_2m_syn,      1s, 10, 0]      # 2m-Lufttemperatur
 airTemperature:                     
-  0.05:                             [T_5cm_syn, 1s, 10, *K2C]       # 5cm-Lufttemperatur
-  2.0:                              [T_2m_syn,  1s, 10, *K2C]       # 2m-Lufttemperatur
-airTemperatureAt2M:                 [T_2m_syn,  1s, 10, *K2C]       # 2m-Lufttemperatur   
+  0.05:                             [T_5cm_syn,     1s, 10, *K2C]   # 5cm-Lufttemperatur
+  2.0:                              [T_2m_syn,      1s, 10, *K2C]   # 2m-Lufttemperatur
+airTemperatureAt2M:                 [T_2m_syn,      1s, 10, *K2C]   # 2m-Lufttemperatur   
 dewpointTemperature:
-  0.05:                             [TD_5cm_syn, 1s, 10, *K2C]      # 5cm-Taupunktstemperatur
-  2.0:                              [TD_2m_syn, 1s,  10, *K2C]      # 2m-Taupunktstemperatur
-dewpointTemperatureAt2M:            [TD_2m_syn, 1s,  10, *K2C]
+  0.05:                             [TD_5cm_syn,    1s, 10, *K2C]   # 5cm-Taupunktstemperatur
+  2.0:                              [TD_2m_syn,     1s, 10, *K2C]   # 2m-Taupunktstemperatur
+dewpointTemperatureAt2M:            [TD_2m_syn,     1s, 10, *K2C]   # 2m-Taupunktstemperatur
 
 maximumTemperatureAt2M:             [Tmax_2m_syn,   12h,  10, *K2C] # 24h-Maximum der 2m-Lufttemperatur
 minimumTemperatureAt2M:             [Tmin_2m_syn,   12h,  10, *K2C] # 24h-Minimum der 2m-Lufttemperatur

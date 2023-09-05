@@ -7,7 +7,7 @@ import global_functions as gf
 def conclude_obs(stations):
 
     for loc in stations:
-        db_file = f"/home/juri/data/stations/forge/{loc[0]}/{loc}.db"
+        db_file = f"{output_path}/forge/{loc[0]}/{loc}.db"
         try: db_loc = database_class( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
@@ -15,13 +15,13 @@ def conclude_obs(stations):
             if debug:       pdb.set_trace()
             continue
 
-        #OBS = obs(loc, {"output_path:"/home/juri/data/stations", "typ":"forge", "verbose":verbose})
-        #OBS.create_station_tables( loc, "/home/juri/data/stations", "forge", verbose=verbose )
-        gf.create_dir( f"/home/juri/data/stations/dev/{loc[0]}" )
+        #OBS = obs(loc, {"output_path":output_path, "typ":"forge", "verbose":verbose})
+        #OBS.create_station_tables( loc, verbose=verbose )
+        gf.create_dir( f"{output_path}/dev/{loc[0]}" )
 
-        sql = [f"ATTACH DATABASE '/home/juri/data/stations/dev/{loc[0]}/{loc}.db' AS dev"]
-        sql.append(f"CREATE TABLE IS NOT EXISTS dev.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs WHERE element IN{elements} AND strftime('%M', datetime) IN ('00','30')")
-        sql.append("CREATE UNIQUE INDEX unique_obs ON obs(datetime,duration,element)") 
+        sql = [f"ATTACH DATABASE '{output_path}/dev/{loc[0]}/{loc}.db' AS dev"]
+        sql.append(f"CREATE TABLE dev.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs WHERE element IN{elements} AND strftime('%M', datetime) IN ('00','30')")
+        sql.append("CREATE UNIQUE INDEX unique_obs ON dev.obs(datetime,duration,element)") 
         sql.append("DETACH dev")
         
         for sql in sql:
@@ -40,6 +40,7 @@ if __name__ == "__main__":
     script_name     = gf.get_script_name(__file__)
     config          = gf.read_yaml( "config.yaml" )
     config_script   = config["scripts"][script_name]
+    output_path     = config["output_path"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
     debug           = config_script["debug"]

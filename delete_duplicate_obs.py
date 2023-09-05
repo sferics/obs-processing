@@ -18,7 +18,7 @@ def delete_duplicate_obs(stations):
 
         sql_values = set()
         
-        db_file = f"/home/juri/data/stations/forge/{loc[0]}/{loc}.db"
+        db_file = f"{output_path}/{loc[0]}/{loc}.db"
         try: db_loc = database_class( db_file )
         except Exception as e:
             gf.print_trace(e)
@@ -58,6 +58,7 @@ if __name__ == "__main__":
     db_settings     = config["database"]["settings"]
     script_name     = gf.get_script_name(__file__)
     config_script   = config["scripts"][script_name]
+    output_path     = config["output_path"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
 

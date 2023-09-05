@@ -1,8 +1,9 @@
 general:
-  mode:       dev # oper, test
-  verbose:    0
-  debug:      0
-  traceback:  0
+  mode:         dev # oper, test
+  output_path:  /home/juri/data/stations
+  verbose:      0
+  debug:        0
+  traceback:    0
 
 #configuration of classes (key name == name of class without '_class')
 #TODO add indentation and adjust all affected scripts to the change
@@ -151,7 +152,7 @@ scripts:
     dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
       #output_oper:      /data/stations_oper # em24 dev
       #output_dev:       /data/stations_dev  # em24 dev
-    output_path:      /home/juri/data/stations
+    output_path:      /home/juri/data/stations_se
     output_oper:      #TODO not used so far, for future operational usage
     output_dev:       /home/juri/data/stations_se
     #output_dev:       /historical/db_amalthea/data/stations # m23
@@ -205,7 +206,36 @@ scripts:
     dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
       #output_oper:      /data/stations_oper # em24 dev
       #output_dev:       /data/stations_dev  # em24 dev
-    output_path:      /home/juri/data/stations
+    output_path:      /home/juri/data/stations_us
+    output_oper:      #TODO not used so far, for future operational usage
+    output_dev:       /home/juri/data/stations
+    #output_dev:       /historical/db_amalthea/data/stations # m23
+    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
+    bufr_translation: bufr_translation_us.yaml # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags_us.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    extract_subsets:  0
+    skip_function:    0
+    skip_computed:    0
+    skip_duplicates:  0
+
+  decode_bufr_00.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        1 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_files:        5046 # zero means no maximum #15: 5395
+    max_retries:      1200 # max retries when writing into databases 
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
+      #output_oper:      /data/stations_oper # em24 dev
+      #output_dev:       /data/stations_dev  # em24 dev
+    output_path:      /home/juri/data/stations_00
     output_oper:      #TODO not used so far, for future operational usage
     output_dev:       /home/juri/data/stations
     #output_dev:       /historical/db_amalthea/data/stations # m23
@@ -249,6 +279,7 @@ scripts:
   forge_obs.py:
     conda_env:        obs
     pid_file:         0 # create and use pid file
+    output_path:      /home/juri/data/stations
 
   reduce_obs.py:
     pid_file:         0 # create and use pid file
@@ -256,12 +287,14 @@ scripts:
     traceback:        0 # traceback prints
     debug:            0
     dev_mode:         1
+    output_path:      /home/juri/data/stations
     clusters:         germany
     multiprocessing:  15 #4
 
   audit_obs.py:  #TODO data quality check (idea: each obs parameter gets a range in units table)
     conda_env:        obs
     pid_file:         0 # create and use pid file
+    output_path:      /home/juri/data/stations
 
   delete_duplicate_obs.py:
     conda_env:        obs
@@ -269,6 +302,7 @@ scripts:
     verbose:          1
     traceback:        0
     dev_mode:         1
+    output_path:      /home/juri/data/stations
     multiprocessing:  15
     clusters:         germany
 
@@ -278,6 +312,7 @@ scripts:
     verbose:          1
     traceback:        0
     dev_mode:         1
+    output_path:      /home/juri/data/stations
     multiprocessing:  15
     clusters:         germany
     replacements:
@@ -304,6 +339,7 @@ scripts:
     verbose:          0 # verbose output
     traceback:        1 # traceback prints
     dev_mode:         1 # 1 : aggregate all obs data, 0 : only aggregate current obs data (livesystem)
+    output_path:      /home/juri/data/stations
     multiprocessing:  15
     clusters:         germany # TODO should take setting from sources instead
     params:
@@ -336,7 +372,8 @@ scripts:
     traceback:        0
     debug:            0
     dev_mode:         1
-    multiprocessing:  1
+    output_path:      /home/juri/data/stations
+    multiprocessing:  15
     clusters:         germany
 
 

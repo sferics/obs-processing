@@ -17,7 +17,7 @@ import subprocess
 #   clear all forge databases (they are just temporary and will be rebuilt in every chain cycle)
 
 # delete_duplicate needs to be removed as soon as the bug which cause duplicates is fixed!!!
-scripts = ("reduce", "audit", "derive", "aggregate", "delete_duplicate", "conclude" )
+scripts = ("reduce", "audit", "derive", "aggregate", "delete_duplicate", "conclude" ) # write
 
 #TODO
 args = ()

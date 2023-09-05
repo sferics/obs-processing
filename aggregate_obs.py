@@ -28,13 +28,22 @@ def aggregate_obs(stations):
         
         sql_values = set()
         
-        db_file = f"/home/juri/data/stations/forge/{loc[0]}/{loc}.db"
+        db_file = f"{output_path}/forge/{loc[0]}/{loc}.db"
         try: db_loc = database_class( db_file, {"verbose":verbose, "traceback":traceback} )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
             continue
-       
+      
+        #TODO remove this temporary fix!
+        # delete all aggregated paramters before calculation them again
+        sql = f"DELETE FROM obs WHERE element IN{aggreg_elements}"
+        try:    db_loc.exe( sql )
+        except Exception as e:
+            print(e)
+            gf.print_trace(e)
+        else:   print(f"DELETE FROM obs WHERE element IN{aggreg_elements}")
+
         try: db_loc.exe( f"SELECT DISTINCT strftime('%Y', datetime) FROM obs" )
         except: continue
         years_present = db_loc.fetch()
@@ -46,7 +55,7 @@ def aggregate_obs(stations):
 
             p_old = p_new.replace( dur + "_", "" )
      
-            if not FUN: # dur == "10min"
+            if not FUN: # and dur == "10min"
                 # just take the values of the parameter with the given duration and save into to the new param name
                 db_loc.exe( f"SELECT * FROM obs WHERE element = '{p_old}' AND duration = '{dur}'" )
                 data = db_loc.fetch()
@@ -56,6 +65,7 @@ def aggregate_obs(stations):
 
             # get parameter values with a lower time dimensions (h->min, 24h->1h) and aggregate over duration
             elif dur == "1h":
+
                 # first get all obs which already have 1h duration and copy them with the new parameter name
                 for hh in range(0, 24):
                     hh = str(hh).rjust(2,"0")
@@ -63,15 +73,15 @@ def aggregate_obs(stations):
                                     f"AND strftime('%H', datetime) = '{hh}' AND strftime('%M', datetime) = '00'"))
                     data = db_loc.fetch()
                     if data:
-                        for i in data:
-                            sql_values.add( (i[0], i[1], p_new, i[-1]) )
+                        for i in data: sql_values.add( (i[0], i[1], p_new, i[-1]) )
+                        # if we found a 1 h duration value, continue with next hour, no need to check 30 and 10 min
+                        continue
 
-                # then, get all 10min (30min?) values and aggregate them with the respective function (min,max,mean)
-                #TODO
+                # then, get all 30min and values and aggregate them with the respective function (min,max,avg)
                 for year in years_present:
-                    #TODO smartly handle data gaps, use only years, months and days where data is actually present
                     
-                    # for we keep it simple and just look for the min and max datetime values and loop over the range
+                    # smartly handle data gaps, use only years, months and days where data is actually present
+                    
                     months_present = get_distinct_months(year)
 
                     for month in months_present:
@@ -88,18 +98,21 @@ def aggregate_obs(stations):
 
                             for hour in hours_present:
                                 
-                                hh = hour.rjust(2,"0")
+                                hh = int(hour.rjust(2,"0"))
 
                                 # first try 30 min values
                                 sql=(f"SELECT ? FROM obs WHERE element = '{p_old}' AND duration = '30min' AND "
-                                     f"strftime('%Y',datetime) = '{year}' AND strftime('%m',datetime) = '{mm}' AND "
-                                     f"strftime('%d', datetime) = '{dd}' AND strftime('%H', datetime) = '{hh}'")
+                                     f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{mm}' AND "
+                                     f"strftime('%d', datetime) = '{dd}' AND ( strftime('%H', datetime) = '{hh}' AND "
+                                     f"strftime('%M', datetime) = '30' ) OR ( strftime('%H', datetime) = '{hh+1}' AND "
+                                     f"strftime('%M', datetime) = '00' )")
 
-                                #TODO add dataset to make sure the values are really unique and max of count() is 6
+                                # add dataset to make sure the values are really unique and max of count() is 2
                                 db_loc.exe( sql.replace("?", "COUNT(value)") )
 
-                                # if we want an average make sure there are exactly six 10min values
-                                if FUN in ("AVG","SUM") and db_loc.fetch1() != 2:
+                                # if we want an average make sure there are exactly two 10min values
+                                if FUN in {"avg","sum"} and db_loc.fetch1() != 2:
+                                    # else continue after else with the 10 min values
                                     pass
                                 else:
                                     db_loc.exe( sql.replace("?", FUN+"(value)") )
@@ -114,14 +127,16 @@ def aggregate_obs(stations):
 
                                 # try 10 min values
                                 sql=(f"SELECT ? FROM obs WHERE element = '{p_old}' AND duration = '10min' AND "
-                                     f"strftime('%Y',datetime) = '{year}' AND strftime('%m',datetime) = '{mm}' AND "
-                                     f"strftime('%d', datetime) = '{dd}' AND strftime('%H', datetime) = '{hh}'")
+                                     f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{mm}' AND "
+                                     f"strftime('%d', datetime) = '{dd}' AND ( strftime('%H', datetime) = '{hh}' AND "
+                                     f"strftime('%M', datetime) IN ('10', '20', '30', '40', '50') ) OR ( "
+                                     f"strftime('%H', datetime) = '{hh+1}' AND strftime('%M',datetime) = '00')")
                                 
                                 #TODO add dataset to make sure the values are really unique and max of count() is 6
                                 db_loc.exe( sql.replace("?", "COUNT(value)") )
                                
                                 # if we want an average make sure there are exactly six 10min values
-                                if FUN in ("AVG","SUM") and db_loc.fetch1() != 6:
+                                if FUN in {"avg","sum"} and db_loc.fetch1() != 6:
                                     continue
                                
                                 db_loc.exe( sql.replace("?", FUN+"(value)") )
@@ -178,7 +193,7 @@ def aggregate_obs(stations):
                                 db_loc.exe( sql.replace("?", "COUNT(value)") )
 
                                 # if we want an average make sure there are continous values for each sub-duration
-                                if FUN in ("AVG","SUM") and int(db_loc.fetch1()) != int(24 // subdur):
+                                if FUN in {"avg","sum"} and int(db_loc.fetch1()) != int(24 // subdur):
                                     continue
                                 db_loc.exe( sql.replace("?", FUN+"(value)") )
                                 v_new = db_loc.fetch1()
@@ -188,7 +203,7 @@ def aggregate_obs(stations):
                                     sql_values.add( (dt_ts, dur, p_new, v_new) )
                                     break
 
-        sql = f"INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value"
+        sql = f"INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, duration = excluded.duration"
         db_loc.exemany(sql, sql_values)
         db_loc.close(commit=True)
     
@@ -203,6 +218,7 @@ if __name__ == "__main__":
     script_name     = gf.get_script_name(__file__)
     config          = gf.read_yaml( "config.yaml" )
     config_script   = config["scripts"][script_name]
+    output_path     = config["output_path"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
 
@@ -211,6 +227,9 @@ if __name__ == "__main__":
     clusters        = set(config_script["clusters"].split(","))
     stations        = db.get_stations( clusters ); db.close(commit=False)
     params          = config_script["params"]
+
+    #TODO remove
+    aggreg_elements = tuple(params.keys())
 
     if config_script["multiprocessing"]:
         # number of processes

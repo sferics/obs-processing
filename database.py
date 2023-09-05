@@ -10,20 +10,21 @@ class database_class:
         if "log_level" in config and config["log_level"] in gv.log_levels:
             self.log_level = config["log_level"]
         else: self.log_level = "NOTSET"
-        
+       
+        # get a logger object which we can call with self.log.info for example
         self.log = gf.get_logger( self.__class__.__name__, self.log_level )
 
         # keep name of datebase file which we want to attach (connect)
-        self.db_file    = db_file
-        if "timeout" in config and type(config["timeout"]) in {int,float}:
-            self.timeout = config["timeout"]
-        else: self.timeout = 5
-        if "verbose" in config and type(config["verbose"]) in {int,bool}:
-            self.verbose = config["verbose"]
-        else: self.verbose = False
-        if "traceback" in config and type(config["traceback"]) in {int,bool}:
-            self.traceback  = config["traceback"]
-        else: self.traceback = False
+        self.db_file = db_file
+        
+        try:    self.timeout    = float(config["timeout"])
+        except: self.timeout    = 5
+        
+        try:    self.verbose    = bool(config["verbose"])
+        except: self.verbose    = False
+        
+        try:    self.traceback  = bool(config["traceback"])
+        except: self.traceback  = False
 
         # if ro == True we open the database in read-only mode
         if ro: self.db_file = f"file:{self.db_file}?mode=ro"
@@ -101,16 +102,15 @@ class database_class:
             return True
 
 
-    def pragma( self, pragma, setting="" ):
+    def pragma( self, pragma, args=""):
         """
         simple pragma function inspired by aspw (SQLite wrapper, https://github.com/rogerbinns/apsw)
         """
-        if setting: setting = " = {setting}"
-        self.exe( f"PRAGMA {pragma}{setting}" )
+        if args: args = " " + args
+        self.exe( f"PRAGMA {pragma}{args}" )
 
 
     # generic getter/setter PRAGMA function. can be called by actual pragma functions, which follow
-
     def pragma_get_set( self, pragma, N=None, schema="" ):
         """
         Parameter:
@@ -1675,6 +1675,18 @@ class database_class:
 
 
     def get_station_info(self, location ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         sql = f"SELECT ICAO,name,longitude,latitude,elevation,cluster,orography FROM station_table WHERE location={location}"
         from sql_factories import dict_row, default
         self.con.row_factory = dict_row

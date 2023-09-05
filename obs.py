@@ -6,24 +6,39 @@ import global_variables as gv
 
 
 class obs_class:
-    def __init__(self, typ="raw", config={"output_path":"", "max_retries":100, "commit":True, "timeout":5, "log_level":"DEBUG", "traceback":True, "verbose":False, "settings":{} }, source="test"):
+    def __init__(self, typ: str="raw", config: dict, source: str="test", mode: str="dev") -> object:
+        """
+        """
+        #TODO can we remove typ and replace its position by mode?
+        # when would we ever want to insert obs into databases which are not RAW?
         
-        #TODO add mode = {"dev","oper","test"}
-        #TODO can we remove typ and replace it by mode? when would we ever want to insert obs into databases which are not RAW?
+        assert( typ in {"raw","forge","dev","oper"} and mode in {"dev","oper","test"} )
 
-        assert( type(config) == dict and "output_path" in config and config["output_path"] )
+        self.source = source
+        self.typ    = typ
+        self.mode   = mode
+       
+        try:    self.output_path    = str(config["output_path"])
+        except: self.output_path    = "/home/juri/data/stations"
+
+        try:    self.max_retries    = int(config["max_retries"])
+        except: self.max_retries    = 100
         
-        self.source         = source
-        self.typ            = typ
-        self.output_path    = config["output_path"]
-        self.max_retries    = config["max_retries"]
-        self.commit         = config["commit"]
-        self.timeout        = config["timeout"]
-        self.log_level      = config["log_level"]
-        self.traceback      = config["traceback"]
-        self.verbose        = config["verbose"]
-        self.settings       = config["settings"]
-
+        try:    self.commit         = bool(config["commit"])
+        except: self.commit         = True
+        
+        try:    self.timeout        = float(config["timeout"])
+        except: self.timeout        = 5
+        
+        try:    self.traceback      = bool(config["traceback"])
+        except: self.traceback      = False
+        
+        try:    self.verbose        = bool(config["verbose"])
+        except: self.verbose        = False
+        
+        try:    self.settings       = dict(config["settings"])
+        except: self.settings       = {}
+        
         if "log_level" in config and config["log_level"] in gv.log_levels:
             self.log_level = config["log_level"]
         else: self.log_level = "NOTSET"
@@ -78,8 +93,11 @@ class obs_class:
                         print(loc)
                         loc = list(obs_db[loc])
                         for i in range(len(loc)):
-                            if loc[i][5]:   cor = "CC" + chr(64+loc[i][5])
-                            else:           cor = ""
+                            
+                            try:
+                                if loc[i][5]:   cor = "CC" + chr(64+loc[i][5])
+                                else:           cor = ""
+                            except:             cor = ""
                             print(f"{loc[i][1]} {loc[i][2]:<6} {loc[i][3]:<20} {loc[i][4]:<21} {cor}")
                         print()
                     break
