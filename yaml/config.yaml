@@ -1,5 +1,5 @@
 general:
-  mode:         dev # oper, test
+  mode:         dev # oper, test, ???
   output_path:  /home/juri/data/stations
   verbose:      0
   debug:        0
@@ -59,9 +59,7 @@ obs:
   verbose:
   log_level:        WARNING
   traceback:
-  dev_mode:         1
-  output_oper:      /home/juri/data/stations_oper #TODO not used so far, future operational usage
-    #output_dev:       /home/juri/data/stations
+  mode:             dev
   output_path:      /home/juri/data/stations
   max_retries:      1200
   timeout:          3
@@ -100,13 +98,8 @@ scripts:
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     stations:         wmo
     clusters:         germany
-    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
-      #output_oper:      /data/stations_oper # em24 dev
-      #output_dev:       /data/stations_dev  # em24 dev
-    output_oper:      #TODO not used so far, for future operational usage
+    mode:             dev
     output_path:      /home/juri/data/stations
-    #output_dev:       /historical/db_amalthea/data/stations # m23
-    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation_pd.yaml  # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags.yaml           # code flag table conversions
 
@@ -124,14 +117,8 @@ scripts:
     max_files:        5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
-      #output_oper:      /data/stations_oper # em24 dev
-      #output_dev:       /data/stations_dev  # em24 dev
-    output_path:      /home/juri/data/stations
-    output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations_mv
-    #output_dev:       /historical/db_amalthea/data/stations # m23
-    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
+    mode:             dev
+    output_path:      /home/juri/data/stations_mv
     bufr_translation: bufr_translation_mv.yaml # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags_mv.yaml #TODO not used at the moment, for cloud levels it could be useful though
 
@@ -149,14 +136,8 @@ scripts:
     max_files:        3 #5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
-      #output_oper:      /data/stations_oper # em24 dev
-      #output_dev:       /data/stations_dev  # em24 dev
+    mode:             dev
     output_path:      /home/juri/data/stations_se
-    output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations_se
-    #output_dev:       /historical/db_amalthea/data/stations # m23
-    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation_se.yaml # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
     skip_function:    0
@@ -166,7 +147,7 @@ scripts:
     clusters:         germany
 
   decode_bufr_ex.py:
-    conda_env:        eccodes # uses system eccodes instead of conda-forge version
+    conda_env:        obs # eccodes # uses system eccodes instead of conda-forge version
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     profiler:         0 # use profiler  TODO
@@ -179,15 +160,14 @@ scripts:
     max_files:        3 #5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
-      #output_oper:      /data/stations_oper # em24 dev
-      #output_dev:       /data/stations_dev  # em24 dev
-    output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations_se
-    #output_dev:       /historical/db_amalthea/data/stations # m23
-    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
-    bufr_translation: bufr_translation_se.yaml # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    skip_function:    0
+    skip_computed:    0
+    skip_duplicates:  0
+    mode:             dev
+    output_path:      /home/juri/data/stations_ex
+    bufr_translation: bufr_translation_us.yaml # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags_us.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    bufr_sequences:   bufr_sequences.yaml
 
   decode_bufr_us.py:
     conda_env:        obs
@@ -203,14 +183,8 @@ scripts:
     max_files:        5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
-      #output_oper:      /data/stations_oper # em24 dev
-      #output_dev:       /data/stations_dev  # em24 dev
+    mode:             dev
     output_path:      /home/juri/data/stations_us
-    output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations
-    #output_dev:       /historical/db_amalthea/data/stations # m23
-    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation_us.yaml # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags_us.yaml #TODO not used at the moment, for cloud levels it could be useful though
     extract_subsets:  0
@@ -232,14 +206,8 @@ scripts:
     max_files:        5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    dev_mode:         1 # 0 : operational use, write station dbs to output_oper - 1: dev mode, use output_dev
-      #output_oper:      /data/stations_oper # em24 dev
-      #output_dev:       /data/stations_dev  # em24 dev
+    mode:             dev
     output_path:      /home/juri/data/stations_00
-    output_oper:      #TODO not used so far, for future operational usage
-    output_dev:       /home/juri/data/stations
-    #output_dev:       /historical/db_amalthea/data/stations # m23
-    #output_oper:      /oper/db_amalthea/data/stations # TODO example path for m23
     bufr_translation: bufr_translation.yaml # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
     extract_subsets:  0
@@ -265,8 +233,10 @@ scripts:
   get_ogimet.py:      #TODO rewrite bash script in python
   get_swiss.py:       https://opendata.swiss/de/dataset/automatische-wetterstationen-aktuelle-messwerte
   get_smhi.py:        https://opendata.smhi.se/apidocs/metobs/data.html
-  get_mira.py:        # Dahlem additional obs TODO
-  get_zamg.py:        # only historical data!
+  get_mira.py:        # Dahlem additional obs from MIRA FTP TODO
+  get_geosphere.py:
+    params:           https://dataset.api.hub.zamg.ac.at/v1/station/current/tawes-v1-10min/metadata?parameters
+    documentation:    https://dataset.api.hub.zamg.ac.at/v1/openapi-docs#/current
   get_knmi.py:        # dutch weather service API download script
   get_imgw.py:
     conda_env:        obs
@@ -461,6 +431,9 @@ sources:
       wget: "-e robots=off -nc -nd -np -r"
       prio: 3
 
+  MeteoFrance:
+    url:    https://donneespubliques.meteofrance.fr/?fond=rubrique&id_rubrique=32
+
   RMI: # Belgian meteorological service
     bufr:
       ext:  bufr
@@ -503,6 +476,7 @@ sources:
     url:  https://en.ilmatieteenlaitos.fi/open-data
     python: https://github.com/pnuu/fmiopendata
 
+  #NMI
   FROST: # norwegian weather service
     url:  https://frost.met.no/howto.html
 
@@ -513,6 +487,94 @@ sources:
     #historical data 1951-
     #https://danepubliczne.imgw.pl/data/dane_pomiarowo_obserwacyjne/dane_meteorologiczne/
   
+  CHMI: # Czech hydrometeorological service TODO request/find open data
+    url:    https://www.chmi.cz/historicka-data/pocasi/zakladni-informace?l=en
+
+  SMHU: # Slovakian meteo+hydrological service
+    url:    http://meteo.shmu.sk/customer/home/opendata/
+
+  DHMZ: # Croatian weather service TODO find/request open data
+    url:    https://meteo.hr/proizvodi_e.php?section=proizvodi_usluge&param=services
+
+  Hidmet: # Serbia
+    url1:   https://www.hidmet.gov.rs/eng/osmotreni/index.php
+    url2:   https://www.hidmet.gov.rs/eng/osmotreni/automatske.php
+
+  DM: # Albania TODO
+    url:    https://www.geo.edu.al/Departments/Department_of_Meteorology_DM/
+
+  fhmzbih: # Bosnia and Herzegovina (Bosnian part) TODO
+    url:    https://www.fhmzbih.gov.ba/latinica/index.php
+
+  rhmzrs: # Bosnia and Herzegovina (Serbian part) TODO
+    url:    https://rhmzrs.com/
+
+  MeteoRomania: # Romania
+    url:    https://inspire.meteoromania.ro/geonetwork/srv/api/records/b7e35875-272e-416e-bf85-8f3789c48198
+  
+  WeatherBG: # Bulgaria TODO request/find open data
+    url:    https://weather.bg/0index.php?koiFail=RM14mes1&lng=1
+
+  OMSZ: # Hungary TODO
+    url:    http://www.met.hu/
+
+  ILM: # Estonia
+    url:    https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php
+
+  MeteoLT: # Lithunia TODO
+    url:    http://www.meteo.lt/
+
+  MeteoLV: # Latvia TODO
+    url:    http://www.meteo.lv/
+
+  HNMS: # Greece TODO
+    url:    http://www.hnms.gr/
+
+  VEDUR: # Iceland TODO
+    url:    http://www.vedur.is/
+
+  Meteor: # Turkey TODO
+    url:    http://www.meteor.gov.tr/
+
+  IMS: # Israel TODO
+    url:    http://www.ims.gov.il/
+
+  IPMA: # Portugal
+    url:    https://www.ipma.pt/en/otempo/obs.superficie/table-top-stations-all.jsp
+
+  MeteoAD: # Andorra
+    url:    http://meteo.ad/en/climatology
+
+  AEMET: # Spain
+    url:    https://opendata.aemet.es/centrodedescargas/inicio
+
+  MeteoCat: # Catalonia TODO request/find open data
+    url1:   https://www.nowcast.de/en/portfolio-item/meteocat-meteorological-service-of-catalonia/
+    url2:   https://catalegs.ide.cat/geonetwork/srv/api/records/estacio-meteo-automatica-v1r0-20211229
+
+  MeteoGalicia: # Galicia, MeteoSIX API
+    url:    https://www.meteogalicia.gal/web/proxectos/meteosix.action?request_locale=gl
+
+  italy: # TODO
+    urls:
+      - https://www.meteoam.it/it/home
+      - http://www.meteo.it/
+      - http://www.meteo.fvg.it/
+
+  OpenWeatherMap: # free API service TODO check whether it offers WMO stations
+    url:    https://openweathermap.org/stations
+
+  ESWD:
+    url:    https://eswd.eu/
+
+  UKMO: # UK MetOffice, data costs 500-2000€ per year and bulletin
+    url:    https://data.gov.ie/dataset/latest-observations
+    wmos:   https://www.metoffice.gov.uk/binaries/content/assets/metofficegovuk/pdf/data/uk_synop_station_list.pdf
+    cdls:   https://www.metoffice.gov.uk/binaries/content/assets/metofficegovuk/pdf/data/uk_synop_station_list_-_cdl_%28climate_data_logger%29_numbered_stations.pdf
+
+  MetEireann:
+    url:    https://data.gov.ie/dataset/latest-observations
+
   NWS:  # US weather forecasting service
     url:    https://www.weather.gov/documentation/services-web-api  
   
@@ -523,7 +585,7 @@ sources:
       wget: "-N -nd -np -r -l 1"
       prio: 0
       dir:  /home/dev/obs-processing/NOAA
-    synop:
+    spynop:
       ext:  txt
       url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.synop/
       wget: "-N -nd -np -r -l 1"

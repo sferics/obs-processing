@@ -6,7 +6,7 @@ import global_variables as gv
 
 
 class obs_class:
-    def __init__(self, typ: str="raw", config: dict, source: str="test", mode: str="dev") -> object:
+    def __init__(self, typ: str="raw", config: dict={}, source: str="test", mode: str="dev") -> object:
         """
         """
         #TODO can we remove typ and replace its position by mode?

@@ -21,7 +21,7 @@ def conclude_obs(stations):
 
         sql = [f"ATTACH DATABASE '{output_path}/dev/{loc[0]}/{loc}.db' AS dev"]
         sql.append(f"CREATE TABLE dev.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs WHERE element IN{elements} AND strftime('%M', datetime) IN ('00','30')")
-        sql.append("CREATE UNIQUE INDEX unique_obs ON dev.obs(datetime,duration,element)") 
+        #sql.append("CREATE UNIQUE INDEX unique_obs ON dev.obs(datetime,duration,element)") 
         sql.append("DETACH dev")
         
         for sql in sql:
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     script_name     = gf.get_script_name(__file__)
     config          = gf.read_yaml( "config.yaml" )
     config_script   = config["scripts"][script_name]
-    output_path     = config["output_path"]
+    output_path     = config_script["output_path"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
     debug           = config_script["debug"]

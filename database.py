@@ -3,7 +3,7 @@ import global_functions as gf
 import global_variables as gv
 
 class database_class:
-
+    
     def __init__(self, db_file="main.test.db", config={ "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
         
         #TODO add logging statements where it makes sense for debugging/monitoring of database activities

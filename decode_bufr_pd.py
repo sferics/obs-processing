@@ -303,12 +303,12 @@ if __name__ == "__main__":
     parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
     parser.add_argument("-C","--config", default="config.yaml", help="set name of yaml config file")
     parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
-    parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
+    parser.add_argument("-M","--mode", default=None, help="set mode of operation (default: None)")
     parser.add_argument("-n","--max_files", type=int, help="maximum number of files to parse (per source)")
     parser.add_argument("-s","--sort_files", action='store_true', help="sort files alpha-numeric before parsing")
     parser.add_argument("-o","--timeout", help="timeout in seconds for station databases")
-    parser.add_argument("-b","--debug", action='store_true', help="enable or disable debugging")
+    parser.add_argument("-d","--debug", action='store_true', help="enable or disable debugging")
     parser.add_argument("-e","--extra", default="extra", help="source name when parsing single file (default: extra)")
     parser.add_argument("-r","--redo", action='store_true', help="decode bufr again even if already processed")
     parser.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
@@ -360,20 +360,14 @@ if __name__ == "__main__":
     if config_script["debug"]:      import pdb; debug = True
     else:                           debug = False 
 
-    if args.traceback:              config_script["traceback"] = traceback = True
-    else:                           traceback = config_script["traceback"]
+    if args.traceback:              config_script["traceback"] = True
 
-    if args.timeout:                config_script["timeout"] = timeout_station = args.timeout
-    else:                           timeout_station = config_script["timeout"]
+    if args.timeout:                config_script["timeout"] = args.timeout
     
     if args.max_retries:            config_script["max_retries"] = max_retries = args.max_retries
     else:                           max_retries = config_script["max_retries"]
 
-    #if args.dev_mode:               config_script["dev_mode"] = True
-    #if config_script["dev_mode"]:   output_path = config_script["output_dev"]
-    #else:                           output_path = config_script["output_oper"]
-
-    output_path = config_script["output_path"]
+    if args.mode:                   config_script["mode"] = args.mode
 
     if args.clusters: config_source["clusters"] = set(args.clusters.split(",")) 
 

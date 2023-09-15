@@ -42,7 +42,6 @@ def aggregate_obs(stations):
         except Exception as e:
             print(e)
             gf.print_trace(e)
-        else:   print(f"DELETE FROM obs WHERE element IN{aggreg_elements}")
 
         try: db_loc.exe( f"SELECT DISTINCT strftime('%Y', datetime) FROM obs" )
         except: continue
@@ -103,19 +102,28 @@ def aggregate_obs(stations):
                                 # first try 30 min values
                                 sql=(f"SELECT ? FROM obs WHERE element = '{p_old}' AND duration = '30min' AND "
                                      f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{mm}' AND "
-                                     f"strftime('%d', datetime) = '{dd}' AND ( strftime('%H', datetime) = '{hh}' AND "
+                                     f"strftime('%d', datetime) = '{dd}' AND ( ( strftime('%H', datetime) = '{hh}' AND "
                                      f"strftime('%M', datetime) = '30' ) OR ( strftime('%H', datetime) = '{hh+1}' AND "
-                                     f"strftime('%M', datetime) = '00' )")
+                                     f"strftime('%M', datetime) = '00' ) )")
 
                                 # add dataset to make sure the values are really unique and max of count() is 2
-                                db_loc.exe( sql.replace("?", "COUNT(value)") )
+                                try: db_loc.exe( sql.replace("?", "COUNT(value)") )
+                                except Exception as e:
+                                    print(e)
+                                    gf.print_trace(e)
+                                    continue
 
                                 # if we want an average make sure there are exactly two 10min values
                                 if FUN in {"avg","sum"} and db_loc.fetch1() != 2:
                                     # else continue after else with the 10 min values
                                     pass
                                 else:
-                                    db_loc.exe( sql.replace("?", FUN+"(value)") )
+                                    try: db_loc.exe( sql.replace("?", FUN+"(value)") )
+                                    except Exception as e:
+                                        print(e)
+                                        gf.print_trace(e)
+                                        continue
+
                                     v_new = db_loc.fetch1()
 
                                     if v_new is not None:
@@ -128,18 +136,27 @@ def aggregate_obs(stations):
                                 # try 10 min values
                                 sql=(f"SELECT ? FROM obs WHERE element = '{p_old}' AND duration = '10min' AND "
                                      f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{mm}' AND "
-                                     f"strftime('%d', datetime) = '{dd}' AND ( strftime('%H', datetime) = '{hh}' AND "
+                                     f"strftime('%d', datetime) = '{dd}' AND ( ( strftime('%H', datetime) = '{hh}' AND "
                                      f"strftime('%M', datetime) IN ('10', '20', '30', '40', '50') ) OR ( "
-                                     f"strftime('%H', datetime) = '{hh+1}' AND strftime('%M',datetime) = '00')")
+                                     f"strftime('%H', datetime) = '{hh+1}' AND strftime('%M',datetime) = '00') )")
                                 
                                 #TODO add dataset to make sure the values are really unique and max of count() is 6
-                                db_loc.exe( sql.replace("?", "COUNT(value)") )
-                               
+                                try: db_loc.exe( sql.replace("?", "COUNT(value)") )
+                                except Exception as e:
+                                    print(e)
+                                    gf.print_trace(e)
+                                    continue
+
                                 # if we want an average make sure there are exactly six 10min values
                                 if FUN in {"avg","sum"} and db_loc.fetch1() != 6:
                                     continue
                                
-                                db_loc.exe( sql.replace("?", FUN+"(value)") )
+                                try: db_loc.exe( sql.replace("?", FUN+"(value)") )
+                                except Exception as e:
+                                    print(e)
+                                    gf.print_trace(e)
+                                    continue
+
                                 v_new = db_loc.fetch1()
                                 
                                 if v_new is not None:
@@ -218,7 +235,7 @@ if __name__ == "__main__":
     script_name     = gf.get_script_name(__file__)
     config          = gf.read_yaml( "config.yaml" )
     config_script   = config["scripts"][script_name]
-    output_path     = config["output_path"]
+    output_path     = config_script["output_path"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
 

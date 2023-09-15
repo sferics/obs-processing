@@ -186,8 +186,8 @@ pressureReducedToMeanSeaLevel:
 nonCoordinateGeopotential:
   010003:                             [GP_syn,      1s, 0.01, 0,-1]
   010008:                             [GP_syn,      1s, 0.01, 0, 0]
-nonCoordinateGeopotentialHeight:
-  010009:                             [GPH_syn,     1s, 0.01, 0, 0]
+  #nonCoordinateGeopotentialHeight:
+  #  010009:                             [GPH_syn,     1s, 0.01, 0, 0]
 
 
 ### RADIATION / SUN
@@ -241,8 +241,8 @@ additionalWeatherPhenomena:
   #020063:                             [PH_spc, ~, 1, 0, 0]              # 
 
 #DWD only!
-otherWeatherPhenomena:
-  020023:                             [PH_oth, ~, 1, 0, 0]              #
+#otherWeatherPhenomena:
+#  020023:                             [PH_oth, ~, 1, 0, 0]              #
 
 #reason of obscuration
 #020025:                             [OBSC_syn, ~, 1, 0, 0]

@@ -17,7 +17,7 @@ class bufr_class:
             if self.verbose: print( i, "=", config[i] )
 
         # check for mandatory class attributes
-        mandatory = ("verbose", "traceback", "bufr_translation", "bufr_flags", "dev_mode", "output_path", "stations", "clusters") #,output_oper
+        mandatory = ("verbose", "traceback", "bufr_translation", "bufr_flags", "mode", "output_path", "stations", "clusters") #,output_oper
         for attr in mandatory: print(attr); assert( hasattr(self, attr) )
 
         if "log_level" in config and config["log_level"] in gv.log_levels: 
@@ -81,8 +81,13 @@ class bufr_class:
 
                 self.unit_keys = frozenset(self.unit_keys)
 
-            case "us":
-               
+            case "us" | "ex":
+                
+                if script == "ex":
+                    self.missing = -10000000000000000159028911097599180468360808563945281389781327557747838772170381060813469985856815104
+                    self.null_vals_ex = frozenset( self.null_vals | {self.missing} )
+                    self.bufr_sequences = gf.read_yaml(self.bufr_sequences)
+
                 self.bufr_translation_codes = {}
                 self.depth_codes, self.height_codes = set(), set()
 
