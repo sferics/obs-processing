@@ -26,7 +26,7 @@ def translate_key( bufr_translation, key, value, duration, h=None ):
     # add units + scale conversion
     value = float(value) * key_db[2] + key_db[3]
 
-    # if we already got a timePeriod from BUFR we dont need to translate it with the yaml dict
+    # if we already got a timePeriod from BUFR we dont need to translate it with the dict
     if not duration: duration = key_db[1]
     if duration is None: duration = "NULL"
 
@@ -56,7 +56,7 @@ def translate_key_units( bufr_translation, key, value, duration, h=None, unit=No
     # add units + scale conversion
     value = float(value) * key_db[2] + key_db[3]
 
-    # if we already got a timePeriod from BUFR we dont need to translate it with the yaml dict
+    # if we already got a timePeriod from BUFR we dont need to translate it with the dict
     if not duration: duration = key_db[1]
     if duration is None: duration = "NULL"
 

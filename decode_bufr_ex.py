@@ -5,6 +5,7 @@ import argparse, sys, os, psutil#, shelve
 import numpy as np
 from glob import glob 
 from copy import copy
+from itertools import cycle
 import eccodes as ec        # bufr decoder by ECMWF
 from datetime import datetime as dt, timedelta as td
 import global_functions as gf
@@ -19,7 +20,7 @@ from obs import obs_class
 #ec.codes_no_fail_on_wrong_length(True)
 
 
-def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None ):
+def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None ):
     #TODO
     """
     Parameter:
@@ -39,7 +40,8 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
     -------
     None
     """
-    start, end, subset_extract, subset_interval, subset_list = (None for _ in range(5))
+    start, end, subset_extract, subset_interval, subset_list = ( None for _ in range(5) )
+
     if args.extract_subsets:
         try:    subset_extract = int(args.extract_subsets) - 1
         except:
@@ -59,24 +61,20 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
 
     if source:
         config_source   = config_sources[source]
+        
         if "bufr" in config_source:
-             config_bufr = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
+            try:    config_general = config_source["general"]
+            except: config_general = {}
+            config_bufr = [config["bufr"], config_script, config_general, config_source["bufr"]]
         else: return
 
+        if "tables" in config_bufr:
+            os.environ['ECCODES_DEFINITION_PATH'] = config_bufr["tables"]
+
         # previous dict entries will get overwritten by next list item during merge (right before left)
-        config_bf = gf.merge_list_of_dicts( config_bufr )
-
-        bf = bufr_class(config_bf, script=script_name[-5:-3])
-
-        bufr_dir = bf.dir + "/"
-
-        if hasattr(bf, "filter"):
-            filter_keys             = set(bf.filter)
-            number_of_filter_keys   = len(filter_keys)
-
-            fun = lambda x : not pd.isnull(x);      filters     = {}
-            for i in filter_keys:                   filters[i]  = fun
-        else: filters = {}; number_of_filter_keys = float("inf")
+        config_bufr = gf.merge_list_of_dicts( config_bufr )
+        bf          = bufr_class(config_bufr, script=script_name[-5:-3])
+        bufr_dir    = bf.dir + "/"
 
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
@@ -153,7 +151,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
 
         db.close(commit=True)
 
-        file_IDs = {FILE:ID}
+        file_IDs = { FILE : ID }
 
         config_bf   = gf.merge_list_of_dicts( [config["bufr"], config_script] )
         bf          = bufr_class(config_bf, script=script_name[-5:-3])
@@ -211,53 +209,39 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
             meta, typical   = {}, {}
             valid_obs       = False
             location        = None
-            skip_next       = 10
             subset, new_obs = 0, 0
             skip_obs        = False
             last_key        = None
 
-            if debug: pdb.set_trace()
-
-            """
-            for ix,i in enumerate(expanded):
-                val = int(values[ix+offset])
-                print(i)
-                print(val, offset)
-                if val != missing:
-                    # if i is not an element or sequence number; skip
-                    if i in bf.bufr_sequences: pass
-                    if i >= 42017:
-                        continue
-                        #offset = int(values[ix+offset])
-                    #iv = ix+offset
-                    val = int(values[ix])
-                    if val != missing:
-                        if i == 1001:   block   = copy(val)
-                        elif i == 1002: station = copy(val)
-                try:    wmo = block*1000+station
-                except: continue
-                if wmo:
-                    print(wmo)
-                    if i == 7061: print("depth", values[iv])
-                    if i in {12030,12130}: print("soilT", values[iv])
-            """
+            #if debug: pdb.set_trace()
+           
+            # initial skipping of unwanted keys (default is 10)
+            if "skip0" in config_bufr:
+                skip_next = config_bufr["skip0"]
+            else: skip_next = 10
 
             while ec.codes_bufr_keys_iterator_next(iterid):
                 
-                if skip_next: skip_next -= 1; continue
+                if skip_next:
+                    skip_next -= 1
+                    continue
 
                 key = ec.codes_bufr_keys_iterator_get_name(iterid)
-                
+
                 if last_key == "typical" and last_key not in key:
-                    last_key = None; skip_next = 3; continue
+                    last_key = None
+                    skip_next = 3
+                    continue
 
                 if key == "subsetNumber":
                     if subset > 0:
                         meta = {}; location = None; valid_obs = False; skip_obs = False
-                    subset += 1; continue
+                    subset += 1
+                    continue
                 elif skip_obs: continue
 
                 clear_key = bf.clear(key)
+                
                 if clear_key not in bf.relevant_keys: continue
                 #if debug: print(key)
 
@@ -268,10 +252,10 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                     if clear_key in bf.obs_time_keys:
                         try: value = ec.codes_get( bufr, key )
                         except Exception as e:
-                            if verbose: print(FILE, key, e)
-                            if traceback: gf.print_trace(e)
-                            log_str = f"ERROR:  '{FILE}' ({e})"; log.error(log_str)
-                            if verbose: print(log_str)
+                            log_str = f"ERROR:  '{FILE}' ({key}, {e})"
+                            log.error(log_str)
+                            if verbose:     print(log_str)
+                            if traceback:   gf.print_trace(e)
                             continue
 
                         # skip 1min ww and RR which are reported 10 times; 10min resolution is sufficient for us
@@ -284,106 +268,124 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                             # get the BUFR code number which gives us all necessary unit and scale info
                             code        = ec.codes_get_long( bufr, key + "->code" )
                             obs_data    = ( code, value )
-                            
+
                             #TODO use a defaultdict instead
-                            #TODO find out which is faster (should be try/except in this case)
+                            #TODO find out which is faster (try/except, if or defaultdict)
                             """
                             if datetime not in stations[location]:
                                 stations[location][datetime] = []
                             stations[location][datetime].append( obs_data )
                             """
-                            try:    obs_bufr[ID][location][datetime].append(obs_data)
-                            except: obs_bufr[ID][location][datetime] = [obs_data]
-                            # avoid duplicate modifier keys (like timePeriod or depthBelowLandSurface) 
-                            if clear_key in bf.modifier_keys:
+                            try:    obs_bufr[ID][location][datetime].append( obs_data )
+                            except: obs_bufr[ID][location][datetime] = [ obs_data ]
+                            
+                            # avoid duplicate modifier codes (like timePeriod or depthBelowLandSurface) 
+                            if code in bf.modifier_codes:
                                 try:
-                                    if clear_key == obs_bufr[ID][location][datetime][-2][0]:
+                                    if code == obs_bufr[ID][location][datetime][-2][0]:
                                         del obs_bufr[ID][location][datetime][-2]
                                 except: pass
                             new_obs += 1
 
                 else:
                     if not subset and key in bf.typical_keys:
-                        typical[key]    = ec.codes_get( bufr, key )
-                        if typical[key] in bf.null_vals: del typical[key]
-                        last_key        = "typical"
+                        typical[key] = ec.codes_get( bufr, key )
+                        if typical[key] in bf.null_vals:
+                            del typical[key]
+                        last_key = "typical"
                         continue
                     
                     if location is None and clear_key in bf.station_keys:
-                        #meta[clear_key] = ec.codes_get(bufr, key)
-                        try: meta[clear_key] = ec.codes_get(bufr, key)
-                        except: meta[clear_key] = ec.codes_get_array(bufr, key)[0]
+                        meta[clear_key] = ec.codes_get(bufr, key)
+                        
                         #TODO some OGIMET-BUFRs seem to contain multiple station numbers in one key (arrays)
+                        #try:    meta[clear_key] = ec.codes_get(bufr, key)
+                        #except: meta[clear_key] = ec.codes_get_array(bufr, key)[0]
                         
                         if meta[clear_key] in bf.null_vals:
-                            del meta[clear_key]; continue
+                            del meta[clear_key]
+                            continue
                     
                         # check for identifier of DWD stations (in German: "nebenamtliche Stationen")
-                        if "shortStationName" in meta:
-                            location = meta["shortStationName"]
-                            station_type = "dwd"; skip_next = 4
+                        if "dwd" in config_bufr["stations"] and "shortStationName" in meta:
+                            location        = meta["shortStationName"]
+                            station_type    = "dwd"
+                            skip_next       = 4
                             
                         # check if all essential station information keys for a WMO station are present
-                        elif { "stationNumber", "blockNumber" }.issubset( set(meta) ):
-                            location = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5,"0") + "0"
-                            station_type = "wmo"
-                            if "skip1" in config_bufr: skip_next = config_bufr["skip1"]
-                            elif source in {"DWD","COD","NOAA"}: skip_next = 2
+                        elif "wmo" in config_bufr["stations"] and bf.WMO.issubset( set(meta) ):
+                            location        = meta["stationNumber"] + meta["blockNumber"] * 1000
+                            location        = str(location).rjust(5,"0") + "0"
+                            station_type    = "wmo"
+                            if "skip1" in config_bufr:
+                                skip_next = config_bufr["skip1"]
                         
+                        """
                         if location and location not in known_stations:
                             meta = {}; location = None; skip_obs = True
-                            if station_type == "dwd": skip_next = 13
-                            elif "skip2" in config_bufr: skip_next = config_bufr["skip2"]
-                            elif source in {"DWD","COD","KNMI","RMI","NOAA"}:
-                                if station_type == "wmo":   skip_next = 11
- 
+                            if station_type == "dwd":
+                                skip_next = 13
+                            elif "skip2" in config_bufr:
+                                skip_next = config_bufr["skip2"]
+                        """
+
                     elif location:
-                        
+
                         if clear_key in bf.set_time_keys: # {year, month, day, hour, minute}
                             meta[clear_key] = ec.codes_get_long(bufr, key)
-                            if meta[clear_key] in bf.null_vals: del meta[clear_key]
+                            if meta[clear_key] in bf.null_vals:
+                                del meta[clear_key]
                         
                             if clear_key == "minute":
                                 # check if all essential time keys are now present
                                 valid_obs = bf.set_time_keys.issubset(meta)
                                 if valid_obs:
-                                    datetime = bf.to_datetime(meta)
-                                    if debug: print(meta)
-                                    if "skip3" in config_bufr: skip_next = config_bufr["skip3"]
-                                    elif source in {"DWD","COD","NOAA"}: skip_next = 4
+                                    datetime = gf.to_datetime(meta)
+                                    #if debug: print(meta)
+                                    if "skip3" in config_bufr:
+                                        skip_next = config_bufr["skip3"]
                                     continue
                                 
                                 elif bf.time_keys_hour.issubset(meta):
                                     # if only minute is missing, assume that minute == 0
-                                    meta["minute"] = 0; valid_obs = True
-                                    datetime = bf.to_datetime(meta)
-                                    if debug: print("minute0:", meta)
+                                    meta["minute"]  = 0
+                                    valid_obs       = True
+                                    datetime        = gf.to_datetime(meta)
+                                    #if debug: print("minute0:", meta)
                                     continue
                                 
                                 # if we are still missing time keys: use the typical information
                                 elif typical:
                                     # use the typical values we gathered earlier keys are missing
-                                    for i,j in zip(bf.time_keys, bf.typical_keys):
-                                        try:    meta[i] = int(typical[j])
+                                    for i, j in zip( bf.time_keys, bf.typical_keys ):
+                                        try:    meta[i] = int( typical[j] )
                                         except: pass
                                     
                                     # again, if only minute is missing, assume that minute == 0
                                     if bf.time_keys_hour.issubset(meta):
-                                        meta["minute"] = 0; valid_obs = True; continue
+                                        meta["minute"]  = 0
+                                        valid_obs       = True
+                                        continue
 
                                     # no luck? possibly, there could be typicalDate or typicalTime present
-                                    if not {"year","month","day"}.issubset(set(meta)) and "typicalDate" in typical:
+                                    if not bf.YMD.issubset( set(meta) ) and "typicalDate" in typical:
                                         typical_date    = typical["typicalDate"]
                                         meta["year"]    = int(typical_date[:4])
                                         meta["month"]   = int(typical_date[4:6])
                                         meta["day"]     = int(typical_date[-2:])
-                                    else: skip_obs = True; continue
+                                    else:
+                                        skip_obs = True
+                                        continue
 
                                     if ("hour" not in meta or "minute" not in meta) and "typicalTime" in typical:
-                                        typical_time    = typical["typicalTime"]
-                                        if "hour" not in meta: meta["hour"] = int(typical_time[:2])
-                                        if "minute" not in meta: meta["minute"] = int(typical_time[2:4])
-                                    else: skip_obs = True; continue
+                                        typical_time = typical["typicalTime"]
+                                        if "hour" not in meta:
+                                            meta["hour"]    = int(typical_time[:2])
+                                        if "minute" not in meta:
+                                            meta["minute"]  = int(typical_time[2:4])
+                                    else:
+                                        skip_obs = True
+                                        continue
                                 
                                 else: skip_obs = True
 
@@ -392,103 +394,155 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
             ec.codes_keys_iterator_delete(iterid)
 
             # add additional data (unexpanded descriptors plus their values)
+            codes   = tuple( ec.codes_get_array(bufr, "expandedDescriptors") )
+            unexp   = tuple( ec.codes_get_array(bufr, "unexpandedDescriptors") )
+            vals    = tuple( ec.codes_get_array(bufr, "numericValues") )
 
-            expanded    = ec.codes_get_array(bufr, "expandedDescriptors")
-            unexpanded  = ec.codes_get_array(bufr, "unexpandedDescriptors")
-            values      = ec.codes_get_array(bufr, "numericValues")
+            print(len(codes), len(unexp), len(vals))
+            
+            print("CODES:")
+            print(codes)
+            print("UNEXPANDED:")
+            print(unexp)
+            #print("VALUES:")
+            #print(vals)
 
-            print(len(expanded), len(unexpanded), len(values))
+            if debug: pdb.set_trace()
 
-            pos = 0
-           
-            while pos < len(values):
+            # position (index) of values and expanded tuples
+            pos_val = 0
+
+            # station/location and datetime information
+            block, station, location, datetime = None, None, None, None
+            
+            dt_info     = {}
+            obs_list    = []
+            vals        = list(vals)
+            codes       = []
+
+            # replace sequence codes by actual sequences
+            for i in unexp:
+                if i in bf.sequence_range:
+                    codes += bf.bufr_sequences[i]
+                else: codes.append(i)
+            
+            print("CODES EXP:")
+            print(codes)
+            codes = cycle(codes) # iterator
+
+            while pos_val < len(vals):
                 
-                offset, skip_next       = 0, 0
-                block,station,location  = None, None, None
+                code = next(codes)
                 
-                dt_info     = {}
-                obs_list    = []
+                if code in bf.scale_size_change:
+                    print("SCALE / DATASIZE CHANGE!")
+                    if code in bf.scale_change:
+                        obs_list.append( (code, None) )
+                    #pos_val += 1
+                    continue
 
-                for ix, i in enumerate(expanded):
-                    
-                    if skip_next:
-                        skip_next -= 1
+                val = vals[pos_val]
+                if debug: print(bf.int_to_code(code), val)
+
+                if location and datetime:
+                    if code == 1001:
+                        if obs_list:
+                            print("OBS LIST:")
+                            print(location, datetime, obs_list)
+                            try:    obs_bufr[ID][location][datetime] += obs_list
+                            except: obs_bufr[ID][location] = { datetime : obs_list }
+                        
+                        location = bf.get_location(vals, pos_val)
+                        if location is None: datetime = None
+                        
+                        pos_val += 2; next(codes); continue
+
+                    # delayed repetition of N elements (fixed amount)
+                    if 101000 <= code <= 199999:
+                        print("DELAYED REPLICATION OF N-ELEMENTS")
+                        if debug: print(bf.int_to_code(code), val)
+                        pdb.set_trace()
+
+                        # number of elements to repeat (1-99)
+                        num_elements = int( (code - 100000) / 1000 )
+                        # number of repetitions (1-999) -> replication factor
+                        repl_factor = int( (code - 100000) - (num_elements * 1000) )
+                       
+                        if not repl_factor:
+                            print("NO REPL")
+                            pos_val += 1; val = vals[pos_val]
+                            
+                            match next(codes):
+                                case 31000: # short delayed replication factor
+                                    if not val or val in bf.null_vals_ex:
+                                        # skip next element (not reported)
+                                        pos_val += 1; continue
+                                case 31001 | 31002: # (extended) delayed replication factor
+                                    if val and val not in bf.null_vals_ex:
+                                        repl_factor = int(val)
+                                    else: repl_factor = 0
+                                case _: sys.exit("MISSING REPLICATION FACTOR CODE!")
+                        
+                        if not repl_factor:
+                            print("STILL NO REPL!")
+                            pos_val += 1
+                            continue
+                        
+                        pos_val += 1
+                        elements = ( next(codes) for _ in range(num_elements) ) # generator object
+
+                        print("ELEMENTS TO REPEAT:")
+                        print(list(elements), num_elements)
+                        print("REPLICATION FACTOR:")
+                        print(repl_factor)
+
+                        break_loop = False
+                        for i in range(repl_factor):
+                            if break_loop: break
+                            for code_ij in elements:
+                                #pos_val += 1
+                                try: val = vals[pos_val]
+                                except IndexError:
+                                    if code_ij in bf.relevant_codes and val not in bf.null_vals_ex:
+                                        print("ADDING LAST ELEMENT...")
+                                        print( bf.int_to_code(code_ij), val )
+                                        obs_list.append( (code_ij, val) )
+                                    break_loop = True; break
+                                else:
+                                    print( bf.int_to_code(code_ij), val )
+                                    if code_ij in bf.relevant_codes and val not in bf.null_vals_ex:
+                                        obs_list.append( (code_ij, val) )
+                                    pos_val += 1
+                        
+                        if break_loop: break
                         continue
 
-                    try:    val = values[pos+ix+offset]
-                    except: continue
+                    elif code in bf.relevant_codes and val not in bf.null_vals_ex:
+                        obs_list.append( (code, val) )
+                    pos_val += 1; continue
 
-                    # blockNumber
-                    if i == 1001 and val not in bf.null_vals_ex:
-                        block   = copy(val)
-                    # stationNumber
-                    elif i == 1002 and val not in bf.null_vals_ex:
-                        station = copy(val)
-                        try:    location = str(block*1000 + station) + "0"
-                        except: 
-                            block,station,location = None,None,None
-                            continue
-                    # shortStationName
-                    #elif i == 1018:
-                    #    location = int(val)
-                    else:
-                        block, station, location = None, None, None
+                # get blockNumber & stationNumber
+                elif code == 1001 and location is None:
+                    location = bf.get_location(vals, pos_val) 
+                    pos_val += 2; next(codes); continue
 
-                    if location in bf.null_vals_ex:
-                        location = None
-                    
-                    # get datetime info
-                    if 4001 <= i <= 4005 and val not in bf.null_vals_ex:
-                        dt_info[i-4000] = int(values[pos+ix+offset])
-                    
-                    if len(dt_info) == 4:
-                        try:    datetime = dt(dt_info[1], dt_info[2], dt_info[3], dt_info[4], 0)
-                        except: datetime = None
-                    elif len(dt_info) == 5:
-                        try:    datetime = dt(dt_info[1], dt_info[2], dt_info[3], dt_info[4], dt_info[5])
-                        except: datetime = None
+                # get datetime info
+                if location and 4001 <= code <= 4005 and val not in bf.null_vals_ex:
+                    dt_info[bf.datetime_codes[code]] = int(val)
 
-                    if i >= 100000:
-                        print("DELAYED REPLICATION")
-                        offset -= 1
-                        if np.round(i, -5) == 100000:
-                            try:
-                                if not values[pos+ix+offset+1] or values[pos+ix+offset+1] in bf.null_vals:
-                                    skip_next = 1 + int( (i - 100000) / 1000 )
-                                    print("SKIP")
-                                    offset -= skip_next - 1
-                                else:
-                                    print("ELSE")
-                            except: break
-                            else:   continue
-                    elif i >= 200000:
-                        print("SCALE")
-                        pass
-                    
-                    print(i, values[pos+ix+offset])
-                    if i not in bf.tp_codes:
-                        obs_list.append( (i, values[pos+ix+offset]) )
+                    if bf.set_time_keys.issubset(set(dt_info)):
+                        datetime = gf.to_datetime(dt_info)
+                    elif bf.set_time_keys_hour.issubset(set(dt_info)):
+                        datetime = dt(dt_info["year"],dt_info["month"],dt_info["day"],dt_info["hour"], 0)
                 
-                if location is not None and datetime is not None and obs_list:
-                    print(location, datetime, obs_list)
-                    try:    obs_bufr[ID][location][datetime] += obs_list
-                    except: obs_bufr[ID][location][datetime] = obs_list
+                pos_val += 1
+            # end of while loop
 
-                pos += ix + offset + 1
-                print("pos", pos, len(values))
-            
-            """
-            for ix, i in enumerate(unexpanded):
-                if i >= 42017 and i not in bf.bufr_sequences:
-                    offset -= 1
-                    continue
-                extra_values[i] = values[ix+offset]
-
-                if i in bf.bufr_sequences:
-                    for j in bf.bufr_sequences[i]:
-                        offset += 1
-                        extra_values[j] = values[ix+offset]
-            """
+            if obs_list:
+                print("OBS LIST:")
+                print(location, datetime, obs_list)
+                try:    obs_bufr[ID][location][datetime] += obs_list
+                except: obs_bufr[ID][location] = { datetime : obs_list }
 
         # end of with clause (closes file handle)
         ec.codes_release(bufr)
@@ -510,8 +564,8 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
             db.close()
 
             print("Too much RAM used, RESTARTING...")
-            obs_db = bf.convert_keys_us( obs_bufr, source )
-            if obs_db: obs.to_station_databases( obs_db )
+            obs_db = bf.convert_keys_ex( obs_bufr, source )
+            if obs_db: obs.to_station_databases( obs_db, scale=True )
             
             if pid_file: os.remove( pid_file )
             exe = sys.executable # restart program with same arguments
@@ -523,20 +577,21 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
 
     if verbose: print( obs_bufr )
 
-    obs_db = bf.convert_keys_us( obs_bufr, source )
+    obs_db = bf.convert_keys_ex( obs_bufr, source )
     #for ID in obs: obs_bufr[ID].close()
 
-    if obs_db: obs.to_station_databases( obs_db )
-     
-    # restore previous state of ECCODES_DEFINITION_PATH environment variable
-    if "tables" in config_bufr: old_path = os.environ['ECCODES_DEFINITION_PATH']
+    if obs_db: obs.to_station_databases( obs_db, scale=True )
     
     # remove file containing the pid, so the script can be started again
     if pid_file: os.remove( pid_file )
 
 
 if __name__ == "__main__":
-    
+  
+    os.environ['ECCODES_DEFINITION_PATH'] = "/home/juri/obs-processing/bufr_tables/dwd:/home/juri/miniconda3/envs/obs/share/eccodes/definitions" 
+    print(os.environ['ECCODES_DEFINITION_PATH'])
+    #sys.exit()
+
     msg    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
     msg   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
     parser = argparse.ArgumentParser(description=msg)
@@ -550,7 +605,7 @@ if __name__ == "__main__":
     parser.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)")
     #TODO replace profiler by number of processes (prcs) when real multiprocessing (using module) is implemented
     parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
-    parser.add_argument("-C","--config", default="config.yaml", help="set name of yaml config file")
+    parser.add_argument("-C","--config", default="config", help="set name of config file")
     parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
@@ -569,7 +624,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    #read yaml configuration file config.yaml into dictionary
+    #read configuration file into dictionary
     config          = gf.read_yaml( args.config )
     script_name     = gf.get_script_name(__file__)
     config_script   = config["scripts"][script_name]
@@ -621,11 +676,15 @@ if __name__ == "__main__":
     if args.max_retries:            config_script["max_retries"] = max_retries = args.max_retries
     else:                           max_retries = config_script["max_retries"]
 
-    #if args.dev_mode:               config_script["dev_mode"] = True
-    #if config_script["dev_mode"]:   output_path = config_script["output_dev"]
-    #else:                           output_path = config_script["output_oper"]
+    if args.dev_mode:
+        config_script["mode"] = "dev"
+    
+    mode = config_script["mode"]
+    
+    output_path = config["general"]["output_path"]
 
-    output_path = config_script["output_path"]
+    if "output_path" in config_script:
+        output_path = config_script["output_path"]
 
     if args.clusters: config_source["clusters"] = set(args.clusters.split(","))
 
@@ -649,16 +708,17 @@ if __name__ == "__main__":
 
         else: config_sources = { args.source : config["sources"][args.source] }
 
-    elif args.file: decode_bufr_us( file=args.file, pid_file=pid_file )
+    elif args.file: decode_bufr_ex( file=args.file, pid_file=pid_file )
     else:           config_sources = config["sources"]
 
     if not args.file:
         for SOURCE in config_sources:
             if verbose: print(f"Parsing source {SOURCE}...")
-            decode_bufr_us( source = SOURCE, pid_file=pid_file )
+            decode_bufr_ex( source = SOURCE, pid_file=pid_file )
 
     stop_time = dt.utcnow()
     finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)
+    
     if verbose:
         print(finished_str)
         time_taken = stop_time - start_time

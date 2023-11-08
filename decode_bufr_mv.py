@@ -193,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument("-f","--file", help="parse single file bufr file, will be handled as source=extra by default")
     parser.add_argument("-v","--verbose", action='store_true', help="show detailed output")
     parser.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)") #TODO -> prcs
-    parser.add_argument("-c","--config", default="config.yaml", help="set name of yaml config file")
+    parser.add_argument("-c","--config", default="config", help="set name of config file")
     parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
@@ -207,7 +207,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    #read yaml configuration file config.yaml into dictionary
+    #read configuration file into dictionary
     config          = gf.read_yaml( args.config )
     config_script   = config["scripts"][sys.argv[0]]
     conda_env = os.environ['CONDA_DEFAULT_ENV']
@@ -285,7 +285,7 @@ if __name__ == "__main__":
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
 
-    # parse the BUFR translation and bufr flags yaml files into dictionaries
+    # parse the BUFR translation and bufr flags files into dictionaries
     bufr_translation    = gf.read_yaml( config_script["bufr_translation"] )
     time_periods        = bufr_translation["timePeriod"]
     bufr_flags          = gf.read_yaml( config_script["bufr_flags"] )

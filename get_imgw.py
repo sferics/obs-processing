@@ -5,20 +5,25 @@ from obs import obs_class
 from datetime import datetime as dt
 import logging as log
 
+
 def convert_imgw_keys(key, data):
+    """
+    """
     element     = elements[key][0]
     duration    = elements[key][1]
     value       = elements[key][2] * float(data[key])
-    return element, value, duration
+    scale       = (10**elements[key][3]) / elements[key][2]
+    
+    return element, value, duration, scale
+
 
 if __name__ == "__main__":
-    config          = gf.read_yaml("config.yaml")
+    config          = gf.read_yaml("config")
     config_script   = config["scripts"][sys.argv[0]]
     conda_env       = os.environ['CONDA_DEFAULT_ENV']
     if config_script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
 
-    obs             = obs_class("raw", config["obs"], "imgw")
     config_source   = config["sources"]["IMGW"]
 
     msg    = "Get latest obs from polish weather service and insert observatio data into database."
@@ -28,7 +33,7 @@ if __name__ == "__main__":
     log_levels = { "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG" }
     parser.add_argument("-l","--log_level", choices=log_levels, default="NOTSET", help="set log level") 
     parser.add_argument("-v","--verbose", action='store_true', help="show detailed output")
-    parser.add_argument("-c","--config", default="config.yaml", help="set name of yaml config file")
+    parser.add_argument("-c","--config", default="config", help="set name of config file")
     parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with IMGW server")
     parser.add_argument("-o","--timeout", help="waiting timeout (in seconds) for HTTPS connection")
@@ -41,15 +46,17 @@ if __name__ == "__main__":
 
     if args.verbose:        verbose = True
     else:                   verbose = config_script["verbose"]
-    if verbose: print(started_str)
-    
+    if verbose:
+        print(started_str)
+        config["obs"]["verbose"] = True
+
     if args.timeout:        timeout     = args.timeout
     else:                   timeout     = config_script["timeout"]
     if args.max_retries:    max_retries = args.max_retries
     else:                   max_retries = config_script["max_retries"]
 
     success = False
-    for i in range(1,max_retries+1):
+    for i in range(1, max_retries+1):
         r = requests.get(config_source["url"])
         if r.status_code != 200:
             log.warning(f"Unable to reach IMGW data server, attempt #{i}...")
@@ -61,6 +68,8 @@ if __name__ == "__main__":
         log.error(error_message)
         sys.exit(error_message)
 
+    obs         = obs_class("raw", config["obs"], "imgw")
+
     timeout_db  = config["database"]["timeout"]
     db_file     = config["database"]["db_file"]
 
@@ -69,7 +78,7 @@ if __name__ == "__main__":
     #if config_script["dev_mode"]:       output_path = config_general["output_dev"]
     #else:                               output_path = config_general["output_oper"]
 
-    translation = gf.read_yaml("imgw_translation.yaml")
+    translation = gf.read_yaml("imgw_translation")
     elements    = translation["elements"]
 
     meta, obs_db = {}, {}
@@ -87,10 +96,10 @@ if __name__ == "__main__":
         for key in elements:
             # if observation value is None: skip it
             if data[key] is None: continue
-            element, value, duration = convert_imgw_keys(key, data)
-            obs_db[location].add( (0, datetime, duration, element, value, 0) )
+            element, value, duration, scale = convert_imgw_keys(key, data)
+            obs_db[location].add( (0, datetime, duration, element, value, 0, scale) )
 
-    obs.to_station_databases(obs_db)
+    obs.to_station_databases(obs_db, "imgw", scale=True)
 
     finished_str = f"FINISHED {sys.argv[0]} @ {dt.utcnow()}"; log.info(finished_str)
     if verbose: print(finished_str)

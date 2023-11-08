@@ -132,17 +132,22 @@ if __name__ == "__main__":
    #TODO implement source option! for now, just stick with test
     src = "test"
 
-    config          = gf.read_yaml( "config.yaml" )
+    config          = gf.read_yaml( "config" )
     db_settings     = config["database"]["settings"]
     script_name     = gf.get_script_name(__file__)
     config_script   = config["scripts"][script_name]
     output_path     = config_script["output_path"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
+    mode            = config["general"]["mode"]
+
+    if "mode" in config_script:
+        mode = config_script["mode"]
 
     db              = database_class( config=config["database"], ro=True )
     clusters        = set(config_script["clusters"].split(","))
     stations        = db.get_stations( clusters ); db.close(commit=False)
+    stations        = ("101310","104540","103150","103850")
 
     replacements = config_script["replacements"]
     combinations = config_script["combinations"]

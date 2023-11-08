@@ -77,10 +77,10 @@ scripts:
     max_files:        0 # 0 or None (~) means no limit
     max_retries:      100
     multiprocessing:  15
-    station_info:     bufr_station_info.yaml
-    null_vals:        !!python/tuple  ["null", "NULL", MISSING, XXXX, " ", "", ~]
-    mandatory_keys:   !!python/tuple  [stationOrSiteName, latitude, longitude]
-    additional_keys:  !!python/tuple  [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
+    station_info:     bufr_station_info
+    null_vals:        ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    mandatory_keys:   [stationOrSiteName, latitude, longitude]
+    additional_keys:  [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
 
   decode_bufr_pd.py:
     conda_env:        obs
@@ -100,8 +100,8 @@ scripts:
     clusters:         germany
     mode:             dev
     output_path:      /home/juri/data/stations
-    bufr_translation: bufr_translation_pd.yaml  # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags.yaml           # code flag table conversions
+    bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags           # code flag table conversions
 
   decode_bufr_mv.py:
     conda_env:        metview
@@ -119,8 +119,8 @@ scripts:
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     mode:             dev
     output_path:      /home/juri/data/stations_mv
-    bufr_translation: bufr_translation_mv.yaml # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags_mv.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    bufr_translation: bufr_translation_mv # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags_mv #TODO not used at the moment, for cloud levels it could be useful though
 
   decode_bufr_se.py:
     conda_env:        eccodes # uses system eccodes instead of conda-forge version
@@ -138,8 +138,8 @@ scripts:
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     mode:             dev
     output_path:      /home/juri/data/stations_se
-    bufr_translation: bufr_translation_se.yaml # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    bufr_translation: bufr_translation_se # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags #TODO not used at the moment, for cloud levels it could be useful though
     skip_function:    0
     skip_computed:    0
     skip_duplicates:  0
@@ -165,9 +165,9 @@ scripts:
     skip_duplicates:  0
     mode:             dev
     output_path:      /home/juri/data/stations_ex
-    bufr_translation: bufr_translation_us.yaml # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags_us.yaml #TODO not used at the moment, for cloud levels it could be useful though
-    bufr_sequences:   bufr_sequences.yaml
+    bufr_translation: bufr_translation_us # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
+    bufr_sequences:   bufr_sequences
 
   decode_bufr_us.py:
     conda_env:        obs
@@ -185,8 +185,8 @@ scripts:
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     mode:             dev
     output_path:      /home/juri/data/stations_us
-    bufr_translation: bufr_translation_us.yaml # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags_us.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    bufr_translation: bufr_translation_us # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
     extract_subsets:  0
     skip_function:    0
     skip_computed:    0
@@ -208,8 +208,8 @@ scripts:
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     mode:             dev
     output_path:      /home/juri/data/stations_00
-    bufr_translation: bufr_translation.yaml # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags.yaml #TODO not used at the moment, for cloud levels it could be useful though
+    bufr_translation: bufr_translation # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags #TODO not used at the moment, for cloud levels it could be useful though
     extract_subsets:  0
     skip_function:    0
     skip_computed:    0
@@ -245,6 +245,7 @@ scripts:
     verbose:          1
     max_retries:      10
     timeout:          3
+    output_path:      /home/juri/data/stations_imgw
     
   forge_obs.py:
     conda_env:        obs
@@ -367,13 +368,14 @@ sources:
       #dir:   /historical/home/mswr/incoming/opendata.dwd.de/weather/weather_reports/synoptic/germany # m23
       #dir:   /home/dev/obs-processing/DWD # em24 dev
       dir:    /home/juri/data/historical/dwd/bufr # em24 juri
-      tables: /home/juri/amalthea/main/dwd_tables
+      #tables: /home/juri/amalthea/main/dwd_tables
+      tables: /home/juri/miniconda3/envs/obs/share/eccodes/definitions/bufr/tables
       skip1:  2 
       skip2:  11
       skip3:  4
       #filter: [WMO_station_id, data_datetime, airTemperature, heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform]
-    general:
-      stations: wmo
+    #general:
+      stations: [wmo, dwd]
       clusters: germany
  
   dwd_germany:

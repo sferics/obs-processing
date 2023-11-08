@@ -322,7 +322,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                                 # check if all essential time keys are now present
                                 valid_obs = bf.set_time_keys.issubset(meta)
                                 if valid_obs:
-                                    datetime = bf.to_datetime(meta)
+                                    datetime = gf.to_datetime(meta)
                                     if debug: print(meta)
                                     if "skip3" in config_bufr: skip_next = config_bufr["skip3"]
                                     elif source in {"DWD","COD","NOAA"}: skip_next = 4
@@ -331,7 +331,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                                 elif bf.time_keys_hour.issubset(meta):
                                     # if only minute is missing, assume that minute == 0
                                     meta["minute"] = 0; valid_obs = True
-                                    datetime = bf.to_datetime(meta)
+                                    datetime = gf.to_datetime(meta)
                                     if debug: print("minute0:", meta)
                                     continue
                                 
@@ -426,7 +426,7 @@ if __name__ == "__main__":
     parser.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)")
     #TODO replace profiler by number of processes (prcs) when real multiprocessing (using module) is implemented
     parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
-    parser.add_argument("-C","--config", default="config.yaml", help="set name of yaml config file")
+    parser.add_argument("-C","--config", default="config", help="set name of config file")
     parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
@@ -445,7 +445,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    #read yaml configuration file config.yaml into dictionary
+    #read configuration file into dictionary
     config          = gf.read_yaml( args.config )
     script_name     = gf.get_script_name(__file__)
     config_script   = config["scripts"][script_name]

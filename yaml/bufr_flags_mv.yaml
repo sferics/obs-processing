@@ -402,7 +402,7 @@
   24: 4 # Fourth instrument detected cloud layer
   62: 0 # Value not applicable
   63: 0 # Missing value
-
+  100: 0
 
 020012: # cloudType https://confluence.ecmwf.int/display/ECC/WMO%3D14+element+table#WMO=14elementtable-CL_20
   0:  Ci  # CIRRUS (CI)...............CI

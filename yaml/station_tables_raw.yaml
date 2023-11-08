@@ -12,9 +12,8 @@ obs:
   duration: text
   element:  text NOT NULL
   value:    text NOT NULL
-    #TODO scale attribute could be used in future to determine precision of obs values (e.g. for BUFR obs: scale * conversion)
-    #scale:    real DEFAULT NULL #TODO accuracy information from BUFR or known significant numbers from other sources; NULL has worst accuracy (unknown)
   cor:      integer DEFAULT 0 #TODO number of corrections (COR/CCA)
+  scale:    real DEFAULT NULL 
   reduced:  integer DEFAULT 0 #TODO will be set to 1 after handled by "reduce_obs.py"
   #UNIQUE:   (datetime, dataset, file, duration, element, value, scale, cor, reduced)
   UNIQUE:   (dataset, datetime, duration, element) #file, cor

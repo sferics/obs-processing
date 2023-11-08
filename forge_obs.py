@@ -17,7 +17,7 @@ import subprocess
 #   clear all forge databases (they are just temporary and will be rebuilt in every chain cycle)
 
 # delete_duplicate needs to be removed as soon as the bug which cause duplicates is fixed!!!
-scripts = ("reduce", "audit", "derive", "aggregate", "delete_duplicate", "conclude" ) # write
+scripts = ("reduce", "audit", "derive", "aggregate", "delete_duplicate", "conclude" ) # export
 
 #TODO
 args = ()
@@ -26,4 +26,4 @@ args = ()
 
 for script in scripts:
     try:    os.execv( "python", script+"_obs.py", *args )
-    except: continue
+    except: sys.exit( f"Failed to run {script}_obs.py; stopping chain..." )

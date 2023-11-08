@@ -5,9 +5,9 @@ import pandas as pd
 import numpy as np
 from datetime import datetime as dt, timedelta as td, timezone as tz
 from database import db; db = db()
-from functions import read_yaml, ts2dt
+from functions import read, ts2dt
 
-config = read_yaml( "config.yaml" )
+config = read( "config" )
 
 fmt  = "%Y-%m-%d@%H:%M"
 fmt2 = "%Y%m%d%H%M"

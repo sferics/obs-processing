@@ -301,7 +301,7 @@ def decode_bufr_se( source=None, file=None, known_stations=None, pid_file=None )
                                 # check if all essential time keys are now present
                                 valid_obs = bf.time_keys_set.issubset(meta)
                                 if valid_obs:
-                                    datetime = bf.to_datetime(meta)
+                                    datetime = gf.to_datetime(meta)
                                     if debug: print(meta)
                                     if source in {"test","DWD","COD","NOAA"}: skip_next = 4
 
@@ -399,7 +399,7 @@ if __name__ == "__main__":
     parser.add_argument("-v","--verbose", action='store_true', help="show detailed output")
     parser.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)") #TODO -> prcs
     parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
-    parser.add_argument("-C","--config", default="config.yaml", help="set name of yaml config file")
+    parser.add_argument("-C","--config", default="config", help="set name of config file")
     parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
@@ -416,7 +416,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    #read yaml configuration file config.yaml into dictionary
+    #read configuration file config into dictionary
     config          = gf.read_yaml( args.config )
     script_name     = gf.get_script_name(__file__)
     config_script   = config["scripts"][script_name]

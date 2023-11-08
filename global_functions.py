@@ -10,6 +10,10 @@ from copy import copy
 import sqlite3
 
 
+### lambda functions
+to_datetime         = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"], DT["minute"])
+to_datetime_hour    = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"])
+
 #TODO maybe we need a log_class???
 def get_logger(script_name, log_level="NOTSET", log_path="log", mode="w", formatter=""):
     """
@@ -135,7 +139,7 @@ def create_station_tables( location, output_path, typ, max_retries=100, commit=T
         if verbose: print("Creating table and adding columns...")
 
         # read structure file station_tables.yaml into a dict
-        tables = read_yaml( f"station_tables_{typ}.yaml" )
+        tables = read_yaml( f"station_tables_{typ}" )
 
         for table in tables:
             retries = copy(max_retries)
@@ -231,7 +235,7 @@ def read_file(file_name):
     return Path( file_name ).read_text()
 
 
-def read_yaml(file_name="config.yaml", directory="yaml", typ="safe", pure=True, duplicate_keys=False, values={}, autoformat=False):
+def read_yaml(file_name="config", directory="yaml", ext="yaml", typ="safe", pure=True, duplicate_keys=False, values={}, autoformat=False):
     """
     Parameter:
     ----------
@@ -292,7 +296,7 @@ def read_yaml(file_name="config.yaml", directory="yaml", typ="safe", pure=True, 
 
     # the following code was borrowed from here: https://stackoverflow.com/a/65516240
     def flatten_sequence(sequence: yaml.Node):
-        """Flatten a nested sequence to a list of strings
+        """Flatten a nested sequence to a list of integers
             A nested structure is always a SequenceNode
         """
         if isinstance(sequence, yaml.ScalarNode):
@@ -304,7 +308,7 @@ def read_yaml(file_name="config.yaml", directory="yaml", typ="safe", pure=True, 
             if isinstance(el, yaml.SequenceNode):
                 yield from flatten_sequence(el)
             elif isinstance(el, yaml.ScalarNode):
-                yield el.value
+                yield int(el.value) # TODO make this type-independent (str, float)
             else:
                 raise TypeError(f"'!flatten' can only take scalar nodes, not {el}")
 
@@ -333,8 +337,8 @@ def read_yaml(file_name="config.yaml", directory="yaml", typ="safe", pure=True, 
 
 
     # this is the important part; load the file read-only with the chosen method and return it as dict
-    with open(directory + "/" + file_name, "rt") as f:
-        
+    with open( directory + "/" + file_name + "." + ext, "rt" ) as f:
+         
         if typ == "rt":
             res = loader.load(f)
             yml = yaml.YAML()

@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 #exporter for MSwr old MOS system
-from constants import null_vals
+from global_variables import null_vals
 
 #TODO write converter from database to MSwr/metwatch format
 
-def write( data, output, mode="csv" ):
+def read_obs( path ):
+    # read obs from csv files and store into dictionary
+    pass
+
+
+def export_obs( data, output, fmt="csv" ):
 
     import numpy as np
     from datetime import datetime as dt, timedelta as td
@@ -89,9 +94,9 @@ def write( data, output, mode="csv" ):
 
     times = []
 
-    #if mode == "csv":
-    #elif mode == "rpl":
-    #else: print( "Unknown mode!" ); return
+    #if fmt == "csv":
+    #elif fmt == "rpl":
+    #else: print( "Unknown format!" ); return
 
     ext = ".csv.gz"
 
@@ -440,7 +445,7 @@ def write( data, output, mode="csv" ):
 
                     print(";".join(line) + "\n")
 
-                    o.write( ";".join(line) + "\n" )
+                    o.export_obs( ";".join(line) + "\n" )
 
                 o.close()
 
@@ -468,4 +473,4 @@ if __name__ == "__main__":
 
     with open("output.json") as f:
         INPUT = json.load( f )
-        write( INPUT, "output/" )
+        export_obs( INPUT, "output/" )

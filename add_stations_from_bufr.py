@@ -204,8 +204,8 @@ if __name__ == "__main__":
     #if gf.already_running( pid_file ):
     #    sys.exit( f"{sys.argv[0]} is already running... exiting!" )
     
-    #read yaml configuration file config.yaml into dictionary
-    config = gf.read_yaml( "config.yaml" )
+    #read configuration file config into dictionary
+    config = gf.read_yaml( "config" )
     config_script   = config["scripts"][sys.argv[0]]
     #if config_script["profile"]: import cProfiler #TODO use module
     #if config_script["logging"]: import logging   #TODO use module

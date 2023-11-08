@@ -233,11 +233,15 @@ if __name__ == "__main__":
     src = "test"
 
     script_name     = gf.get_script_name(__file__)
-    config          = gf.read_yaml( "config.yaml" )
+    config          = gf.read_yaml( "config" )
     config_script   = config["scripts"][script_name]
     output_path     = config_script["output_path"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
+    mode            = config["general"]["mode"]
+
+    if "mode" in config_script:
+        mode = config_script["mode"]
 
     db              = database_class( config=config["database"] )
 
@@ -264,4 +268,4 @@ if __name__ == "__main__":
             p = mp.Process(target=aggregate_obs, args=(station_group,))
             p.start()
 
-    else: aggregate_obss(stations)
+    else: aggregate_obs(stations)

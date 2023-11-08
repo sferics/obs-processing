@@ -54,13 +54,17 @@ if __name__ == "__main__":
    #TODO implement source option! for now, just stick with test
     src = "test"
 
-    config          = gf.read_yaml( "config.yaml" )
+    config          = gf.read_yaml( "config" )
     db_settings     = config["database"]["settings"]
     script_name     = gf.get_script_name(__file__)
     config_script   = config["scripts"][script_name]
     output_path     = config_script["output_path"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
+    mode            = config["general"]["mode"]
+
+    if "mode" in config_script:
+        mode = config_script["mode"]
 
     db              = database_class( config=config["database"] )
 

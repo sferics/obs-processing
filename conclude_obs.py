@@ -38,17 +38,21 @@ def conclude_obs(stations):
 if __name__ == "__main__":
 
     script_name     = gf.get_script_name(__file__)
-    config          = gf.read_yaml( "config.yaml" )
+    config          = gf.read_yaml( "config" )
     config_script   = config["scripts"][script_name]
     output_path     = config_script["output_path"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
     debug           = config_script["debug"]
-    #if debug: import pdb
+    mode            = config["general"]["mode"]
+
+    if "mode" in config_script:
+        mode = config_script["mode"]
 
     cluster         = set( config_script["clusters"].split(",") )
     db              = database_class( config=config["database"], ro=1 )
     stations        = db.get_stations( cluster )
+
     elements        = tuple(f'{element}' for element in db.get_elements())
     db.close(commit=False)
 

@@ -1801,6 +1801,7 @@ class database_class:
             if commit: self.commit()
             return True
 
+
     def get_elements( self ):
         sql = "SELECT DISTINCT element FROM element_table WHERE role='obs'"
         self.exe(sql)

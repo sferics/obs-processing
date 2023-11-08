@@ -6,13 +6,13 @@ import global_variables as gv
 
 
 class obs_class:
-    def __init__(self, typ: str="raw", config: dict={}, source: str="test", mode: str="dev") -> object:
+    def __init__(self, typ: str="raw", config: dict={}, source: str="test", mode: str="dev"):
         """
         """
         #TODO can we remove typ and replace its position by mode?
         # when would we ever want to insert obs into databases which are not RAW?
         
-        assert( typ in {"raw","forge","dev","oper"} and mode in {"dev","oper","test"} )
+        assert( typ in {"raw","forge","final"} and mode in {"dev","oper","test"} )
 
         self.source = source
         self.typ    = typ
@@ -47,7 +47,7 @@ class obs_class:
 
 
     #TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
-    def to_station_databases(self, obs_db, source=None, typ=None, output_path=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings=None):
+    def to_station_databases(self, obs_db, source=None, scale=False, typ=None, output_path=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings=None):
         #TODO
         """
         """
@@ -66,22 +66,31 @@ class obs_class:
         #TODO statements for different typs
         match typ:
             case "raw":
-                sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES "
-                    f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
-                    f"file = excluded.file WHERE excluded.cor > obs.cor and excluded.file > obs.file" )
-            case "forge" | "dev" | "oper":
-                sql = ( f"INSERT INTO obs (dataset,datetime,duration,value) VALUES(?,?,?,?) "
+                if scale:
+                    sql = ( f"INSERT INTO obs_raw (dataset,file,datetime,duration,element,value,cor,scale) VALUES "
+                        f"('{source}',?,?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
+                        f"file = excluded.file WHERE excluded.cor > obs.cor and excluded.file > obs.file" )
+                else:
+                    sql = ( f"INSERT INTO obs_raw (dataset,file,datetime,duration,element,value,cor) VALUES "
+                        f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
+                        f"file = excluded.file WHERE excluded.cor > obs.cor and excluded.file > obs.file" )
+            case "forge":
+                sql = ( f"INSERT INTO obs_forge (dataset,datetime,duration,value) VALUES(?,?,?,?) "
                         f"ON CONFLICT DO UPDATE SET value=excluded.value" )
-        
+            case "final":
+                sql = ( f"INSERT INTO obs_{mode} (dataset,datetime,duration,value) VALUES(?,?,?,?) "
+                        f"ON CONFLICT DO UPDATE SET value=excluded.value" )
+
         for loc in obs_db:
-            created = self.create_station_tables(loc, output_path, typ, max_retries, 1, 1, verbose=verbose)
+            created = self.create_station_tables(loc, output_path, self.mode, max_retries, 1, 1, verbose=verbose)
             if not created: continue
 
             retries = copy(max_retries)
 
             while retries > 0:
                 try:
-                    db_loc = database_class( f"{output_path}/{typ}/{loc[0]}/{loc}.db", {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose} )
+                    config_dict = {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose}
+                    db_loc = database_class( f"{output_path}/{typ}/{loc[0]}/{loc}.db", config_dict )
                     db_loc.exemany( sql, obs_db[loc] )
                 except sqlite3.Error as e:
                     print(e, retries)
@@ -93,7 +102,7 @@ class obs_class:
                         print(loc)
                         loc = list(obs_db[loc])
                         for i in range(len(loc)):
-                            
+                            # try to print CCX if observationSequenceNumber is available 
                             try:
                                 if loc[i][5]:   cor = "CC" + chr(64+loc[i][5])
                                 else:           cor = ""
@@ -101,11 +110,14 @@ class obs_class:
                             print(f"{loc[i][1]} {loc[i][2]:<6} {loc[i][3]:<20} {loc[i][4]:<21} {cor}")
                         print()
                     break
+            
+            if retries == 0:
+                return False
+            else:
+                db_loc.close(commit=True)
 
-            db_loc.close(commit=True)
 
-
-    def create_station_tables( self, loc, output_path=None, typ=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings=None ):
+    def create_station_tables( self, loc, output_path=None, mode=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings=None ):
         """
         Parameter:
         ----------
@@ -123,7 +135,7 @@ class obs_class:
         True if succesful, False if not, None if tables already exists and completely setup (ready == 1)
         """
         if output_path is None: output_path = self.output_path
-        if typ is None:         typ         = self.typ
+        if mode is None:        mode        = self.mode
         if max_retries is None: max_retries = self.max_retries
         if commit is None:      commit      = self.commit
         if timeout is None:     timeout     = self.timeout
@@ -131,7 +143,7 @@ class obs_class:
         if verbose is None:     verbose     = self.verbose
         if settings is None:    settings    = self.settings
 
-        station_path = f'{output_path}/{typ}/{loc[0]}'
+        station_path = f'{output_path}/{mode}/{loc[0]}'
         gf.create_dir( station_path )
         db_path = f'{station_path}/{loc}.db'
 
@@ -150,11 +162,11 @@ class obs_class:
                 retries -= 1
                 continue
             else:
-                match typ:
-                    case "raw" | "dev":     typ_tables = 3
-                    case "forge":           typ_tables = 1
-                    case "oper":            typ_tables = 2
-                ready = ( n_tables == typ_tables ) # is hardcoded for performance reasons, remember to change!
+                print(mode)
+                match mode:
+                    case "oper" | "test":   mode_tables = 5
+                    case "dev":             mode_tables = 6
+                ready = ( n_tables == mode_tables ) # is hardcoded for performance reasons, remember to change!
                 break
 
         if retries == 0: return False
@@ -165,8 +177,8 @@ class obs_class:
         else:
             if verbose: print("Creating table and adding columns...")
 
-            # read structure file station_tables.yaml into a dict
-            tables = gf.read_yaml( f"station_tables_{typ}.yaml" )
+            # read structure file station_tables into a dict
+            tables = gf.read_yaml( f"station_tables_{mode}" )
 
             for table in tables:
                 retries = copy(max_retries)
