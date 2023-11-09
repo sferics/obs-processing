@@ -211,13 +211,34 @@ class bufr_class:
 
     ### class functions
     def get_location(self, vals, pos_val):
+        """
+        """
         val, next_val = vals[pos_val], vals[pos_val+1]
+        
         if next_val in self.null_vals_ex:
             location, datetime = None, None
         else: location = str(int(val*1000 + next_val)) + "0"
         if location: print("LOCATION:", location)
+        
         return location
 
+    def get_datetime(self, vals, pos_val):
+        """
+        """
+        dt_info = {}
+        
+        for code in range(4001, 4006):
+            val = vals[pos_val]
+            if val not in self.null_vals_ex:
+                dt_info[self.datetime_codes[code]] = int(val)
+            pos_val += 1
+
+        if self.set_time_keys.issubset(set(dt_info)):
+            datetime = gf.to_datetime(dt_info)
+        elif self.set_time_keys_hour.issubset(set(dt_info)):
+            datetime = dt(dt_info["year"],dt_info["month"],dt_info["day"],dt_info["hour"], 0)
+        
+        return datetime
 
     def translate_key_00( self, key, value, duration, h=None, unit=None ):
 

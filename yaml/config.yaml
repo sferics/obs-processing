@@ -54,6 +54,7 @@ bufr:
   verbose:          0
   log_level:        ERROR
   traceback:        1
+  tables:           /home/juri/miniconda3/envs/obs/share/eccodes/definitions
 
 obs:
   verbose:
@@ -168,6 +169,8 @@ scripts:
     bufr_translation: bufr_translation_us # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
     bufr_sequences:   bufr_sequences
+    stations:         [wmo,dwd]
+    clusters:         germany
 
   decode_bufr_us.py:
     conda_env:        obs
