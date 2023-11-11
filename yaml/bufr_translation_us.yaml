@@ -405,6 +405,9 @@ windDirectionAt10M:
   #windDirectionAssociatedWithWindSpeedWhichFollows:
   #011010:                             [DIR_ass_10m_syn, ~, 1, 0, 0]       # Windrichtung
 
+maximumWindGustDirection:
+  011043:                             [DIRmax_10m_syn, ~, 1, 0, 0] # Windrichtung der max Böen
+
 windSpeed:
   011002:                             [FFavg_10m_syn, 10min, *ms2kn, 0, 1]
   011083:                             [FFavg_10m_syn, 10min, *kh2kn, 0, 0]

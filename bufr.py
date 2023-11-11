@@ -137,7 +137,7 @@ class bufr_class:
                     self.null_vals_ex   = frozenset( self.null_vals | {self.missing} | {-1e+100} )
                     self.station_codes  = frozenset( {1001, 1002} ) # 1018
                     self.bufr_sequences = gf.read_yaml( self.bufr_sequences )
-                    self.sequence_range = range( min(self.bufr_sequences), max(self.bufr_sequences) )
+                    self.sequence_range = range( min(self.bufr_sequences),max(self.bufr_sequences) )
                     self.scale_increase = 0
 
                     self.scale_change = {

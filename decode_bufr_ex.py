@@ -401,7 +401,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             # add additional data (unexpanded descriptors plus their values)
             codes   = tuple( ec.codes_get_array(bufr, "expandedDescriptors") )
             unexp   = tuple( ec.codes_get_array(bufr, "unexpandedDescriptors") )
-            vals    = tuple( ec.codes_get_array(bufr, "numericValues") )
+            vals    = list( ec.codes_get_array(bufr, "numericValues") )
 
             print(len(codes), len(unexp), len(vals))
             
@@ -409,226 +409,220 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             print(codes)
             print("UNEXPANDED:")
             print(unexp)
-            print("VALUES:")
-            print(vals)
+            #print("VALUES:")
+            #print(vals)
 
             if debug: pdb.set_trace()
 
             # position (index) of values and expanded tuples
             pos_val = 0
-
-            # station/location and datetime information
-            block, station, location, datetime = None, None, None, None
+            # expanded list of codes
+            codes   = []
             
-            dt_info     = {}
-            obs_list    = []
-            vals        = list(vals)
-            codes       = []
+            repl_range      = range(101000, 131000) # 131XXX is reserved for repeating sequences
+            repl_seq_range  = range(131000, 132000) # repeat next sequence up to 999 times (0=repl)
             
-            repl_range = range(101000, 200000)
+            # check if code already contains replication factor information
+            no_repl_factor  = lambda code : np.round(code, -3) == code
 
-            def get_repl_elements(codes, vals, pos_code, pos_val):
-                code = codes[pos_code]
-                print("DELAYED REPLICATION OF N-ELEMENTS")
-                if debug: print(pos_code, bf.int_to_code(code))
-                # number of elements to repeat (1-99)
+            def get_num_elements_repl_factor(code):
                 num_elements = int( (code - 100000) / 1000 )
                 # number of repetitions (1-999) -> replication factor
                 repl_factor  = int( (code - 100000) - (num_elements * 1000) )
+                return num_elements, repl_factor
 
-                if not repl_factor:
-                    print("NO REPL")
-                    pos_code += 1
-                    val = vals[pos_val]
-                    match codes[pos_code]:
-                        case 31000: # short delayed replication factor
-                            print(31000)
-                            if not val or val in bf.null_vals_ex:
-                                # skip next element (not reported)
-                                pos_val += 1
-                                return []
-                        case 31001 | 31002: # (extended) delayed replication factor
-                            print(31001, 31002)
-                            if val and val not in bf.null_vals_ex:
-                                repl_factor = int(val)
-                            else: repl_factor = 0
-                        case _: sys.exit("MISSING REPLICATION FACTOR CODE!")
-                
-                pos_val += 1
+            # value and code indices
+            pos_val, pos_code = 0, 0
 
-                if not repl_factor:
-                    print("STILL NO REPL!")
-                    return []
-
-                if num_elements == 1 and next_code in bf.sequence_range:
-                    next_code = codes[pos_code+1]
-                    elements = [bf.bufr_sequences[next_code]] * repl_factor
-                else:
-                    elements = [codes[pos_code+i] for i in range(num_elements) ] * repl_factor
-                
-                return elements
-
-            # replace sequence codes by actual sequences and apply replication factors
-            pos_val = 0
-            for pos_code, code in enumerate(unexp):
-                if code in repl_range:
-                    elements = get_repl_elements(codes, vals, pos_code, pos_val)
-                    if not elements: continue
-                    else:
-                        codes += elements
-                        pos_val += len(elements)
-                
-                elif code in bf.sequence_range:
-                    codes_seq = bf.bufr_sequences[code]
-                    for code_seq in codes_seq:
-                        if code_seq in repl_range:
-                            elements = get_repl_elements(codes, vals, pos_code, pos_val)
-                            if not elements: continue
-                            else:
-                                codes += elements
-                                pos_val += len(elements)
-                        else:
-                            codes.append(code_seq)
-                            pos_val += 1
-                
+            # replace sequence codes by actual sequences #and apply replication factors
+            while pos_code < len(unexp):
+                code = unexp[pos_code]
+                print("POS CODE")
+                print(pos_code, code)
+                if code in bf.sequence_range:
+                    code_offset = 0
+                    codes_seq   = bf.bufr_sequences[code]
+                    print("CODES SEQ:", code)
+                    print(codes_seq)
+                    for pos_code_seq, code_seq in enumerate(codes_seq):
+                        print("POS_SEQ CODE")
+                        print(pos_code_seq, code_seq)
+                        codes.append(code_seq)
+                        pos_val += 1
                 else:
                     codes.append(code)
                     pos_val += 1
+                pos_code += 1
             
             print("CODES UNEXP:")
             print(unexp)
             print("CODES EXP:")
             print(codes)
+            if debug: pdb.set_trace()
 
-            sys.exit()
+            codes       = cycle(codes)  # self-repeating iterator
+            vals        = iter(vals)    # iterator over are values (just once)
+            obs_list    = []
+            
+            # station/location and datetime information
+            location, datetime = None, None
 
-            codes = cycle(unexp)
-            #print(codes)
-            #codes = cycle(codes) # iterator
+            def get_location_and_datetime(codes, code, vals, val):
+                skip_codes, skip_vals = 5, 1
+                block = int(val)
 
-            while pos_val < len(vals):
+                while next(codes) != 1002:
+                    val = next(vals)
+                    skip_codes  += 1
+                    skip_vals   += 1
                 
-                code = next(codes)
+                station = int(next(vals))
+                if station not in bf.null_vals_ex and block not in bf.null_vals_ex:
+                    location = str(int(block*1000 + station)) + "0"
+                else: location = None
 
-                val = vals[pos_val]
-                if debug: print(pos_val, bf.int_to_code(code), val)
+                while next(codes) != 4001:
+                    val = next(vals)
+                    skip_codes  +=1
+                    skip_vals   +=1
 
-                if location and datetime:
-                    if code == 301090:
-                        if obs_list:
-                            print("OBS LIST:")
-                            print(location, datetime, obs_list)
-                            try:    obs_bufr[ID][location][datetime] += obs_list
-                            except: obs_bufr[ID][location] = { datetime : obs_list }
-                            obs_list = []
+                dt_info         = [ int(next(vals)) for _ in range(5) ]
+                datetime_none   = False
+
+                for i in dt_info:
+                    if i in bf.null_vals_ex:
+                        datetime_none = True
+                        break
+
+                if dt_info and not datetime_none:
+                    print(tuple(dt_info))
+                    datetime = dt(*dt_info)
+                else: return None, None, (skip_codes, skip_vals)
+                
+                print(location, datetime)
+                return location, datetime, (skip_codes, skip_vals)
+
+
+            def get_repl_codes(codes_repl, code, vals_repl, val):
+                """
+                """
+                print("DELAYED REPLICATION OF N-ELEMENTS")
+                print("CODE", code)
+                if debug: print(pos_val, bf.int_to_code(code))
+                
+                num_elements, repl_factor   = get_num_elements_repl_factor(code)
+                skip_codes, skip_vals       = -1, 0
+
+                if not repl_factor:
+                    repl_present = 0
+                    print("NO REPL")
+                    skip_vals   += 1
+                    val = next(vals_repl)
+                    next_code = next(codes_repl)
+                    match next_code:
+                        case 31000: # short delayed replication factor
+                            print(31000)
+                            print(val)
+                            if val and val not in bf.null_vals_ex:
+                                repl_factor = 1
+                            else: repl_factor = 0
+                        case 31001 | 31002: # (extended) delayed replication factor
+                            print(31001, 31002)
+                            print(next_code)
+                            print(val)
+                            #if next_code == 31002:
+                            #    skip_codes -= 1
+                            if val and val not in bf.null_vals_ex:
+                                repl_factor = int(val)
+                            else: repl_factor = 0
+                        case _: sys.exit("MISSING REPLICATION FACTOR CODE!")
+                else:
+                    repl_present = 1
+                    skip_codes -= num_elements + 1 #+ repl_present - 1
+                #skip_codes -= 1
+                #skip_vals -= 1
+
+                if not repl_factor:
+                    print("STILL NO REPL")
+                    return None, 0, (num_elements+1, 0)
+
+                if num_elements == 1:
+                    print("NEXT CODE")
+                    next_code = next(codes_repl)
+                    print(next_code)
+                    if next_code in bf.sequence_range:
+                        print("SEQ")
+                        elements = bf.bufr_sequences[next_code]
+                        skip_codes += 1; skip_vals -= 1
+                    else: elements = [next_code]
+                else: elements = [ next(codes_repl) for _ in range(num_elements) ]
+                
+                skip_codes += num_elements + repl_present
+                #print("NEXT AFTER ELEMENTS", next(codes_repl))
+                print("REPL ELEMENTS / REPL / SKIP CODES / SKIP VALS")
+                print(tuple(elements), repl_factor, skip_codes, skip_vals)
+                return elements, repl_factor, (skip_codes, skip_vals)
+
+
+            while True:
+                try:
+                    code = next(codes)
+                    if location and datetime:
+                        if code == 1001:
+                            print("STOP", location)
+                            if obs_list:
+                                print("OBS LIST:")
+                                print(location, datetime, obs_list)
+                                try:    obs_bufr[ID][location][datetime] += obs_list
+                                except: obs_bufr[ID][location] = { datetime : obs_list }
+                                obs_list = []
+                                if debug: pdb.set_trace()
+                            val = next(vals)
+                            location,datetime,skip  = get_location_and_datetime(codes,code,vals,val)
+                            skip_codes, skip_vals   = skip
+                            for _ in range(skip_codes): next(codes)
+                            for _ in range(skip_vals):  next(vals)
+
+                        elif code in bf.scale_size_change:
+                            print("SCALE / DATASIZE CHANGE!")
+                            if code in bf.scale_change:
+                                obs_list.append( (code, None) )
+                            next(vals)
                         
-                        location = bf.get_location(vals, pos_val)
-                        pos_val += 4
-                        datetime = bf.get_datetime(vals, pos_val)
-                        pos_val += 8
-                        continue
+                        elif code in repl_range:
+                            codes_repl, repl_factor, skip   = get_repl_codes(codes, code, vals, val)
+                            skip_codes, skip_vals           = skip
+                            print("SKIP CODES", skip_codes)
+                            for _ in range(skip_codes): next(codes) 
+                            for _ in range(skip_vals):  next(vals)
 
-                    elif code in bf.scale_size_change:
-                        print("SCALE / DATASIZE CHANGE!")
-                        if code in bf.scale_change:
-                            obs_list.append( (code, None) )
-                        #pos_val += 1
-                        continue
+                            print("REPL:", repl_factor)
+                            for _ in range(repl_factor):
+                                for code_r in codes_repl:
+                                    val_r = next(vals)
+                                    print(bf.int_to_code(code_r), val_r)
+                                    if code_r in bf.relevant_codes and val_r not in bf.null_vals_ex:
+                                        obs_list.append( (code_r, val_r) )
 
-                    elif code in bf.sequence_range:
-                        codes_seq = bf.bufr_sequences[code]
-                        for code in codes_seq:
-                            if 101000 <= code <= 199999:
-                                pass
-                            else:
-                                val = vals[pos_val]
-                                if debug: print(pos_val, bf.int_to_code(code), val)
-                                if code in bf.relevant_codes and val not in bf.null_vals_ex:
-                                    obs_list.append( (code, val) )
-                            pos_val += 1
-                        continue
-
-                    # delayed repetition of N elements (fixed amount)
-                    elif code in range(101000, 200000):
-                        print("DELAYED REPLICATION OF N-ELEMENTS")
-                        if debug: print(pos_val, bf.int_to_code(code), val)
-                        pdb.set_trace()
-
-                        repl_factor, num_elements = bf.code_to_repl(code, codes) 
-
-                        if not repl_factor:
-                            print("STILL NO REPL!")
-                            continue
-                        
-                        next_code = next(codes)
-                        
-                        if num_elements == 1 and next_code in bf.sequence_range:
-                            elements = [bf.bufr_sequences[next_code]]
                         else:
-                            elements = [next_code] + [ next(codes) for _ in range(num_elements-1) ]
-                        #elements = ( next(codes) for _ in range(num_elements) ) # generator object
+                            if code in bf.relevant_codes and val not in bf.null_vals_ex:
+                                val = next(vals)
+                                print(bf.int_to_code(code), val)
+                                obs_list.append( (code, val) )
+                            else: print(bf.int_to_code(code), next(vals))
 
-                        if not elements:
-                            print("NO ELEMENTS!")
-                            pos_val += 1
-                            continue
+                    # get blockNumber, stationNumber and datetime info
+                    elif code == 1001:
+                        val = next(vals)
+                        location,datetime,skip  = get_location_and_datetime(codes, code, vals, val)
+                        skip_codes, skip_vals   = skip
+                        for _ in range(skip_codes): next(codes)
+                        for _ in range(skip_vals):  next(vals)
+                    else: print(bf.int_to_code(code), next(vals))
 
-                        print("ELEMENTS TO REPEAT:")
-                        print(list(elements), num_elements)
-                        print("REPLICATION FACTOR:")
-                        print(repl_factor)
-
-                        break_loop = False
-                        for i in range(repl_factor):
-                            if break_loop: break
-                            for code_ij in elements:
-                                #pos_val += 1
-                                try: val = vals[pos_val]
-                                except IndexError:
-                                    if code_ij in bf.relevant_codes and val not in bf.null_vals_ex:
-                                        print("ADDING LAST ELEMENT...")
-                                        print( pos_val, bf.int_to_code(code_ij), val )
-                                        obs_list.append( (code_ij, val) )
-                                    break_loop = True; break
-                                else:
-                                    print( pos_val, bf.int_to_code(code_ij), val )
-                                    if code_ij in bf.relevant_codes and val not in bf.null_vals_ex:
-                                        obs_list.append( (code_ij, val) )
-                                    pos_val += 1
-                        
-                        if break_loop: break
-                        continue
-
-                    elif code in bf.relevant_codes and val not in bf.null_vals_ex:
-                        obs_list.append( (code, val) )
-                    
-                    pos_val += 1; continue
-
-                # get blockNumber, stationNumber and datetime info
-                if code == 301090:
-                    location = bf.get_location(vals, pos_val)
-                    pos_val += 4
-                    datetime = bf.get_datetime(vals, pos_val)
-                    pos_val += 8
-
-                # just get blockNumber & stationNumber
-                elif code in {301001, 301004} and location is None:
-                    location = bf.get_location(vals, pos_val)
-                    if code == 301001:
-                        pos_val += 2
-                    else:
-                        pos_val += 3
-                    if location is None: break
-                    else: continue
-
-                # just get datetime info
-                elif location and code in {301011, 301012}:
-                    datetime = bf.get_datetime(vals, pos_val)
-                
-                if location: print(location)
-                if datetime: print(datetime)
-
-                pos_val += 1
+                # if we encounter a StopIteration error we break the loop
+                except StopIteration: break
+                else: continue
             # end of while loop
 
             if obs_list:
@@ -670,10 +664,10 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
     if verbose: print( obs_bufr )
 
-    obs_db = bf.convert_keys_ex( obs_bufr, source )
+    #obs_db = bf.convert_keys_ex( obs_bufr, source )
     #for ID in obs: obs_bufr[ID].close()
 
-    if obs_db: obs.to_station_databases( obs_db, scale=True )
+    #if obs_db: obs.to_station_databases( obs_db, scale=True )
     
     # remove file containing the pid, so the script can be started again
     if pid_file: os.remove( pid_file )
