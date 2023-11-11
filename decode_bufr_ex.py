@@ -351,7 +351,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                                         skip_next = config_bufr["skip3"]
                                     continue
                                 
-                                elif bf.time_keys_hour.issubset(meta):
+                                elif bf.set_time_keys_hour.issubset(meta):
                                     # if only minute is missing, assume that minute == 0
                                     meta["minute"]  = 0
                                     valid_obs       = True
@@ -367,7 +367,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                                         except: pass
                                     
                                     # again, if only minute is missing, assume that minute == 0
-                                    if bf.time_keys_hour.issubset(meta):
+                                    if bf.set_time_keys_hour.issubset(meta):
                                         meta["minute"]  = 0
                                         valid_obs       = True
                                         continue
@@ -403,22 +403,10 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             unexp   = tuple( ec.codes_get_array(bufr, "unexpandedDescriptors") )
             vals    = list( ec.codes_get_array(bufr, "numericValues") )
 
-            print(len(codes), len(unexp), len(vals))
-            
-            print("CODES:")
-            print(codes)
-            print("UNEXPANDED:")
-            print(unexp)
-            #print("VALUES:")
-            #print(vals)
-
             if debug: pdb.set_trace()
-
-            # position (index) of values and expanded tuples
-            pos_val = 0
-            # expanded list of codes
-            codes   = []
             
+            pos_val         = 0                     # position (index) of values and expanded tuples
+            codes           = []                    # expanded list of codes
             repl_range      = range(101000, 131000) # 131XXX is reserved for repeating sequences
             repl_seq_range  = range(131000, 132000) # repeat next sequence up to 999 times (0=repl)
             
@@ -531,8 +519,6 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 else:
                     repl_present = 1
                     skip_codes -= num_elements + 1 #+ repl_present - 1
-                #skip_codes -= 1
-                #skip_vals -= 1
 
                 if not repl_factor:
                     print("STILL NO REPL")
