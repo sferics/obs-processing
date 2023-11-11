@@ -487,17 +487,9 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     skip_vals   +=1
 
                 dt_info         = [ int(next(vals)) for _ in range(5) ]
-                datetime_none   = False
-
-                for i in dt_info:
-                    if i in bf.null_vals_ex:
-                        datetime_none = True
-                        break
-
-                if dt_info and not datetime_none:
-                    print(tuple(dt_info))
-                    datetime = dt(*dt_info)
-                else: return None, None, (skip_codes, skip_vals)
+                print(tuple(dt_info))
+                try:    datetime = dt(*dt_info)
+                except: return None, None, (skip_codes, skip_vals)
                 
                 print(location, datetime)
                 return location, datetime, (skip_codes, skip_vals)
@@ -585,9 +577,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
                         elif code in bf.scale_size_change:
                             print("SCALE / DATASIZE CHANGE!")
-                            if code in bf.scale_change:
-                                obs_list.append( (code, None) )
-                            next(vals)
+                            if code in bf.scale_change: obs_list.append( (code, None) )
                         
                         elif code in repl_range:
                             codes_repl, repl_factor, skip   = get_repl_codes(codes, code, vals, val)
@@ -599,6 +589,10 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                             print("REPL:", repl_factor)
                             for _ in range(repl_factor):
                                 for code_r in codes_repl:
+                                    if code_r in bf.scale_size_change:
+                                        print("SCALE / DATASIZE CHANGE!")
+                                        if code in bf.scale_change: obs_list.append( (code, None) )
+                                        continue
                                     val_r = next(vals)
                                     print(bf.int_to_code(code_r), val_r)
                                     if code_r in bf.relevant_codes and val_r not in bf.null_vals_ex:

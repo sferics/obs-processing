@@ -155,7 +155,7 @@ class bufr_class:
                         201132 : 4, # temporarily increase data size by 4 bits
                     }
                     
-                    self.scale_size_change = frozenset( set(self.scale_change) | set(self.size_change) )
+                    self.scale_size_change = frozenset(set(self.scale_change)|set(self.size_change))
 
             case "se" | "pd" | "fl":
                 

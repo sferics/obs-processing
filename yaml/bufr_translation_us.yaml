@@ -128,7 +128,7 @@ virtualTemperature:
 #level_descriptors:
 heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform:
   007032: ~
-depthBelowLandSurface:
+depthBelowLandSurface:  # Messtiefe
   007061: ~
 delayedDescriptorReplicationFactor:
   031001: ~
@@ -283,8 +283,17 @@ soilTemperature:
     -0.5:                             [T_n50cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -50cm
     -1.0:                             [T_n1m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -1m
     -2.0:                             [T_n2m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -2m
+  012130:
+    -0.05:                            [T_n5cm_syn,  1s, 10, *K2C, 1]     # Erdbodentemperatur -5cm
+    -0.1:                             [T_n10cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -10cm
+    -0.2:                             [T_n20cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -20cm
+    -0.5:                             [T_n50cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -50cm
+    -1.0:                             [T_n1m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -1m
+    -2.0:                             [T_n2m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -2m
+
 groundTemperature:
   012120:                             [T_srf_syn,   1s, 10, *K2C, 2]     # Erdbodentemperatur 0cm
+  012161:                             [T_srf_syn,   1s, 10, *K2C, 2]     # Erdbodentemperatur 0cm
   #TODO interesting parameters
   #groundMinimumTemperature
   #groundMinimumTemperatureOfPrecedingNight
