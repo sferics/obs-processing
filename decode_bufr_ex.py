@@ -468,7 +468,6 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     repl_present = 0
                     #skip_codes += 1
                     next_code   = next(codes_repl)
-                    #skip_vals += 1
 
                     """
                     if val < 0:#or val in bf.null_vals:
@@ -478,7 +477,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         #skip_vals   += 1
                         next_val    = next(vals_repl)
                     """
-                    next_val = copy(val)
+                    next_val = next(vals_repl)
 
                     match next_code:
                         case 31000: # short delayed replication factor
@@ -528,8 +527,8 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     elements = [ next(codes_repl) for _ in range(num_elements) ]
                     skip_codes -= 1; skip_vals -= 1
 
-                skip_codes  += num_elements + repl_present
-                #skip_vals   += repl_present
+                #skip_codes  += num_elements + repl_present
+                skip_vals   += repl_present
                 #print("NEXT AFTER ELEMENTS", next(codes_repl))
                 print("REPL ELEMENTS / REPL / SKIP CODES / SKIP VALS")
                 print(tuple(elements), repl_factor, skip_codes, skip_vals)
@@ -568,7 +567,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                                 previous_code = copy(code)
                         
                         elif code in bf.repl_range:
-                            val = next(vals)
+                            #val = next(vals)
                             codes_repl, repl_factor, skip   = get_repl_codes(codes, code, vals, val)
                             skip_codes, skip_vals           = skip
                             print("SKIP CODES", skip_codes)
