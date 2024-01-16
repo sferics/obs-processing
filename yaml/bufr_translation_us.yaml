@@ -125,6 +125,10 @@ virtualTemperature:
 #for clouds we might need occurence_descritors (see https://metview.readthedocs.io/en/latest/gen_files/icon_functions/obsfilter.html#id0)
 
 ### META INFORMATION (HEIGHT OF SENSORS AND REPLICATION FACTORS)
+verticalSignificance:   # Vertikale Einordnung (Wolkenschicht)
+  008002: ~
+shortTimeIncrement:     # Minutenwerte (RR und ww)
+  004065: ~
 #level_descriptors:
 heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform:
   007032: ~
@@ -132,6 +136,7 @@ depthBelowLandSurface:  # Messtiefe
   007061: ~
 delayedDescriptorReplicationFactor:
   031001: ~
+
   #TODO apparently not present in DWD BUFRs but could be useful for other data sources in future...
   #representativeHeightOfSensorAboveStation:            ~
   #modificationOfSensorHeightToAnotherValue:            ~

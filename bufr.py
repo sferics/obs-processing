@@ -19,11 +19,8 @@ class bufr_class:
             if self.verbose: print( i, "=", config[i] )
 
         # check for mandatory class attributes
-        mandatory = ("verbose", "traceback", "bufr_translation", "bufr_flags", "mode", "output_path", "stations", "clusters") #,output_oper
-        
-        for attr in mandatory:
-            print(attr)
-            assert( hasattr(self, attr) )
+        mandatory = ("verbose", "traceback", "bufr_translation", "bufr_flags", "mode", "output_path", "stations", "clusters")
+        for attr in mandatory: assert( hasattr(self, attr) )
 
         if "log_level" in config and config["log_level"] in gv.log_levels: 
             self.log_level = config["log_level"]
@@ -31,11 +28,10 @@ class bufr_class:
 
         self.log = gf.get_logger( self.__class__.__name__, self.log_level )
 
-        if not hasattr(self, "max_files"):
-            self.max_files = 0
+        if not hasattr(self, "max_files"): self.max_files = 0
 
         # common key names for BUFR obs decoding scrips
-        self.YMD                = frozenset( {"year","month","day"} )
+        self.YMD                = frozenset( {"year", "month", "day"} )
         # timePeriod is very frequently used so we shorten it up a lot
         self.tp                 = "timePeriod"
         self.obs_sequence       = "observationSequenceNumber"
@@ -53,11 +49,12 @@ class bufr_class:
         self.set_time_keys      = frozenset(self.time_keys)
         self.set_time_keys_hour = frozenset(self.time_keys_hour)
 
-        self.typical_time_keys  = ( "typical"+i.capitalize() for i in self.time_keys )
+        self.typical_time_keys  = ( "typical" + i.capitalize() for i in self.time_keys )
         self.typical_datetime   = frozenset( {"typicalDate","typicalTime"} )
         self.typical_keys       = frozenset( set(self.typical_time_keys) | self.typical_datetime )
 
-        self.null_vals          = frozenset( {ec.CODES_MISSING_LONG, ec.CODES_MISSING_DOUBLE} ) # (2147483647, -1e+100)
+        # MISSING values in ECCODES are:     {2147483647,            -1e+100}
+        self.null_vals          = frozenset( {ec.CODES_MISSING_LONG, ec.CODES_MISSING_DOUBLE} )
         self.meta_ignore_vals   = frozenset( {"null", "NULL", "MISSING", "XXXX", " ", ""} )
         self.meta_null_vals     = frozenset( self.null_vals | self.meta_ignore_vals )
         
@@ -124,23 +121,20 @@ class bufr_class:
 
                 # all codes which contain timePeriod information
                 self.tp_codes       = frozenset( {4023, 4024, 4025, 4026} )
-                
                 # codes which alter height/depth of sensor
                 self.height_depth_codes = frozenset( self.height_codes | self.depth_codes )
                 # all codes which modify the following keys duration, height, depth and so on
-                self.modifier_codes = frozenset( self.tp_codes | self.height_depth_codes - {8002} )
-                
+                self.modifier_codes = frozenset( self.tp_codes | self.height_depth_codes | {4065} )
+
                 if script == "ex":
                     
                     self.datetime_codes = {4001:"year",4002:"month",4003:"day",4004:"hour",4005:"minute"}
-                    self.missing = -10000000000000000159028911097599180468360808563945281389781327557747838772170381060813469985856815104
-                    self.null_vals_ex   = frozenset( self.null_vals | {self.missing} | {-1e+100} )
                     self.station_codes  = frozenset( {1001, 1002} ) # 1018
                     self.bufr_sequences = gf.read_yaml( self.bufr_sequences )
                     self.sequence_range = range( min(self.bufr_sequences),max(self.bufr_sequences) )
                     self.scale_increase = 0
 
-                    self.scale_change = {
+                    self.scale_alter = {
                         202000 : 0, # reset scale
                         202129 : 1, # temporarily increase scale by 1 digit
                     }
@@ -148,14 +142,17 @@ class bufr_class:
                     self.replication_codes = frozenset( {31001, 31001, 31002} )
 
                     # all code relevant for extraction of expanded descriptors
-                    self.relevant_codes = frozenset( self.modifier_codes | set(self.bufr_translation) | set(self.scale_change) - self.replication_codes )
+                    self.relevant_codes = frozenset( self.modifier_codes | set(self.bufr_translation) | set(self.scale_alter) - self.replication_codes )
         
-                    self.size_change = {
+                    self.size_alter = {
                         201000 : 0, # reset size
                         201132 : 4, # temporarily increase data size by 4 bits
                     }
                     
-                    self.scale_size_change = frozenset(set(self.scale_change)|set(self.size_change))
+                    self.scale_size_alter = frozenset( set(self.scale_alter) | set(self.size_alter) )
+
+                    self.repl_range      = range(101000, 131000) # 131XXX is reserved for repeating sequences
+                    self.repl_seq_range  = range(131000, 132000) # repeat next sequence up to 999 times (0=repl)
 
             case "se" | "pd" | "fl":
                 
@@ -187,7 +184,7 @@ class bufr_class:
                     self.rr             = "totalPrecipitationOrTotalWaterEquivalent"
                     self.wmo            = "WMO_station_id"
                     self.dt             = "data_datetime"
-                    self.required_keys  = frozenset({self.wmo, self.dt})
+                    self.required_keys  = frozenset( {self.wmo, self.dt} )
                     self.relevant_keys  = frozenset( self.bufr_obs_keys | self.required_keys | self.modifier_keys | {self.obs_sequence,self.replication} )
                 
                 elif script == "se":
@@ -206,39 +203,21 @@ class bufr_class:
     clear       = lambda self, keyname  : str( re.sub( r"#[0-9]+#", '', keyname ) )
     number      = lambda self, keyname  : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
     to_key      = lambda self, key, num : "#{num}#{key}"
-    int_to_code = lambda self, integer  : str(integer).rjust(6,"0")
+    int2code    = lambda self, integer  : str(integer).rjust(6,"0")
 
 
     ### class functions
-    def get_location(self, vals, pos_val):
+    def get_wmo( self, block, station, add_zero=True ):
         """
+        Get WMO ID from blockNumber and stationNumber
         """
-        val, next_val = vals[pos_val], vals[pos_val+1]
+        location = station + block * 1000
+        location = str(location).rjust(5,"0")
         
-        if next_val in self.null_vals_ex:
-            location, datetime = None, None
-        else: location = str(int(val*1000 + next_val)) + "0"
-        if location: print("LOCATION:", location)
+        if add_zero: location += "0"
         
         return location
 
-    def get_datetime(self, vals, pos_val):
-        """
-        """
-        dt_info = {}
-        
-        for code in range(4001, 4006):
-            val = vals[pos_val]
-            if val not in self.null_vals_ex:
-                dt_info[self.datetime_codes[code]] = int(val)
-            pos_val += 1
-
-        if self.set_time_keys.issubset(set(dt_info)):
-            datetime = gf.to_datetime(dt_info)
-        elif self.set_time_keys_hour.issubset(set(dt_info)):
-            datetime = dt(dt_info["year"],dt_info["month"],dt_info["day"],dt_info["hour"], 0)
-        
-        return datetime
 
     def translate_key_00( self, key, value, duration, h=None, unit=None ):
 
@@ -493,8 +472,8 @@ class bufr_class:
                             sensor_height = float(val_obs)
                         elif code == 7061:
                             sensor_depth  = float(val_obs) * (-1)
-                        elif code in self.scale_change:
-                            self.scale_increase = self.scale_change[code]
+                        elif code in self.scale_alter:
+                            self.scale_increase = self.scale_alter[code]
                         else:
                             if code in self.height_depth_codes:
                                 if code == 12030:

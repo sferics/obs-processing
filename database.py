@@ -47,8 +47,6 @@ class database_class:
             return reg.search(item) is not None
 
         self.con.create_function("REGEXP", 2, regexp)
-        #TODO self.con.create_function("median", 2, median)
-        #TODO add SD,median,tercile,quartile,quintile,quantile and percentile statistical functions
 
         # Set up database cursor
         self.cur    = self.con.cursor()
@@ -1445,6 +1443,7 @@ class database_class:
 
     
     def register_files(self, names, paths, sources, statuses, dates, verbose=None):
+        #TODO
         """
         Parameter:
         ----------
@@ -1624,7 +1623,18 @@ class database_class:
 
     
     def set_file_statuses( self, file_statuses, retries=100, timeout=5, verbose=None ):
+        #TODO
+        """
+        Parameter:
+        ----------
 
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         if verbose is None: verbose = self.verbose
 
         sql = "UPDATE file_table SET status = ? WHERE rowid = ?"
@@ -1803,6 +1813,18 @@ class database_class:
 
 
     def get_elements( self ):
+        #TODO
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         sql = "SELECT DISTINCT element FROM element_table WHERE role='obs'"
         self.exe(sql)
         return self.fetch()

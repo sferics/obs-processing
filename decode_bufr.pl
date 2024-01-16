@@ -41,7 +41,7 @@ use Data::Dumper;
 use DBI;
 use Geo::BUFR;
 
-my $config = LoadFile(/config');
+my $config = LoadFile('/config');
 #print Dumper($config);
 my $config_db 	= $config->{database};
 

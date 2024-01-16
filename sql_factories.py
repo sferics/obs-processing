@@ -1,17 +1,23 @@
+import copy
 import pandas as pd
 import numpy as np
 from collections import namedtuple
+from datetime import datetime, date, time
 # (lambda) function defitions for custom SQLite row and text factories
 
 ### ROW FACTORIES
 
 # return as dictionary (borrowed from the python sqlite3 module documentation)
 def dict_row(cursor, row):
+    """
+    """
     fields = [column[0] for column in cursor.description]
     return {key: value for key, value in zip(fields, row)}
 
 # also taken from the documentation: https://docs.python.org/3/library/sqlite3.html#sqlite3-howto-row-factory
 def named_row(cursor, row):
+    """
+    """
     fields = [column[0] for column in cursor.description]
     cls = namedtuple("Row", fields)
     return cls._make(row)
@@ -45,18 +51,50 @@ default_row     = lambda cursor, row : row # datatype will be tuple (implicit he
 
 # convert all pandas timestamp objects to python datetime
 def pd2datetime_text(value):
+    """
+    """
     if type(value) == pd.Timestamp:
         return value.to_pydatetime()
     else: return value
 
+# convert all pandas timestamp objects to integer timestmps (seconds since UNIX)
+def pd2timestamp_text(value):
+    """
+    """
+    if type(value) == pd.Timestamp:
+        pydatetime = value.to_pydatetime()
+        return int(pydatetime.timestamp())
+    else: return value
+
+# convert all datetime objects to integer timestamps (seconds since UNIX)
+def datetime2timestamp_text(value):
+    """
+    """
+    typ == type(value)
+    if typ in {datetime, date, time}:
+        if typ == date:
+            value = datetime.fromordinal(value.ordinal())
+        elif typ == time:
+            today = datetime.today()
+            value = datetime(today.year, today.day, time.hour, time.minute)
+        return int(value.timestamp())
+    
+    else: return value
+
 # enforce UTF8 decoding (default besides the errors='ignore'; python default is 'strict')
 def utf8_text(value, errors="ignore"):
+    """
+    """
     return value.decode("utf-8", errors=errors)
 
 # use latin1 decoding (iso8859-1 / Western Europe)
 def latin1_text(value, errors="ignore"):
+    """
+    """
     return value.decode("latin-1", errors=errors)
 
 # use ASCII decoding
 def ascii_text(value, errors="ignore"):
+    """
+    """
     return value.decode("ascii", errors=errors)

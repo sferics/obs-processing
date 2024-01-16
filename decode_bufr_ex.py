@@ -14,7 +14,7 @@ from database import database_class
 from bufr import bufr_class
 from obs import obs_class
 
-#TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
+#TODO write more (inline) comments, docstrings and make try/except blocks shorter whereever possible
 #TODO raises error "API not implemented in CFFI porting"
 #see: https://github.com/ecmwf/eccodes-python#experimental-features
 #ec.codes_no_fail_on_wrong_length(True)
@@ -40,25 +40,6 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
     -------
     None
     """
-    start, end, subset_extract, subset_interval, subset_list = ( None for _ in range(5) )
-
-    if args.extract_subsets:
-        try:    subset_extract = int(args.extract_subsets) - 1
-        except:
-            if "-" in args.extract_subsets:
-                subset_interval = args.extract_subsets.split("-")
-                start, end = subset_interval[0], subset_interval[1]
-                try:                start = int(start)
-                except ValueError:  assert( start == "" )
-                try:                end = int(end)
-                except ValueError:  assert( end == "" )
-                # start of interval can not be larger than its end
-                if type(start) == type(end) == int: assert( 0 <= start <= end )
-            elif "," in args.extract_subsets:
-                subset_list = args.extract_subsets.split(",")
-                for i in range(len(subset_list)): subset_list[i] -= 1
-                subset_list = set(subset_list)
-
     if source:
         config_source   = config_sources[source]
         
@@ -66,7 +47,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             config_bufr = [config["bufr"], config_script, config_general, config_source["bufr"]]
         else: return
 
-        # previous dict entries will get overwritten by next list item during merge (right before left)
+        # previous dict entries will get overwritten by next item during merge (right before left)
         config_bufr = gf.merge_list_of_dicts( config_bufr )
         bf          = bufr_class(config_bufr, script=script_name[-5:-3])
         bufr_dir    = bf.dir + "/"
@@ -86,10 +67,12 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             except: pass
             else:   break
 
-        if i == max_retries - 1: sys.exit(f"Can't access main database, tried {max_retries} times. Is it locked?")
+        if i == max_retries - 1:
+            sys.exit(f"Can't access main database, tried {max_retries} times. Is it locked?")
 
         if hasattr(bf, "glob") and bf.glob: ext = f"{bf.glob}.{bf.ext}"
-        else:                               ext = f"*.{bf.ext}" #TODO add possibility to use multiple extensions (set)
+        else:                               ext = f"*.{bf.ext}"
+        #TODO add possibility to use multiple extensions (set)
 
         if args.restart:
             files_to_parse = set(db.get_files_with_status( f"locked_{args.restart}", source ))
@@ -130,8 +113,8 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
         db.close(commit=True)
 
-        #TODO if multiprocessing: split file_to_parse by number of processes (eg 8) and parse files simultaneously
-        #see https://superfastpython.com/restart-a-process-in-python/
+        #TODO multiprocessing: split files_to_parse by number of processes and parse simultaneously
+        # see https://superfastpython.com/restart-a-process-in-python/
 
     elif file:
         if args.tables:
@@ -162,7 +145,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
         bf          = bufr_class(config_bufr, script=script_name[-5:-3])
 
-    #TODO use defaultdic instead
+    #TODO use defaultdic instead?
     obs_bufr, file_statuses, new_obs = {}, set(), 0
 
     # initialize obs class (used for saving obs into station databases)
@@ -175,28 +158,15 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         with open(bufr_dir + FILE, "rb") as f:
             try:
                 ID = file_IDs[FILE]
-                # if for whatever reason no ID (database lock?) or filestatus means skip: continue with next file
+                # if for whatever reason no ID (database lock?) or filestatus means skip:
+                # continue with next file
                 if not ID: continue
                 bufr = ec.codes_bufr_new_from_file(f)
                 if bufr is None:
                     file_statuses.add( ("empty", ID) )
                     if verbose: print(f"EMPTY:  '{FILE}'")
                     continue
-                #codes_set(msgid, 'skipExtraKeyAttributes', 1)
                 ec.codes_set(bufr, "unpack", 1)
-                subsets = ec.codes_get_long( bufr, "numberOfSubsets" )
-                if args.extract_subsets:
-                    if subsets > 1:
-                        if subset_extract is not None:
-                            ec.codes_set(bufr, "extractSubset", subset_extract)
-                        elif subset_interval is not None:
-                            if not start:  start  = 1
-                            if not end:    end    = subsets
-                            ec.codes_set(bufr, "extractSubsetIntervalStart", start-1);
-                            ec.codes_set(bufr, "extractSubsetIntervalEnd", end-1)
-                        elif subset_list is not None:
-                            ec.codes_set(bufr, "extractSubsetList", subset_list)
-                ec.codes_set(bufr, "doExtractSubsets", 1)
             except Exception as e:
                 log_str = f"ERROR:  '{FILE}' ({e})"; log.error(log_str)
                 if verbose: print(log_str)                
@@ -263,18 +233,19 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                             if traceback:   gf.print_trace(e)
                             continue
 
-                        # skip 1min ww and RR which are reported 10 times; 10min resolution is sufficient for us
+                        # skip 1min ww and RR which are reported 10 times
+                        # 10min resolution is sufficient for us
                         if clear_key == "delayedDescriptorReplicationFactor":
                             if value == 10: skip_next = 10
                             continue
 
                         if value not in bf.null_vals:
                             
-                            # get the BUFR code number which gives us all necessary unit and scale info
+                            # get BUFR code number which gives us all necessary unit and scale info
                             code        = ec.codes_get_long( bufr, key + "->code" )
                             obs_data    = ( code, value )
 
-                            #TODO use a defaultdict instead
+                            #TODO use a defaultdict instead?
                             #TODO find out which is faster (try/except, if or defaultdict)
                             """
                             if datetime not in stations[location]:
@@ -284,7 +255,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                             try:    obs_bufr[ID][location][datetime].append( obs_data )
                             except: obs_bufr[ID][location][datetime] = [ obs_data ]
                             
-                            # avoid duplicate modifier codes (like timePeriod or depthBelowLandSurface) 
+                            # avoid duplicate modifier codes (like timePeriod/depthBelowLandSurface)
                             if code in bf.modifier_codes:
                                 try:
                                     if code == obs_bufr[ID][location][datetime][-2][0]:
@@ -303,7 +274,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     if location is None and clear_key in bf.station_keys:
                         meta[clear_key] = ec.codes_get(bufr, key)
                         
-                        #TODO some OGIMET-BUFRs seem to contain multiple station numbers in one key (arrays)
+                        #TODO some OGIMET-BUFRs seem to contain multiple station numbers in one key
                         #try:    meta[clear_key] = ec.codes_get(bufr, key)
                         #except: meta[clear_key] = ec.codes_get_array(bufr, key)[0]
                         
@@ -311,16 +282,15 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                             del meta[clear_key]
                             continue
                     
-                        # check for identifier of DWD stations (in German: "nebenamtliche Stationen")
+                        # check for identifier of DWD stations (in German "nebenamtliche Stationen")
                         if "dwd" in config_bufr["stations"] and "shortStationName" in meta:
                             location        = meta["shortStationName"]
                             station_type    = "dwd"
                             skip_next       = 4
                             
-                        # check if all essential station information keys for a WMO station are present
+                        # check if all essential station information for WMO station is present
                         elif "wmo" in config_bufr["stations"] and bf.WMO.issubset( set(meta) ):
-                            location        = meta["stationNumber"] + meta["blockNumber"] * 1000
-                            location        = str(location).rjust(5,"0") + "0"
+                            location        = bf.get_wmo(meta["stationNumber"], meta["blockNumber"])
                             station_type    = "wmo"
                             if "skip1" in config_bufr:
                                 skip_next = config_bufr["skip1"]
@@ -372,8 +342,8 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                                         valid_obs       = True
                                         continue
 
-                                    # no luck? possibly, there could be typicalDate or typicalTime present
-                                    if not bf.YMD.issubset( set(meta) ) and "typicalDate" in typical:
+                                    # no luck yet? there could be typicalDate or typicalTime present
+                                    if not bf.YMD.issubset(set(meta)) and "typicalDate" in typical:
                                         typical_date    = typical["typicalDate"]
                                         meta["year"]    = int(typical_date[:4])
                                         meta["month"]   = int(typical_date[4:6])
@@ -399,24 +369,25 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             ec.codes_keys_iterator_delete(iterid)
 
             # add additional data (unexpanded descriptors plus their values)
-            codes   = tuple( ec.codes_get_array(bufr, "expandedDescriptors") )
-            unexp   = tuple( ec.codes_get_array(bufr, "unexpandedDescriptors") )
-            vals    = list( ec.codes_get_array(bufr, "numericValues") )
+            vals    = tuple( ec.codes_get_array(bufr, "numericValues") )
+            unexp   = ec.codes_get_array(bufr, "unexpandedDescriptors")
 
             if debug: pdb.set_trace()
             
             pos_val         = 0                     # position (index) of values and expanded tuples
-            codes           = []                    # expanded list of codes
-            repl_range      = range(101000, 131000) # 131XXX is reserved for repeating sequences
-            repl_seq_range  = range(131000, 132000) # repeat next sequence up to 999 times (0=repl)
+            codes_exp       = []                    # expanded list of codes / descriptors
             
             # check if code already contains replication factor information
             no_repl_factor  = lambda code : np.round(code, -3) == code
 
             def get_num_elements_repl_factor(code):
-                num_elements = int( (code - 100000) / 1000 )
+                """
+                """
+                print("GET NUM ELEMENTS REPL")
+                num_elements = int((code - 100000) / 1000)
                 # number of repetitions (1-999) -> replication factor
-                repl_factor  = int( (code - 100000) - (num_elements * 1000) )
+                repl_factor  = int((code - 100000) - (num_elements * 1000))
+                if debug: print(num_elements, repl_factor)
                 return num_elements, repl_factor
 
             # value and code indices
@@ -425,37 +396,38 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             # replace sequence codes by actual sequences #and apply replication factors
             while pos_code < len(unexp):
                 code = unexp[pos_code]
-                print("POS CODE")
-                print(pos_code, code)
                 if code in bf.sequence_range:
                     code_offset = 0
                     codes_seq   = bf.bufr_sequences[code]
-                    print("CODES SEQ:", code)
-                    print(codes_seq)
                     for pos_code_seq, code_seq in enumerate(codes_seq):
-                        print("POS_SEQ CODE")
-                        print(pos_code_seq, code_seq)
-                        codes.append(code_seq)
+                        codes_exp.append(code_seq)
                         pos_val += 1
                 else:
-                    codes.append(code)
+                    codes_exp.append(code)
                     pos_val += 1
                 pos_code += 1
             
+            vals = list(vals)
+            print("VALUES:")
+            print([i if i != -1e+100 else "" for i in vals])
             print("CODES UNEXP:")
-            print(unexp)
+            print(list(unexp))
             print("CODES EXP:")
-            print(codes)
+            print(codes_exp)
             if debug: pdb.set_trace()
 
-            codes       = cycle(codes)  # self-repeating iterator
-            vals        = iter(vals)    # iterator over are values (just once)
+            codes       = cycle(codes_exp)  # self-repeating iterator
+            vals        = iter(vals)        # iterator over are values (just once)
             obs_list    = []
             
             # station/location and datetime information
             location, datetime = None, None
+            
 
             def get_location_and_datetime(codes, code, vals, val):
+                """
+                """
+                #skip_codes, skip_vals = 4, 0
                 skip_codes, skip_vals = 5, 1
                 block = int(val)
 
@@ -465,8 +437,8 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     skip_vals   += 1
                 
                 station = int(next(vals))
-                if station not in bf.null_vals_ex and block not in bf.null_vals_ex:
-                    location = str(int(block*1000 + station)) + "0"
+                if station not in bf.null_vals and block not in bf.null_vals:
+                    location = bf.get_wmo( block, station )
                 else: location = None
 
                 while next(codes) != 4001:
@@ -479,69 +451,95 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 try:    datetime = dt(*dt_info)
                 except: return None, None, (skip_codes, skip_vals)
                 
-                print(location, datetime)
+                print(location, datetime, skip_codes, skip_vals)
                 return location, datetime, (skip_codes, skip_vals)
 
 
             def get_repl_codes(codes_repl, code, vals_repl, val):
                 """
                 """
-                print("DELAYED REPLICATION OF N-ELEMENTS")
-                print("CODE", code)
-                if debug: print(pos_val, bf.int_to_code(code))
-                
+                if debug:
+                    print("GET REPL")
+                    print( bf.int2code(code), val)
                 num_elements, repl_factor   = get_num_elements_repl_factor(code)
                 skip_codes, skip_vals       = -1, 0
 
                 if not repl_factor:
                     repl_present = 0
-                    print("NO REPL")
-                    skip_vals   += 1
-                    val = next(vals_repl)
-                    next_code = next(codes_repl)
+                    #skip_codes += 1
+                    next_code   = next(codes_repl)
+                    #skip_vals += 1
+
+                    """
+                    if val < 0:#or val in bf.null_vals:
+                        #skip_vals -= 1
+                        next_val    = copy(val)
+                    else:
+                        #skip_vals   += 1
+                        next_val    = next(vals_repl)
+                    """
+                    next_val = copy(val)
+
                     match next_code:
                         case 31000: # short delayed replication factor
-                            print(31000)
-                            print(val)
-                            if val and val not in bf.null_vals_ex:
+                            print(next_code, next_val)
+                            if next_val and next_val not in bf.null_vals:
                                 repl_factor = 1
                             else: repl_factor = 0
                         case 31001 | 31002: # (extended) delayed replication factor
-                            print(31001, 31002)
-                            print(next_code)
-                            print(val)
-                            #if next_code == 31002:
-                            #    skip_codes -= 1
-                            if val and val not in bf.null_vals_ex:
-                                repl_factor = int(val)
+                            print(next_code, next_val)
+                            #if next_val >= 0 and next_val not in bf.null_vals:
+                            if next_val and next_val not in bf.null_vals:
+                                repl_factor = int(next_val)
+                                #skip_vals += 1
                             else: repl_factor = 0
-                        case _: sys.exit("MISSING REPLICATION FACTOR CODE!")
+                        case _:
+                            print(code, next_code)
+                            ec.codes_release(bufr)
+                            sys.exit("MISSING REPLICATION FACTOR CODE!")
                 else:
                     repl_present = 1
-                    skip_codes -= num_elements + 1 #+ repl_present - 1
+                    skip_codes  -= num_elements + 1
 
-                if not repl_factor:
-                    print("STILL NO REPL")
-                    return None, 0, (num_elements+1, 0)
-
-                if num_elements == 1:
-                    print("NEXT CODE")
-                    next_code = next(codes_repl)
-                    print(next_code)
-                    if next_code in bf.sequence_range:
-                        print("SEQ")
-                        elements = bf.bufr_sequences[next_code]
-                        skip_codes += 1; skip_vals -= 1
-                    else: elements = [next_code]
-                else: elements = [ next(codes_repl) for _ in range(num_elements) ]
+                if not repl_factor: # and not repl_present
+                    print("NO REPL")
+                    return [], 0, (num_elements + repl_present, skip_vals)
+                    #return [], 0, (num_elements + repl_present, 1)
+                    #TODO incomment for 1 min value stations to work
+                    #return [], 0, (num_elements + repl_present, repl_present)
+                    #TODO incomment for regular stations to work
+                    #return [], 0, (num_elements + 1, 0)
+                elif repl_factor == 10:
+                    # replication factor 10 is always defined by 3100X code
+                    if debug: pdb.set_trace()
+                    skip_codes -= 1; skip_vals -= 1
                 
-                skip_codes += num_elements + repl_present
+                if num_elements == 1:
+                    next_code = next(codes_repl)
+                    if next_code in bf.sequence_range:
+                        elements = bf.bufr_sequences[next_code]
+                        #skip_codes += 1; skip_vals -= 1
+                    else:
+                        elements = [next_code]
+                        #TODO incomment for 1 min value stations to work
+                        #skip_vals -= repl_present
+                        #skip_vals -= 1
+                else:
+                    elements = [ next(codes_repl) for _ in range(num_elements) ]
+                    skip_codes -= 1; skip_vals -= 1
+
+                skip_codes  += num_elements + repl_present
+                #skip_vals   += repl_present
                 #print("NEXT AFTER ELEMENTS", next(codes_repl))
                 print("REPL ELEMENTS / REPL / SKIP CODES / SKIP VALS")
                 print(tuple(elements), repl_factor, skip_codes, skip_vals)
                 return elements, repl_factor, (skip_codes, skip_vals)
-
-
+            
+            
+            previous_code = unexp[0]
+            
+            #continue_loop = True
+            #while continue_loop:
             while True:
                 try:
                     code = next(codes)
@@ -561,35 +559,53 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                             for _ in range(skip_codes): next(codes)
                             for _ in range(skip_vals):  next(vals)
 
-                        elif code in bf.scale_size_change:
-                            print("SCALE / DATASIZE CHANGE!")
-                            if code in bf.scale_change: obs_list.append( (code, None) )
+                        elif code in bf.scale_size_alter:
+                            print("SCALE / DATASIZE ALTERATION!")
+                            if code in bf.scale_alter:
+                                if previous_code != 202129:
+                                    obs_list.append( (code, None) )
+                                else: del obs_list[-1]
+                                previous_code = copy(code)
                         
-                        elif code in repl_range:
+                        elif code in bf.repl_range:
+                            val = next(vals)
                             codes_repl, repl_factor, skip   = get_repl_codes(codes, code, vals, val)
                             skip_codes, skip_vals           = skip
                             print("SKIP CODES", skip_codes)
                             for _ in range(skip_codes): next(codes) 
+                            print("SKIP VALUES", skip_vals)
                             for _ in range(skip_vals):  next(vals)
 
                             print("REPL:", repl_factor)
+                            scale_changed = False
+
+                            # necessary for 1 min resolution RR and ww values (scale increase)
+                            if 202129 in codes_repl or 201132 in codes_repl:
+                                if 202129 in codes_repl:
+                                    obs_list.append( (202129, None) )
+                                    scale_changed = True
+                                codes_repl = [i for i in codes_repl if i not in bf.scale_size_alter]
+
                             for _ in range(repl_factor):
                                 for code_r in codes_repl:
-                                    if code_r in bf.scale_size_change:
-                                        print("SCALE / DATASIZE CHANGE!")
+                                    if code_r in bf.scale_size_alter:
+                                        print("SCALE / DATASIZE ALTERATION!")
                                         if code in bf.scale_change: obs_list.append( (code, None) )
                                         continue
                                     val_r = next(vals)
-                                    print(bf.int_to_code(code_r), val_r)
-                                    if code_r in bf.relevant_codes and val_r not in bf.null_vals_ex:
+                                    print(bf.int2code(code_r), val_r)
+                                    if code_r in bf.relevant_codes and val_r not in bf.null_vals:
                                         obs_list.append( (code_r, val_r) )
+                            
+                            #if not repl_factor: next(vals)
+                            if scale_changed: obs_list.append( (202000, None) )
 
                         else:
-                            if code in bf.relevant_codes and val not in bf.null_vals_ex:
+                            if code in bf.relevant_codes and val not in bf.null_vals:
                                 val = next(vals)
-                                print(bf.int_to_code(code), val)
+                                print(bf.int2code(code), val)
                                 obs_list.append( (code, val) )
-                            else: print(bf.int_to_code(code), next(vals))
+                            else: print(bf.int2code(code), next(vals))
 
                     # get blockNumber, stationNumber and datetime info
                     elif code == 1001:
@@ -598,11 +614,15 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         skip_codes, skip_vals   = skip
                         for _ in range(skip_codes): next(codes)
                         for _ in range(skip_vals):  next(vals)
-                    else: print(bf.int_to_code(code), next(vals))
+                    
+                    else: print(bf.int2code(code), next(vals))
 
                 # if we encounter a StopIteration error we break the loop
-                except StopIteration: break
-                else: continue
+                except StopIteration:   break
+                else:                   continue
+                #except StopIteration:   continue_loop = False; continue # break while loop
+                #else:                   continue_loop = True            # continue while loop
+            
             # end of while loop
 
             if obs_list:
@@ -611,6 +631,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 try:    obs_bufr[ID][location][datetime] += obs_list
                 except: obs_bufr[ID][location] = { datetime : obs_list }
 
+        
         # end of with clause (closes file handle)
         ec.codes_release(bufr)
 
@@ -658,12 +679,6 @@ if __name__ == "__main__":
     msg    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
     msg   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
     parser = argparse.ArgumentParser(description=msg)
- 
-    # add arguments to the parser
-    #arguments = (
-    #    ("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set log level"),
-    #    ) 
-    #for arg in arguments: parser.add_argument(*arg)
     parser.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set log level")
     parser.add_argument("-i","--pid_file", action='store_true', help="create a pid file to check if script is running")
     parser.add_argument("-f","--file", help="parse single file bufr file, will be handled as source=extra by default")
@@ -672,23 +687,20 @@ if __name__ == "__main__":
     #TODO replace profiler by number of processes (prcs) when real multiprocessing (using module) is implemented
     parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
     parser.add_argument("-C","--config", default="config", help="set name of config file")
-    parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
     parser.add_argument("-n","--max_files", type=int, help="maximum number of files to parse (per source)")
     parser.add_argument("-s","--sort_files", action='store_true', help="sort files alpha-numeric before parsing")
     parser.add_argument("-o","--timeout", help="timeout in seconds for station databases")
     parser.add_argument("-b","--debug", action='store_true', help="enable or disable debugging")
-    parser.add_argument("-e","--extract_subsets", help="extract specific subsets only ('N', 'x,y,z' or 'start-end')")
     parser.add_argument("-k","--skip", default="", help="skip [c]omputed, [f]unction and/or [d]uplicate keys")
-    #parser.add_argument("-x","--extra", help="provide extra source name(s); can be singel name or comma seperated")
+    parser.add_argument("-e","--extract_values", help="extract additional values (needed for DWD Germany BUFRs)")
+    parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     parser.add_argument("-T","--tables", help="(absolute) path to ECCODES BUFR tables directory")
     parser.add_argument("-r","--redo", action='store_true', help="decode bufr again even if already processed")
     parser.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
     parser.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
-
     #TODO add shelve option to save some RAM
-
     args = parser.parse_args()
 
     #read configuration file into dictionary
@@ -752,10 +764,11 @@ if __name__ == "__main__":
     
     output_path = config["general"]["output_path"]
 
+    # output_path in script config has priority over general config
     if "output_path" in config_script:
         output_path = config_script["output_path"]
 
-    if args.clusters: config_source["clusters"] = set(args.clusters.split(","))
+    if args.clusters: config_source["clusters"] = frozenset(args.clusters.split(","))
 
     # get configuration for the initialization of the database class
     config_database = config["database"]
@@ -768,17 +781,13 @@ if __name__ == "__main__":
 
     #parse command line arguments
     if args.file: decode_bufr_ex( file=args.file, pid_file=pid_file )
-    
     elif args.source:
         source = config["sources"][args.source]
-
         if "," in source:
             sources = source.split(","); config_sources = {}
             for s in sources:
                 config_sources[s] = config["sources"][s]
-
         else: config_sources = { args.source : config["sources"][args.source] }
-    
     else: config_sources = config["sources"]
 
     if not args.file:

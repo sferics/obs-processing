@@ -1,0 +1,47 @@
+obs_raw:
+  dataset:  text NOT NULL # raw tables only!
+  file:     int DEFAULT 0 # file ID from file_table (main database)
+  datetime: datetime NOT NULL
+  duration: text
+  element:  text NOT NULL
+  value:    text NOT NULL
+  cor:      integer DEFAULT 0 #TODO number of corrections (COR/CCA)
+  scale:    real DEFAULT NULL
+  reduced:  integer DEFAULT 0 #TODO will be set to 1 after handled by "reduce_obs.py"
+  #UNIQUE:   (datetime, dataset, file, duration, element, value, scale, cor, reduced)
+  UNIQUE:   (dataset, datetime, duration, element) #file, cor
+
+obs_forge:
+  datetime: datetime NOT NULL
+  duration: text
+  element:  text NOT NULL
+  value:    text NOT NULL
+  UNIQUE:   (datetime, duration, element)
+
+obs_dev:
+  datetime: datetime NOT NULL
+  duration: text
+  element:  text NOT NULL
+  value:    text NOT NULL
+  UNIQUE:   (datetime, duration, element)
+
+obs_bad:
+  dataset:  text NOT NULL
+  file:     int DEFAULT 0
+  datetime: datetime NOT NULL
+  duration: text
+  element:  text NOT NULL
+  value:    text NOT NULL
+  reason:   text NOT NULL
+  UNIQUE:   (datetime, duration, element)
+
+obs_stats:
+  datetime: datetime NOT NULL
+  duration: text
+  element:  text NOT NULL
+  minimum:  real DEFAULT NULL
+  maximum:  real DEFAULT NULL
+  average:  real DEFAULT NULL
+  median:   real DEFAULT NULL
+  stdev:    real DEFAULT NULL # standard deviation
+  UNIQUE:   (datetime, duration, element)
