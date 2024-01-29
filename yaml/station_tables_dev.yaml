@@ -6,7 +6,7 @@ model:
   value:    real
   UNIQUE:   (datetime, element, model)
 
-obs_raw:
+obs:
   dataset:  text NOT NULL # raw tables only!
   file:     int DEFAULT 0 # file ID from file_table (main database)
   datetime: datetime NOT NULL

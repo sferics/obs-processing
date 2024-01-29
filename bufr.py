@@ -1,16 +1,82 @@
 import sys
 import re
 import eccodes as ec
+import numpy as np
 from copy import copy
 from datetime import datetime as dt, timedelta as td
 import global_functions as gf
 import global_variables as gv
 
+# general functions and constants
+
+to_code = lambda integer : str(integer).rjust(6, "0")
+
+def to_wmo( block, station, add_zero=True ):
+    """
+    Get WMO ID from blockNumber and stationNumber
+    """
+    location = station + block * 1000
+    location = str(location).rjust(5,"0")
+
+    if add_zero: location += "0"
+
+    return location
+
 
 class bufr_class:
-    
-    def __init__(self, config={"log_level":"ERROR","verbose":0,"traceback":0,"debug":"0"}, script="us"):
+   
+    # general function definitions and constants which are always available, even before class init
+    # https://stackoverflow.com/questions/45268794/calling-a-class-function-without-triggering-the-init
+    #TODO consider whether this is necessary???
+    @staticmethod
+    def to_code(integer):
+        """
+        Parameter:
+        ----------
 
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        return str(integer).rjust(6, "0")
+    
+    @staticmethod
+    def to_wmo( block, station, add_zero=True ):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+        Get WMO ID from blockNumber and stationNumber
+
+        Return:
+        -------
+
+        """
+        location = station + block * 1000
+        location = str(location).rjust(5,"0")
+
+        if add_zero: location += "0"
+
+        return location
+
+
+    def __init__(self, config={"log_level":"ERROR","verbose":0,"traceback":0,"debug":"0"}, script="us"):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         # parse all keys and values of config dict into namespace, a bit like in database.py
         for i in config:
             exec( f'self.{i} = "{config[i]}"' )
@@ -117,21 +183,26 @@ class bufr_class:
                 self.bufr_translation = copy(self.bufr_translation_codes)
 
                 self.obs_time_keys  = frozenset( set(self.bufr_translation_keys) | set(self.time_keys) - {"cloudBase"} )
-                self.relevant_keys  = frozenset( self.obs_time_keys|self.station_keys|self.typical_keys )
+                self.relevant_keys  = frozenset( self.obs_time_keys | self.station_keys | self.typical_keys )
 
                 # all codes which contain timePeriod information
                 self.tp_codes       = frozenset( {4023, 4024, 4025, 4026} )
                 # codes which alter height/depth of sensor
                 self.height_depth_codes = frozenset( self.height_codes | self.depth_codes )
                 # all codes which modify the following keys duration, height, depth and so on
-                self.modifier_codes = frozenset( self.tp_codes | self.height_depth_codes | {4065} )
+                self.modifier_codes = frozenset( self.tp_codes | self.height_depth_codes )
 
                 if script == "ex":
-                    
-                    self.datetime_codes = {4001:"year",4002:"month",4003:"day",4004:"hour",4005:"minute"}
+                    self.datetime_codes = {
+                        4001 : "year",  # XXXX
+                        4002 : "month", # XX
+                        4003 : "day",   # XX
+                        4004 : "hour",  # XX
+                        4005 : "minute" # XX
+                    }
                     self.station_codes  = frozenset( {1001, 1002} ) # 1018
                     self.bufr_sequences = gf.read_yaml( self.bufr_sequences )
-                    self.sequence_range = range( min(self.bufr_sequences),max(self.bufr_sequences) )
+                    self.sequence_range = range(min(self.bufr_sequences), max(self.bufr_sequences))
                     self.scale_increase = 0
 
                     self.scale_alter = {
@@ -149,10 +220,10 @@ class bufr_class:
                         201132 : 4, # temporarily increase data size by 4 bits
                     }
                     
-                    self.scale_size_alter = frozenset( set(self.scale_alter) | set(self.size_alter) )
+                    self.scale_size_alter = frozenset(set(self.scale_alter) | set(self.size_alter))
 
-                    self.repl_range      = range(101000, 131000) # 131XXX is reserved for repeating sequences
-                    self.repl_seq_range  = range(131000, 132000) # repeat next sequence up to 999 times (0=repl)
+                    self.repl_range      = range(101000, 131000) # range of repeated elements
+                    self.repl_seq_range  = range(131000, 132000) # repeat next sequence (999 times)
 
             case "se" | "pd" | "fl":
                 
@@ -203,24 +274,21 @@ class bufr_class:
     clear       = lambda self, keyname  : str( re.sub( r"#[0-9]+#", '', keyname ) )
     number      = lambda self, keyname  : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
     to_key      = lambda self, key, num : "#{num}#{key}"
-    int2code    = lambda self, integer  : str(integer).rjust(6,"0")
 
 
     ### class functions
-    def get_wmo( self, block, station, add_zero=True ):
-        """
-        Get WMO ID from blockNumber and stationNumber
-        """
-        location = station + block * 1000
-        location = str(location).rjust(5,"0")
-        
-        if add_zero: location += "0"
-        
-        return location
-
-
     def translate_key_00( self, key, value, duration, h=None, unit=None ):
+        """
+        Parameter:
+        ----------
 
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         key_db = self.bufr_translation[key]
 
         if key_db is None: return None, None, None
@@ -250,7 +318,17 @@ class bufr_class:
 
 
     def translate_key_se( self, key, value, duration, h=None ):
+        """
+        Parameter:
+        ----------
 
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         key_db = self.bufr_translation[key]
 
         if key_db is None: return None, None, None
@@ -273,7 +351,17 @@ class bufr_class:
 
 
     def translate_key_ex( self, key, value, duration, h=None ):
-        
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         key_db = self.bufr_translation[key]
 
         if key_db is None: return None, None, None, None
@@ -299,7 +387,17 @@ class bufr_class:
 
 
     def translate_key_pd( self, key, value, duration, h=None ):
+        """
+        Parameter:
+        ----------
 
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         key_db = self.bufr_translation[key]
 
         if key_db is None: return None, None, None
@@ -325,7 +423,17 @@ class bufr_class:
 
     # version with units, without scale (decode_bufr_ex.py)
     def convert_keys_00(self, obs, dataset, verbose=None):
-        
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         if verbose is None: verbose = self.verbose
 
         #if verbose: print(obs)
@@ -426,7 +534,17 @@ class bufr_class:
 
     # version with units and scale (uses codes instead of keys)
     def convert_keys_ex( self, obs, dataset, verbose=False):
+        """
+        Parameter:
+        ----------
 
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         #time_periods = self.bufr_translation["timePeriod"]
 
         if verbose: print(obs)
@@ -434,13 +552,13 @@ class bufr_class:
         #obs_db = shelve.open("shelves/obs_db.shelve", writeback=True)
 
         for file in obs:
-
+            print(file)
             for location in obs[file]:
-
+                print(file)
                 if location not in obs_db: obs_db[location] = set()
 
                 for datetime in obs[file][location]:
-
+                    print(datetime)
                     if datetime.minute in {0,30}:   datetime_db = datetime - td(minutes=10)
                     else:                           datetime_db = copy(datetime)
 
@@ -467,21 +585,26 @@ class bufr_class:
                             except: duration    = "" # TODO or continue to skip unknown duration?
                             datetime_db = copy(datetime)
                         elif code == 8002:
-                            vertical_sigf = self.bufr_flags[code][int(val_obs)]
+                            try:    vertical_sigf = self.bufr_flags[code][int(val_obs)]
+                            except KeyError:
+                                print(code, val_obs)
+                                print(data)
                         elif code == 7032:
                             sensor_height = float(val_obs)
+                            continue
                         elif code == 7061:
                             sensor_depth  = float(val_obs) * (-1)
+                            continue
                         elif code in self.scale_alter:
                             self.scale_increase = self.scale_alter[code]
                         else:
                             if code in self.height_depth_codes:
-                                if code == 12030:
+                                if code in self.depth_codes: # soilTemperature
                                     h = copy(sensor_depth)
                                     if not h or h > 0: h = -0.05
-                                else:
+                                else: # we only accept temperatures measured at >= 1m as T2m
                                     h = copy(sensor_height)
-                                    if not h or h > 1: h = 2.0
+                                    if not h or h >= 1: h = 2.0
 
                                 element, val_db, duration, scale = self.translate_key_ex(code, val_obs, duration, h=h)
 
@@ -531,7 +654,17 @@ class bufr_class:
 
     # skip extra key attributes (like units) version
     def convert_keys_se(self, obs, dataset, verbose=None):
-        
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         time_periods = self.bufr_translation["timePeriod"]
 
         if verbose is None: verbose = self.verbose
@@ -653,7 +786,17 @@ class bufr_class:
 
     # pdbufr version
     def convert_keys_pd( self, obs, dataset, verbose=None ):
+        """
+        Parameter:
+        ----------
 
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         if verbose is None: verbose = self.verbose
 
         time_periods = self.bufr_translation["timePeriod"]

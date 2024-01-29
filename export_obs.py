@@ -5,12 +5,33 @@ from global_variables import null_vals
 #TODO write converter from database to MSwr/metwatch format
 
 def read_obs( path ):
+    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """
     # read obs from csv files and store into dictionary
     pass
 
 
 def export_obs( data, output, fmt="csv" ):
+    """
+    Parameter:
+    ----------
 
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """
     import numpy as np
     from datetime import datetime as dt, timedelta as td
     import psutil, os, sys, pathlib, gzip, subprocess
@@ -25,11 +46,33 @@ def export_obs( data, output, fmt="csv" ):
     n = lambda x : x
 
     def to_type(station):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         d = {0: "SYNO"}
         return d[station]
 
 
     def to_lat(lat):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         try: lat = float(lat) 
         except: return "/"
         celestial = "N" if lat > 0 else "S"
@@ -44,6 +87,17 @@ def export_obs( data, output, fmt="csv" ):
 
 
     def to_lon(lon):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         try: lon = float(lon)
         except: return "/"
         celestial = "E" if lon > 0 else "W"
@@ -58,6 +112,17 @@ def export_obs( data, output, fmt="csv" ):
 
 
     def get_first( key ):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         h1 = list(data[DATE][station].keys())[0]
         m1 = list(data[DATE][station][h1].keys())[0]
         t1 = list(data[DATE][station][h1][m1].keys())[0]
@@ -65,7 +130,17 @@ def export_obs( data, output, fmt="csv" ):
 
 
     def get_any( key ):
+        """
+        Parameter:
+        ----------
 
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         for mins in data[DATE][station][hour]:
             for time in data[DATE][station][hour][mins]:
                 try:
@@ -76,12 +151,34 @@ def export_obs( data, output, fmt="csv" ):
 
 
     def get_timeperiod( key, time ):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         #at 00, specific timeperiod
         try: return str(data[DATE][station][hour]["00"][time][key])
         except: return ""
 
 
     def get_mins( key, mins ):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
         #any timeperiod
         try:
             for time in data[DATE][station][hour][mins]:

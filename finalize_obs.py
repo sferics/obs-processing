@@ -5,7 +5,17 @@ from database import database_class
 import global_functions as gf
 
 def conclude_obs(stations):
+    """
+    Parameter:
+    ----------
 
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """
     for loc in stations:
         db_file = f"{output_path}/forge/{loc[0]}/{loc}.db"
         try: db_loc = database_class( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )

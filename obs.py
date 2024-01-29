@@ -6,17 +6,23 @@ import global_variables as gv
 
 
 class obs_class:
-    def __init__(self, typ: str="raw", config: dict={}, source: str="test", mode: str="dev"):
+    def __init__(self, config: dict={}, source: str="test", mode: str="dev", stage: str="raw"):
         """
-        """
-        #TODO can we remove typ and replace its position by mode?
-        # when would we ever want to insert obs into databases which are not RAW?
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
         
-        assert( typ in {"raw","forge","final"} and mode in {"dev","oper","test"} )
+        """
+        assert( mode in {"dev","oper","test"} and stage in {"raw","forge","final"} )
 
         self.source = source
-        self.typ    = typ
         self.mode   = mode
+        self.stage  = stage
        
         try:    self.output_path    = str(config["output_path"])
         except: self.output_path    = "/home/juri/data/stations"
@@ -47,50 +53,63 @@ class obs_class:
 
 
     #TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
-    def to_station_databases(self, obs_db, source=None, scale=False, typ=None, output_path=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings=None):
+    def to_station_databases(self, obs_db, source=None, scale=False, mode=None, stage=None, output_path=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings={}):
         #TODO
         """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
         """
-        #TODO implement typ match case for SQL and try/except/else: if verbose part
+        #TODO implement stage match case for SQL and try/except/else: if verbose part
         if source is None:      source      = self.source
         if output_path is None: output_path = self.output_path
-        if typ is None:         typ         = self.typ
+        if mode is None:        mode        = self.mode
+        if stage is None:       stage       = self.stage
         if max_retries is None: max_retries = self.max_retries
         if commit is None:      commit      = self.commit
         if timeout is None:     timeout     = self.timeout
         if traceback is None:   tracback    = self.traceback
         if verbose is None:     verbose     = self.verbose
-        if settings is None:    settings    = self.settings
+        if settings is {}:      settings    = self.settings
 
         # insert values or update value if we have a newer cor, then set parsed = 0 as well
-        #TODO statements for different typs
-        match typ:
+        # statements for different stages
+        match stage:
             case "raw":
                 if scale:
-                    sql = ( f"INSERT INTO obs_raw (dataset,file,datetime,duration,element,value,cor,scale) VALUES "
+                    sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor,scale) VALUES "
                         f"('{source}',?,?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
                         f"file = excluded.file WHERE excluded.cor > obs.cor and excluded.file > obs.file" )
                 else:
-                    sql = ( f"INSERT INTO obs_raw (dataset,file,datetime,duration,element,value,cor) VALUES "
+                    sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES "
                         f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
                         f"file = excluded.file WHERE excluded.cor > obs.cor and excluded.file > obs.file" )
             case "forge":
-                sql = ( f"INSERT INTO obs_forge (dataset,datetime,duration,value) VALUES(?,?,?,?) "
+                sql = ( f"INSERT INTO obs (dataset,datetime,duration,value) VALUES(?,?,?,?) "
                         f"ON CONFLICT DO UPDATE SET value=excluded.value" )
             case "final":
-                sql = ( f"INSERT INTO obs_{mode} (dataset,datetime,duration,value) VALUES(?,?,?,?) "
+                sql = ( f"INSERT INTO obs (dataset,datetime,duration,value) VALUES(?,?,?,?) "
                         f"ON CONFLICT DO UPDATE SET value=excluded.value" )
 
         for loc in obs_db:
-            created = self.create_station_tables(loc, output_path, self.mode, max_retries, 1, 1, verbose=verbose)
+            created = self.create_station_tables(loc, output_path, mode, stage, max_retries, 1, 1, verbose=verbose)
+            
             if not created: continue
+            station_path = output_path + "/" + mode + "/" + stage
+            print(station_path)
 
             retries = copy(max_retries)
+            config_dict = {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose}
 
             while retries > 0:
                 try:
-                    config_dict = {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose}
-                    db_loc = database_class( f"{output_path}/{typ}/{loc[0]}/{loc}.db", config_dict )
+                    db_loc = database_class( f"{station_path}/{loc[0]}/{loc}.db", config_dict )
                     db_loc.exemany( sql, obs_db[loc] )
                 except sqlite3.Error as e:
                     print(e, retries)
@@ -98,7 +117,7 @@ class obs_class:
                     if verbose: print(f"Retrying to insert data", retries, "times")
                     continue
                 else:
-                    if typ == "raw" and verbose:
+                    if stage == "raw" and verbose:
                         print(loc)
                         loc = list(obs_db[loc])
                         for i in range(len(loc)):
@@ -117,7 +136,7 @@ class obs_class:
                 db_loc.close(commit=True)
 
 
-    def create_station_tables( self, loc, output_path=None, mode=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings=None ):
+    def create_station_tables( self, loc, output_path=None, mode=None, stage=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings={} ):
         """
         Parameter:
         ----------
@@ -136,14 +155,15 @@ class obs_class:
         """
         if output_path is None: output_path = self.output_path
         if mode is None:        mode        = self.mode
+        if stage is None:       stage       = self.stage
         if max_retries is None: max_retries = self.max_retries
         if commit is None:      commit      = self.commit
         if timeout is None:     timeout     = self.timeout
         if traceback is None:   tracback    = self.traceback
         if verbose is None:     verbose     = self.verbose
-        if settings is None:    settings    = self.settings
+        if settings is {}:      settings    = self.settings
 
-        station_path = f'{output_path}/{mode}/{loc[0]}'
+        station_path = f'{output_path}/{mode}/{stage}/{loc[0]}'
         gf.create_dir( station_path )
         db_path = f'{station_path}/{loc}.db'
 
@@ -162,7 +182,6 @@ class obs_class:
                 retries -= 1
                 continue
             else:
-                print(mode)
                 match mode:
                     case "oper" | "test":   mode_tables = 5
                     case "dev":             mode_tables = 6
@@ -177,8 +196,8 @@ class obs_class:
         else:
             if verbose: print("Creating table and adding columns...")
 
-            # read structure file station_tables into a dict
-            tables = gf.read_yaml( f"station_tables_{mode}" )
+            # read yaml structure file for station tables into a dict
+            tables = gf.read_yaml( f"station_tables_{mode}_{stage}" )
 
             for table in tables:
                 retries = copy(max_retries)
@@ -186,7 +205,7 @@ class obs_class:
                     try:
                         created = db_loc.create_table( table, tables[table], verbose=verbose )
                     except sqlite.Error as e:
-                        print(e, retries)
+                        print(e)
                         retries -= 1
                         continue
                     else:

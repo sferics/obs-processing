@@ -10,7 +10,17 @@ import global_functions as gf
 #dataset = "test"
 
 def reduce_obs(stations):
+    """
+    Parameter:
+    ----------
 
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """
     # for st in stations:
     # get only data rows with highest file ID and copy the remaining data to forge databases
     for loc in stations:

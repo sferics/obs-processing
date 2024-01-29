@@ -8,7 +8,16 @@ import logging as log
 
 def convert_imgw_keys(key, data):
     """
-    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """ 
     element     = elements[key][0]
     duration    = elements[key][1]
     value       = elements[key][2] * float(data[key])

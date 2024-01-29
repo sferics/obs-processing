@@ -11,7 +11,17 @@ from database import database_class
 
 
 def delete_duplicate_obs(stations):
-    
+    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """    
     for loc in stations:
 
         print("\n",loc)

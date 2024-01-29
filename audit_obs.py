@@ -7,7 +7,17 @@ import global_functions as gf
 
 
 def audit_obs(stations):
+    """
+    Parameter:
+    ----------
 
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """
     # for st in stations:
     # get only data rows with highest file ID and copy the remaining data to forge databases
     
@@ -46,7 +56,7 @@ def audit_obs(stations):
                         reson = "to_high"
                     
                     # 3b delete bad data -> move to obs_bad database
-                    sql.append(f"DELETE FROM obs WHERE datetime='{row[0]}' AND duration='{row[1]}' AND element='{row[2]}' AND value='{row[3]}'"])
+                    sql.append(f"DELETE FROM obs WHERE datetime='{row[0]}' AND duration='{row[1]}' AND element='{row[2]}' AND value='{row[3]}'")
                     sql.append(f"INSERT INTO obs_bad (datetime,duration,element,value,reason) VALUES ({row[0]},{row[1]},{row[2]},{row[3]},{reason})")
 
                 for s in sql:

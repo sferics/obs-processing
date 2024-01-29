@@ -17,7 +17,16 @@ to_datetime_hour    = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hou
 #TODO maybe we need a log_class???
 def get_logger(script_name, log_level="NOTSET", log_path="log", mode="w", formatter=""):
     """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
     inspired by: https://stackoverflow.com/a/69693313
+
+    Return:
+    -------
+
     """
     from global_variables import log_levels
     assert(log_level in log_levels)
@@ -42,8 +51,17 @@ def get_logger(script_name, log_level="NOTSET", log_path="log", mode="w", format
 
 def get_script_name(FILE, realpath=True):
     """
-    returns the name of the current script. if realpath is True, symlinks are resolved
-    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+    Name of the current script. if realpath is True, symlinks are resolved
+
+    """ 
     if realpath:
         path = os.path.realpath(FILE)
         return path.split("/")[-1]
@@ -54,7 +72,16 @@ def get_script_name(FILE, realpath=True):
 def obs_to_station_databases( obs_db, source, output_path, max_retries=100, timeout=5, verbose=0 ):
     #TODO
     """
-    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """ 
     from database import database_class
     # insert values or update value if we have a newer cor, then set parsed = 0 as well
     sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES " 
@@ -181,7 +208,11 @@ def merge_list_of_dicts( list_of_dicts, add_keys=True ):
         return out_dict
 
 def fname():
-    # get the frame object of the frame or function
+    """
+    Return:
+    -------
+    get the frame object of the frame or function
+    """
     frame = inspect.currentframe()
     return frame.f_code.co_name
 
@@ -296,8 +327,17 @@ def read_yaml(file_name="config", directory="yaml", ext="yaml", typ="safe", pure
 
     # the following code was borrowed from here: https://stackoverflow.com/a/65516240
     def flatten_sequence(sequence: yaml.Node):
-        """Flatten a nested sequence to a list of integers
-            A nested structure is always a SequenceNode
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+        Flatten a nested sequence to a list of integers. A nested structure is always a SequenceNode
+
+        Return:
+        -------
+
         """
         if isinstance(sequence, yaml.ScalarNode):
             yield sequence.value
@@ -313,11 +353,19 @@ def read_yaml(file_name="config", directory="yaml", ext="yaml", typ="safe", pure
                 raise TypeError(f"'!flatten' can only take scalar nodes, not {el}")
 
     def construct_flat_list(loader: loader, node: yaml.Node):
-        """Make a flat list, should be used with '!flatten'
+        """
+        Parameter:
+        ----------
+        loader: Unused, but necessary to pass to `yaml.add_constructor`
+        node: The passed node to flatten
 
-        Args:
-            loader: Unused, but necessary to pass to `yaml.add_constructor`
-            node: The passed node to flatten
+        Notes:
+        ------
+        Make a flat list, should be used with '!flatten'
+
+        Return:
+        -------
+
         """
         return list(flatten_sequence(node))
 
@@ -567,6 +615,15 @@ def rh2dp( rh, T ):
 def qfe( ppp, h, t, lat ):
     #TODO lat to phi, doctring
     """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+
     """
     if t < -7: #°C!
         t = 0.5*t + 275 #K!
@@ -582,6 +639,15 @@ def qfe( ppp, h, t, lat ):
 def qnh( ppp, h, t ):
     #TODO docstring
     """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+
     """
     a = 18429.1; b = 67.53; c = 0.003
     return h / (a + b*t + c*h)

@@ -157,15 +157,15 @@ scripts:
     traceback:        1 # enable traceback prints
     timeout:          3 # timeout for station databases
     multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
-    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_files:        3 #5046 # zero means no maximum #15: 5395
+    min_ram:          2048 # minimum amount of RAM the script leaves free, if value reached: restart
+    max_files:        0 #5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
-    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    sort_files:       1 # sort files alpha-numerically TODO sort by timestamp, recognize CCA/RRA COR
     skip_function:    0
     skip_computed:    0
     skip_duplicates:  0
     mode:             dev
-    output_path:      /home/juri/data/stations_ex
+    output_path:      /home/juri/data/stations
     bufr_translation: bufr_translation_us # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
     bufr_sequences:   bufr_sequences

@@ -127,8 +127,8 @@ virtualTemperature:
 ### META INFORMATION (HEIGHT OF SENSORS AND REPLICATION FACTORS)
 verticalSignificance:   # Vertikale Einordnung (Wolkenschicht)
   008002: ~
-shortTimeIncrement:     # Minutenwerte (RR und ww)
-  004065: ~
+#shortTimeIncrement:     # Minutenwerte (RR und ww)
+#  004065: ~
 #level_descriptors:
 heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform:
   007032: ~
@@ -187,7 +187,7 @@ pressure:
 nonCoordinatePressure:
   010004:                             [GH_1000_syn, 1s, 0.01, 0,-1]
 pressureReducedToMeanSeaLevel:
-  010051:                             [GH_1000_syn, 1s, 0.01, 0,-1]
+  010051:                             [MSL_ms_syn,  1s, 0.01, 0,-1]
 nonCoordinateGeopotential:
   010003:                             [GP_syn,      1s, 0.01, 0,-1]
   010008:                             [GP_syn,      1s, 0.01, 0, 0]

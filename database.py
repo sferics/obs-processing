@@ -96,8 +96,7 @@ class database_class:
         except Exception as e:
             if verbose: gf.print_trace(e)
             return False
-        else:
-            return True
+        else: return True
 
 
     def pragma( self, pragma, args=""):
@@ -1368,8 +1367,7 @@ class database_class:
         if not exists: exists = ""
         sql = f"CREATE TABLE {exists}{table} ("
         
-        if type(columns) == str:
-            sql += columns
+        if type(columns) == str: sql += columns
         
         elif type(columns) == dict:
             for i in columns:
@@ -1381,8 +1379,7 @@ class database_class:
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
-        else:
-            return True
+        else: return True
 
 
     def drop_table( self, table, verbose=None ):
@@ -1408,8 +1405,7 @@ class database_class:
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
-        else:
-            return True
+        else: return True
 
     #TODO add CREATE INDEX statement https://www.sqlite.org/lang_createindex.html
 
@@ -1561,9 +1557,9 @@ class database_class:
         else: return True
 
 
-    set_file_name   = lambda self, ID, name : self.set_file_X( ID, "name", name )
-    set_file_path   = lambda self, ID, path : self.set_file_X( ID, "path", path )
-    set_file_source = lambda self, ID, source : self.set_file_X( ID, "source", source  )
+    set_file_name   = lambda self, ID, name     : self.set_file_X( ID, "name", name )
+    set_file_path   = lambda self, ID, path     : self.set_file_X( ID, "path", path )
+    set_file_source = lambda self, ID, source   : self.set_file_X( ID, "source", source  )
     
 
     def set_file_date( self, ID, date, verbose=None ):
@@ -1591,8 +1587,7 @@ class database_class:
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
-        else:
-            return True
+        else: return True
 
 
     def set_file_status( self, ID, status, verbose=None ):
@@ -1618,8 +1613,7 @@ class database_class:
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
-        else:
-            return True
+        else: return True
 
     
     def set_file_statuses( self, file_statuses, retries=100, timeout=5, verbose=None ):

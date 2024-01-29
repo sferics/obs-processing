@@ -6,24 +6,69 @@ from database import database_class
 import global_functions as gf
 
 
+def get_distinct_months(year):
+    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """
+    db_loc.exe((f"SELECT DISTINCT strftime('%m', datetime) FROM obs WHERE element = '{p_old}' "
+                    f"AND strftime('%Y', datetime) = '{year}'"))
+    return db_loc.fetch()
+
+
+def get_distinct_days(year, monrh):
+    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """
+    db_loc.exe((f"SELECT DISTINCT strftime('%d', datetime) FROM obs WHERE element='{p_old}' AND "
+                    f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{month}'"))
+    return db_loc.fetch()
+
+
+def get_distinct_hours(year, month, day):
+    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+
+    """
+    db_loc.exe((f"SELECT DISTINCT strftime('%H', datetime) FROM obs WHERE element='{p_old}' AND strftime('%Y', "
+        f"datetime) = '{year}' AND strftime('%m', datetime) = '{month}' AND strftime('%d', datetime) = '{day}'"))
+    return db_loc.fetch()
+
+
 def aggregate_obs(stations):
-    def get_distinct_months(year):
-        db_loc.exe((f"SELECT DISTINCT strftime('%m', datetime) FROM obs WHERE element = '{p_old}' "
-                        f"AND strftime('%Y', datetime) = '{year}'"))
-        return db_loc.fetch()
+    """
+    Parameter:
+    ----------
 
+    Notes:
+    ------
 
-    def get_distinct_days(year, monrh):
-        db_loc.exe((f"SELECT DISTINCT strftime('%d', datetime) FROM obs WHERE element='{p_old}' AND "
-                        f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{month}'"))
-        return db_loc.fetch()
+    Return:
+    -------
 
-
-    def get_distinct_hours(year, month, day):
-        db_loc.exe((f"SELECT DISTINCT strftime('%H', datetime) FROM obs WHERE element='{p_old}' AND strftime('%Y', "
-            f"datetime) = '{year}' AND strftime('%m', datetime) = '{month}' AND strftime('%d', datetime) = '{day}'"))
-        return db_loc.fetch()
-
+    """
     for loc in stations:
         
         sql_values = set()
