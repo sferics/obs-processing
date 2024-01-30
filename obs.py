@@ -102,7 +102,6 @@ class obs_class:
             
             if not created: continue
             station_path = output_path + "/" + mode + "/" + stage
-            print(station_path)
 
             retries = copy(max_retries)
             config_dict = {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose}
