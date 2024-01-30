@@ -50,14 +50,13 @@ def derive_obs(stations):
             if traceback:   gf.print_trace(e)
             continue
         
-        sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('Tmax_2m_syn','Tmax_5cm_syn','Tmin_2m_syn','Tmin_5cm_syn') AND strftime('%H', datetime) = '09'"
-
-        sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element LIKE 'CB%_syn'"
-
-        #sql = "UPDATE OR IGNORE obs SET element='TCC_1C_syn' WHERE element='TCC_ceiling_syn'"
-        try:    db_loc.exe(sql)
-        except: continue
-        else:   db_loc.commit()
+        if source in {"test","DWD"}:
+            sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('Tmax_2m_syn','Tmax_5cm_syn','Tmin_2m_syn','Tmin_5cm_syn') AND strftime('%H', datetime) = '09'"
+            #sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element LIKE 'CB%_syn'"
+            #sql = "UPDATE OR IGNORE obs SET element='TCC_1C_syn' WHERE element='TCC_ceiling_syn'"
+            try:    db_loc.exe(sql)
+            except: continue
+            else:   db_loc.commit()
 
         """
         sql1="SELECT datetime,duration,element,value FROM obs WHERE element = '%s'"
@@ -130,7 +129,7 @@ def derive_obs(stations):
 if __name__ == "__main__":
     
    #TODO implement source option! for now, just stick with test
-    src = "test"
+    source = "test"
 
     config          = gf.read_yaml( "config" )
     db_settings     = config["database"]["settings"]
@@ -147,7 +146,7 @@ if __name__ == "__main__":
     db              = database_class( config=config["database"], ro=True )
     clusters        = set(config_script["clusters"].split(","))
     stations        = db.get_stations( clusters ); db.close(commit=False)
-    stations        = ("101310","104540","103150","103850")
+    #stations        = ("101310","104540","103150","103850")
 
     replacements = config_script["replacements"]
     combinations = config_script["combinations"]

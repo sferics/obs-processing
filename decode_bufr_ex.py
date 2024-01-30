@@ -131,15 +131,15 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
     Notes:
     ------
-    main function of the script, parses all files of a given source and tries to save them in database
-    using the obs_to_station_db() function. includes file handling and sets the status of a file to
-    'locked' before starting to handle it, to 'empty' if no (relevant) data was found in it, to status
-    'error' if something went wrong (which should not occur but we never know...) or - if everything
+    main function of the script, parses all files of a given source and saves them into database
+    using the obs.to_station_databases function. includes file handling and sets status of a file to
+    'locked' before starting to handle it, to 'empty' if it did not contain any (relevant) data, to
+    'error' if something went wrong (which should not occur but we never know...) OR - if everything
     went smooth to status == 'parsed' in the file_table of the main database. pid_file is optional
 
     Return:
     -------
-    None
+    implicit None
     """
     if source:
         # get source-specific settings by subscripting the config_source dict with the source name
@@ -347,7 +347,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             while pos_code < len(unexp):
                 # get code by subscripting position in the unexp array
                 code = unexp[pos_code]
-                # if the code is a sequence but no replication information is directly in front of it
+                # if the code is a sequence but no replication info sits directly in front of it
                 if code in bf.sequence_range and previous_code not in bf.repl_info:
                     # replace sequence codes by actual sequences and apply replication factors
                     codes_seq = bf.bufr_sequences[code]
@@ -372,7 +372,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             # replace missing values by proper 'np.nan' so we can easily detect and exclude NaNs
             vals = [ i if i != -1e+100 else np.nan for i in vals ]
             
-            # create a self-repeating iterator which will always start from the top again (used for codes)
+            # create a self-repeating iterator which will always start from top again (first code)
             codes       = cycle(codes_exp)
             # the value iterator will be exhausted after it hit the last element (used for values)
             vals        = iter(vals)
@@ -381,7 +381,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             
             # station/location and datetime information
             location, datetime = None, None
-            # again we need to keep track of the previous code, is first code in the beginning of the iteration
+            # we need to keep track of the previous code; 1st code in the beginning of the iteration
             previous_code = unexp[0]
         
             def get_repl_codes(codes_repl, code, vals_repl, val):
@@ -403,10 +403,10 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 if debug:
                     print("GET REPL")
                     print( bc.to_code(code), val)
-                # get number of element to be repeated and the amount of repetitions (replication factor)
+                # get number of element to be repeated and the amount of repetitions (repl_factor)
                 num_elements, repl_factor   = get_num_elements_repl_factor(code)
-                # initial values of skip_codes and skip_values; they define how many codes/values to skip
-                # this happens in the while loop after this function in the mains 'vals' and 'codes' iterators
+                # initial values of skip_codes and skip_values; define how many codes/values to skip
+                # this happens in while loop after this function with main vals and codes iterators
                 skip_codes, skip_vals       = -1, -1
 
                 # repl_factor is the replication factor, ergo how many times a code gets repeated
@@ -414,11 +414,11 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     # repl_present tells whether the code already contained replication info
                     repl_present    = 0
                     # get the next iterations of the local, function-internal iterators
-                    #TODO maybe it is yet better to use only the global ones? avoiding confusion but hard to code
+                    #TODO maybe it is yet better to use only the global ones? avoiding confusion...
                     next_code       = next(codes_repl)
                     next_val        = next(vals_repl)
                     
-                    # check the next_code, whether it provides a (short / extended) replication factor
+                    # check the next_code, whether it provides a (short/extended) replication factor
                     match next_code:
                         case 31000: # short delayed replication factor
                             if debug: print(next_code, next_val)
@@ -430,7 +430,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         case 31001 | 31002: # (extended) delayed replication factor
                             if debug: print(next_code, next_val)
                             #if next_val >= 0 and not np.isnan(next_val):
-                            # if the next value is not zero or contains a NaN set repl_factor to value itself
+                            # if the next value is not zero or NaN: set repl_factor to value itself
                             if next_val and not np.isnan(next_val):
                                 repl_factor = int(next_val)
                                 #skip_vals += 1
@@ -438,7 +438,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         case _:
                             if debug: print(code, next_code)
                             # in case we get some other code; release BUFR and stop execution
-                            #TODO just log an error message and set file to error would be more appropiate here
+                            #TODO just log an error message and set file to error would be better
                             ec.codes_release(bufr_file)
                             sys.exit("MISSING REPLICATION FACTOR CODE!")
                 else:
@@ -450,7 +450,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         print("NO REPL")
                         #print("NEXT elements")
                         #print( [next(vals_repl) for _ in range(num_elements)] )
-                    # if no elemented to be repeated return an empty list and 0 as replication factor
+                    # if no element to be repeated: return an empty list and 0 as replication factor
                     return [], 0, (num_elements + repl_present, 0)
                     #return [], 0, (num_elements + repl_present, repl_present)
                     #return [], 0, (num_elements + repl_present, 1)
@@ -483,7 +483,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
                 #skip_codes  += num_elements + repl_present
                 #skip_codes  += repl_present
-                # only if a replication factor is given directly in the code (without 3100X element) skip a value
+                # only if a replication factor is given directly in the code: skip one value
                 skip_vals   += repl_present
 
                 if debug:
@@ -492,42 +492,60 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 # return elements list, replication factor and tuple containing skip information
                 return elements, repl_factor, (skip_codes, skip_vals)
             
-            #TODO commenting
+            # this loop runs until one of the iteration causes a StopIteration error which we accept
             #continue_loop = True
             #while continue_loop:
             while True:
                 try:
+                    # iterate to get next code
                     code = next(codes)
+                    # when location and datetime are already defined, get obs data
                     if location is not None and datetime is not None:
-                        if code == 1001:
+                        # if we come across a block number save the obs_list and to the data dict
+                        if code == 1001: # blockNumber
                             if debug: print("STOP", location)
                             if obs_list:
                                 if debug:
                                     print("OBS LIST:")
                                     print(location, datetime, obs_list)
+                                # add the data to the current datetime; if it does not exist create
                                 try:    obs_bufr[ID][location][datetime] += obs_list
                                 except: obs_bufr[ID][location] = { datetime : obs_list }
+                                
+                                # obs_list gets cleared
                                 obs_list = []
                                 if debug: pdb.set_trace()
+
+                            # iterate to next value
                             val = next(vals)
+                            # retrieve new location, datetime and skip information
                             location,datetime,skip  = get_location_and_datetime(codes,code,vals,val)
                             skip_codes, skip_vals   = skip
+                            # apply skip_codes and skip_vals provided by 'skip' tuple
                             for _ in range(skip_codes): next(codes)
                             for _ in range(skip_vals):  next(vals)
-
+                        
+                        # if we come across a scale or datasize alteration code we do not iterate
                         elif code in bf.scale_size_alter:
                             if debug: print("SCALE / DATASIZE ALTERATION!")
+                            # only scale_alter information will be used to update precision of data
                             if code in bf.scale_alter:
+                                # location and datetime need to have actual values not "" or None
                                 if location and datetime:
-                                    if previous_code != 202129:
-                                        obs_list.append( (code, None) )
+                                    # if the previous code was not a scale increase append to obs
+                                    if previous_code != 202129: obs_list.append( (code, None) )
+                                    # else delete the last element of the obs_list
                                     else: del obs_list[-1]
+                                    # remember previous code to compare later on
                                     previous_code = copy(code)
                         
+                        # if the code is a replication information indicator (not 3100X though)
                         elif code in bf.repl_range:
                             #val = next(vals)
+                            # get codes to repeat and replication factor (how many times?)
                             codes_repl, repl_factor, skip   = get_repl_codes(codes, code, vals, val)
                             skip_codes, skip_vals           = skip
+                            # skip codes and values again
                             if debug: print("SKIP CODES", skip_codes)
                             for _ in range(skip_codes): next(codes) 
                             if debug: print("SKIP VALUES", skip_vals)
@@ -537,56 +555,79 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
                             # aggregate 1 min values to 10 min
                             if repl_factor == 10:
-                                print("REPL 10")
+                                if debug: print("REPL 10")
+                                # the next 10 values are put into a list comprehension as follows
                                 val_10 = [ next(vals) for _ in range(10) ]
-                                print(val_10)
-                                if 13011 in codes_repl or 26020 in codes_repl:
-                                    print(13011, codes_repl)
-                                    if location and datetime:
+                                if debug: print(val_10)
+                                #
+                                if location and datetime:
+                                    #
+                                    if 13011 in codes_repl or 26020 in codes_repl:
+                                        if debug: print(13011, codes_repl)
+                                        #
                                         obs_list.append( (13011, np.nansum(val_10)) )
-                                elif 20003 in codes_repl:
-                                    print(20003, codes_repl)
-                                    if location and datetime:
+                                    #
+                                    elif 20003 in codes_repl:
+                                        if debug: print(20003, codes_repl)
+                                        #
                                         obs_list.append( (20003, np.nanmax(val_10)) )
                             else:
+                                #
                                 for _ in range(repl_factor):
+                                    #
                                     for code_r in codes_repl:
+                                        #
                                         if code_r in bf.scale_size_alter:
-                                            print("SCALE / DATASIZE ALTERATION!")
+                                            if debug: print("SCALE / DATASIZE ALTERATION!")
+                                            #
                                             if location and datetime and code in bf.scale_alter:
                                                 obs_list.append( (code, None) )
                                             continue
+                                        #
                                         val_r = next(vals)
                                         if debug: print(bc.to_code(code_r), val_r)
-                                        if code_r in bf.relevant_codes and not np.isnan(val_r):
-                                            if location and datetime:
+                                        #
+                                        if location and datetime:
+                                            #
+                                            if code_r in bf.relevant_codes and not np.isnan(val_r):
                                                 obs_list.append( (code_r, val_r) )
                             
                             #if not repl_factor: next(vals)
-
+                        
+                        # if location and datetime are not None
                         else:
+                            #
                             if code in bf.relevant_codes:
+                                #
                                 val = next(vals)
-                                if not np.isnan(val):
+                                #
+                                if location and datetime and not np.isnan(val):
                                     # turn 1min values to 10min values
                                     if code == 4025 and val == -1: val = -10
                                     if debug: print(bc.to_code(code), val)
-                                    if location and datetime:
-                                        obs_list.append( (code, val) )
+                                    #
+                                    obs_list.append( (code, val) )
+                            #
                             else:
                                 if debug: print(bc.to_code(code))
+                                # we always need to iterate to the next value at the end
                                 next(vals)
 
                     # get blockNumber, stationNumber and datetime info
                     elif code == 1001:
+                        #
                         val = next(vals)
+                        #
                         location,datetime,skip  = get_location_and_datetime(codes, code, vals, val)
                         skip_codes, skip_vals   = skip
+                        #
                         for _ in range(skip_codes): next(codes)
                         for _ in range(skip_vals):  next(vals)
                     
+                    #
                     else:
                         if debug: print(bc.to_code(code))
+                        # also in this case we need to get the next value to match with next(codes)
                         next(vals)
 
                 # if we encounter a StopIteration error we break the loop
@@ -596,22 +637,28 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 #else:                   continue_loop = True            # continue while loop
             
             # end of while loop
-
+            
+            # if the obs list contains any data add it to the dictionary
             if obs_list:
                 if debug:
                     print("OBS LIST:")
                     print(location, datetime, obs_list)
+                # add to the dictionary if datetime exists; else create the datetime dict first
                 try:    obs_bufr[ID][location][datetime] += obs_list
                 except: obs_bufr[ID][location] = { datetime : obs_list }
 
         
         # end of with clause (closes file handle)
         ec.codes_release(bufr_file)
-
+        
+        # 
         if new_obs:
+            #
             file_statuses.add( ("parsed", ID) )
             log.debug(f"PARSED: '{FILE}'")
+        #
         else:
+            #
             file_statuses.add( ("empty", ID) )
             log.info(f"EMPTY:  '{FILE}'")
         
@@ -619,28 +666,40 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         memory_free = psutil.virtual_memory()[1] // 1024**2
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
-            
+            #
             db = dc(config=config_database)
+            #
             db.set_file_statuses(file_statuses, retries=max_retries, timeout=bf.timeout)
+            # close without forcing a commit
             db.close()
 
             print("TOO MUCH RAM USED, RESTARTING...")
+            #
             obs_db = bf.convert_keys_ex( obs_bufr, source )
+            #
             if obs_db: obs.to_station_databases( obs_db, scale=True )
             
+            #
             if pid_file: os.remove( pid_file )
-            exe = sys.executable # restart program with same arguments
+            # get the name of the currently running executable
+            exe = sys.executable
+            # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
     
+    #
     db = dc(config=config_database)
+    #
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=bf.timeout)
+    #
     db.close()
 
     if debug: print( obs_bufr )
-
+    
+    #
     obs_db = bf.convert_keys_ex( obs_bufr, source )
     #for ID in obs: obs_bufr[ID].close()
-
+    
+    #
     if obs_db: obs.to_station_databases( obs_db, scale=True, traceback=True )
     
     # remove file containing the pid, so the script can be started again
@@ -652,7 +711,10 @@ if __name__ == "__main__":
     # define program info message (--help, -h) and parser arguments with explanations on them (help)
     msg    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
     msg   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
+    #
     parser = argparse.ArgumentParser(description=msg)
+    
+    # add all needed command line arguments to the program's interface
     parser.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set logging level")
     parser.add_argument("-i","--pid_file", action='store_true', help="create a pid file to easily check if script is running")
     parser.add_argument("-f","--file", help="parse single file bufr file, will be handled as source=extra by default")
@@ -676,72 +738,111 @@ if __name__ == "__main__":
     parser.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
     parser.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
     #TODO add shelve option to save some RAM
+    
+    # parse all command line arguments and make them accessible via the args variable
     args = parser.parse_args()
 
     # read configuration file into a dictionary
     config          = gf.read_yaml( args.config )
+    #
     script_name     = gf.get_script_name(__file__)
+    #
     config_script   = config["scripts"][script_name]
+    #
     conda_env       = os.environ['CONDA_DEFAULT_ENV']
-
+    
+    #
     if config_script["conda_env"] != conda_env:
         sys.exit(f"Script needs to run in conda environment {config_script['conda_env']}, exiting!")
-
+    
+    #
     config_general = config["general"]
+    #
     tables_default = config["bufr"]["tables"]
-
+    
+    #
     pid = str(os.getpid())
-
+    
+    #
     if args.max_files is not None:  config_script["max_files"]  = args.max_files
+    #
     if args.sort_files: config_script["sort_files"] = args.sort_files
-
+    
+    #
     if args.pid_file: config_script["pid_file"] = True
+    #
     if config_script["pid_file"]:
+        #
         pid_file = script_name + ".pid"
-        if gf.already_running( pid_file ):
-            sys.exit( f"{script_name} is already running... exiting!" )
+        #
+        if gf.already_running( pid_file ): sys.exit(f"{script_name} is already running... EXITING!")
+    #
     else: pid_file = None
-
-    if args.profiler:
-        config_script["profiler"] = args.profiler
+    
+    #
+    if args.profiler: config_script["profiler"] = args.profiler
+    #
     if config_script["profiler"]:
+        #
         import importlib
+        #
         profiler    = importlib.import_module(config_script["profiler"])
+        #
         profile     = True
+    #
     else: profile = False
-
+    
+    #
     if args.log_level: config_script["log_level"] = args.log_level
+    #
     log = gf.get_logger(script_name)
     
+    #
     start_time  = dt.utcnow()
+    #
     started_str = f"STARTED {script_name} @ {start_time}"; log.info(started_str)
-
+    
+    #
     if args.verbose is not None: config_script["verbose"] = args.verbose
+    #
     verbose = config_script["verbose"]
+    #
     if verbose: print(started_str)
-
+    
+    #
     if args.debug:                  config_script["debug"] = True
+    #
     if config_script["debug"]:      import pdb; debug = True
+    #
     else:                           debug = False
-
+    
+    #
     if args.traceback:              config_script["traceback"] = traceback = True
+    #
     else:                           traceback = config_script["traceback"]
-
+    
+    #
     if args.timeout:                config_script["timeout"] = timeout_station = args.timeout
+    #
     else:                           timeout_station = config_script["timeout"]
-
+    
+    #
     if args.max_retries:            config_script["max_retries"] = max_retries = args.max_retries
+    #
     else:                           max_retries = config_script["max_retries"]
-
+    
+    #
     if args.dev_mode: config_script["mode"] = "dev"
     
+    #
     mode        = config_script["mode"]
+    #
     output_path = config["general"]["output_path"]
 
     # output_path in script config has priority over general config
-    if "output_path" in config_script:
-        output_path = config_script["output_path"]
-
+    if "output_path" in config_script: output_path = config_script["output_path"]
+    
+    #
     if args.clusters: config_source["clusters"] = frozenset(args.clusters.split(","))
 
     # get configuration for the initialization of the database class
@@ -750,7 +851,9 @@ if __name__ == "__main__":
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
     db = dc(config=config_database)
+    #
     db.cur.execute( gf.read_file( "file_table.sql" ) )
+    #
     db.close()
 
     # if processing a single file call the function with file argument
@@ -759,22 +862,32 @@ if __name__ == "__main__":
     elif args.source:
         # source config can be accessed by its name in the sources section of the YAML
         source = config["sources"][args.source]
+        #
         if "," in source:
+            #
             sources = source.split(","); config_sources = {}
-            for s in sources:
-                config_sources[s] = config["sources"][s]
+            #
+            for s in sources: config_sources[s] = config["sources"][s]
+        #
         else: config_sources = { args.source : config["sources"][args.source] }
+    #
     else: config_sources = config["sources"]
-
+    
+    #
     if not args.file:
+        #
         for SOURCE in config_sources:
             if verbose: print(f"PARSING SOURCE: {SOURCE}")
+            #
             decode_bufr_ex( source = SOURCE, pid_file=pid_file )
-
+    
+    #
     stop_time = dt.utcnow()
+    #
     finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)
     
     if verbose:
         print(finished_str)
+        #
         time_taken = stop_time - start_time
         print(f"TIME TAKEN: {time_taken.seconds}.{time_taken.microseconds} s")
