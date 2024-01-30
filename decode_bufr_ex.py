@@ -10,10 +10,9 @@ import eccodes as ec        # bufr decoder by ECMWF
 from datetime import datetime as dt, timedelta as td
 import global_functions as gf
 import global_variables as gv
-from database import database_class #as dc
-from obs import obs_class #as oc
+from database import database_class as dc
+from obs import obs_class as oc
 from bufr import bufr_class as bc
-import bufr
 
 #TODO write more (inline) comments, docstrings and make try/except blocks shorter whereever possible
 #TODO raises error "API not implemented in CFFI porting"
@@ -21,6 +20,7 @@ import bufr
 #ec.codes_no_fail_on_wrong_length(True)
 
 # check if code already contains replication factor information
+# TODO can be removed?
 no_repl_factor  = lambda code : np.round(code, -3) == code
 
 
@@ -66,46 +66,68 @@ def get_location_and_datetime(codes, code, vals, val):
     """
     #skip_codes, skip_vals   = 4, 0
     skip_codes, skip_vals   = 5, 1
+    # get the WMO block number which is the current value, np.nan if no numeric value
     try:                block = int(val)
     except ValueError:  block = np.nan
 
+    if debug: print("BLOCK", block)
+
+    # wait for the WMO station number key to appear
     while next(codes) != 1002:
-        try:                val = next(vals)
-        except ValueError:  val = np.nan
+        val = next(vals)
         skip_codes  += 1
         skip_vals   += 1
 
+    # get the station number value by iterating vals once, np.nan if no numeric value
     try:                station = int(next(vals))
     except ValueError:  station = np.nan
+    
+    if debug: print("STATION", station)
 
+    # both station and block number should be numeric values (integers)
     if not np.isnan(station) and not np.isnan(block):
-        location = bufr.to_wmo( block, station )
-    else: location = None
+        # from block and station number, deviate the WMO location number
+        location = bc.to_wmo( block, station )
+    # otherwise, we do not have a valid WMO location
+    else: return "", "", (0, 0)
 
+    print("WMO", location)
+
+    # wait for the 'year' BUFR key to appear in the cycle iterator
     while next(codes) != 4001:
-        next(vals)
+        if debug:   print(next(vals))
+        else:       next(vals)
         skip_codes  +=1
         skip_vals   +=1
 
+    # get datetime info by iterating over the next 5 consecutive values
     dt_info = []
     for _ in range(5):
-        try:                dt_info.append( int(next(vals)) )
-        except ValueError:  pass
-
+        next_val = next(vals)
+        print(_, next_val)
+        try:                dt_info.append( int(next_val) )
+        #try:                dt_info.append( int(next(vals)) )
+        # if this fails we need to skip yet one for value
+        except ValueError:  return "", "", (0, 0)
+    
+    # finally, generate a datetime object from the dt_info list
     try:    datetime = dt(*dt_info)
-    except: return None, None, (skip_codes, skip_vals)
+    # if no valid datetime object can be created: return None for location and datetime
+    except: return "", "", (0, 0)
 
     if debug: print(location, datetime, skip_codes, skip_vals)
+    # return location, datetime and tuple with skip information
     return location, datetime, (skip_codes, skip_vals)
 
 
 def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None ):
-    #TODO
     """
     Parameter:
     ----------
-    source : name of source (str)
-    pid_file : name of the file where the process id gets stored (str)
+    source : name of source (optional)
+    file : name of single file to process (optional)
+    known_stations: list of known stations to consider (optional)
+    pid_file: name of the pid file which stores the process id (optional)
 
     Notes:
     ------
@@ -120,52 +142,69 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
     None
     """
     if source:
-        config_source   = config_sources[source]
+        # get source-specific settings by subscripting the config_source dict with the source name
+        config_source = config_sources[source]
         
         if "bufr" in config_source:
-            config_bufr = [config["bufr"], config_script, config_general, config_source["bufr"]]
+            # list of all configs in reverse order of significance (right has priority over left)
+            config_list = [ config["bufr"], config_script, config_general, config_source["bufr"] ]
         else: return
 
         # previous dict entries will get overwritten by next item during merge (right before left)
-        config_bufr = gf.merge_list_of_dicts( config_bufr )
-        bf          = bufr.bufr_class(config_bufr, script=script_name[-5:-3])
+        config_bufr = gf.merge_list_of_dicts( config_list )
+        # create bufr class object which contains config, functions and many variables we need
+        bf          = bc(config_bufr, script=script_name[-5:-3])
         bufr_dir    = bf.dir + "/"
 
+        # in case we need BUFR tables, set the necessary environment variables for ECCODES
         if args.tables:
             os.environ['ECCODES_DEFINITION_PATH'] = args.tables + ":" + tables_default
         elif "tables" in config_bufr:
             os.environ['ECCODES_DEFINITION_PATH'] = config_bufr["tables"] + ":" + tables_default
 
+        # get cluster information from config which is source-specific; therefore happens here
         try:    clusters = set(config_source["clusters"].split(","))
+        # if clusters setting is not present or in case of any errors, process all clusters
         except: clusters = None
-
-        db = database_class(config=config_database)
-
+        
+        # create database object
+        db = dc(config=config_database)
+        
+        # try to access database to retrieve list of known stations; use max_retries settings here
         for i in range(max_retries):
             try:    known_stations = db.get_stations( clusters )
             except: pass
             else:   break
-
+        
+        # when the maximum number of retries has been reached; quit the program if still no success
         if i == max_retries - 1:
             sys.exit(f"Can't access main database, tried {max_retries} times. Is it locked?")
-
+        
+        # if we want to select file names according to glob patterns, use globbing extensions
         if hasattr(bf, "glob") and bf.glob: ext = f"{bf.glob}.{bf.ext}"
         else:                               ext = f"*.{bf.ext}"
         #TODO add possibility to use multiple extensions (set)
 
         if args.restart:
+            # if a restart has been triggered (due to full RAM) just process the locked_ files
             files_to_parse = set(db.get_files_with_status( f"locked_{args.restart}", source ))
         else:
+            # otherwise get all filenames in directory as a set
             files_in_dir   = set((os.path.basename(i) for i in glob( bufr_dir + ext )))
 
-            if args.redo:   skip_files  = set() #db.get_files_with_status( r"locked_%", source )
+            # if we want to reprocess files; skip_files will only consist of locked_ files
+            if args.redo:   skip_files  = db.get_files_with_status( r"locked_%", source )
+            # otherwise get all files with statuses that we want to skip (defined in db class)
             else:           skip_files  = db.get_files_with_status( bf.skip_status, source )
-
+            
+            # files_parse is a list of all files in directory minus the ones we want to skip
             files_to_parse = list( files_in_dir - skip_files )
 
             #TODO special sort functions for CCA, RRA and stuff in case we dont have sequence key
             #TODO implement order by datetime of files
+            # we sort the files by name which should result in an order by date/time (in most cases)
             if bf.sort_files: files_to_parse = sorted(files_to_parse)
+            # if max_files is defined we only process a specific number of files
             if bf.max_files:  files_to_parse = files_to_parse[:bf.max_files]
 
             if verbose:
@@ -174,17 +213,23 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
         if verbose: print("#FILES TO PARSE:  ",   len(files_to_parse))
 
+        # create the station files output directory if it does not exist yet
         gf.create_dir( bf.dir )
 
         file_IDs = {}
 
+        # loop over all files which we want to parse
         for FILE in files_to_parse:
 
+            # get the full file path by combining bufr directory and file name
             file_path = gf.get_file_path( bufr_dir + FILE )
+            # get the file date from the file path (see function in global_functions for details)
             file_date = gf.get_file_date( file_path )
-
+            
+            # get the unique file ID from the main databases file_table (by simply using rowid)
             ID = db.get_file_id(FILE, file_path)
             if not ID:
+                # if there is no ID yet register it and set its status to locked_ + its process ID
                 status = f"locked_{pid}"
                 ID = db.register_file(FILE, file_path, source, status, file_date, verbose=verbose)
 
@@ -196,8 +241,8 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         # see https://superfastpython.com/restart-a-process-in-python/
 
     elif file:
-        if args.tables:
-            os.environ['ECCODES_DEFINITION_PATH'] = args.tables + ":" + tables_default
+        # once again if we need special BUFR tables provide an environment variable for ECCODES
+        if args.tables: os.environ['ECCODES_DEFINITION_PATH'] = args.tables + ":" + tables_default
 
         FILE            = file.split("/")[-1]
         files_to_parse  = (FILE,)
@@ -209,43 +254,51 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         else:           source = "extra"
 
         if not known_stations:
-            db = database_class(config=config_database)
+            db = dc(config=config_database)
             known_stations  = db.get_stations()
 
         ID = db.get_file_id(FILE, file_path)
-        if ID: db.set_file_status(ID, "locked")
-        else:
-            ID = db.register_file(FILE,file_path,source,status="locked",date=file_date,verbose=verbose)
+        if ID:  db.set_file_status(ID, "locked")
+        else:   ID = db.register_file( FILE, file_path, source, "locked", file_date, verbose )
 
         db.close(commit=True)
 
         file_IDs = { FILE : ID }
-
-        config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
-        bf          = bufr.bufr_class(config_bufr, script=script_name[-5:-3])
+        
+        # for just 2 configuration dicts we can use the easier, more pythonic syntax with **
+        config_bufr = { **config["bufr"], **config_script }
+        #config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
+        bf          = bc(config_bufr, script=script_name[-5:-3])
 
     #TODO use defaultdic instead?
     obs_bufr, file_statuses, new_obs = {}, set(), 0
 
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
-    config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
-    obs         = obs_class(config_obs, source, mode, "raw")
-
+    config_obs  = gf.merge_list_of_dicts( [config["obs"], config_script], add_keys=False )
+    # create obs object which will be used to save observation into the database
+    obs         = oc(config_obs, source, mode, "raw")
+    
+    # iterate over list of all files we want to parse
     for FILE in files_to_parse:
-        if verbose: print( f"PARSING FILE: {bufr_dir}/{FILE}" ) 
+        if verbose: print( f"PARSING FILE: {bufr_dir}/{FILE}" )
+        # open file savely as readonly (byte-mode)
         with open(bufr_dir + FILE, "rb") as f:
             try:
+                # the file ID is the representation of the file in the main database (file_table)
                 ID = file_IDs[FILE]
                 # if for whatever reason no ID (database lock?) or filestatus means skip:
                 # continue with next file
                 if not ID: continue
+                # let ECCODES read the file into memory and handle it
                 bufr_file = ec.codes_bufr_new_from_file(f)
+                # bufr_file should be an integer; if not it is None (empty) and needs to be skipped
                 if bufr_file is None:
                     file_statuses.add( ("empty", ID) )
                     if verbose: print(f"EMPTY:  '{FILE}'")
                     continue
                 ec.codes_set(bufr_file, "unpack", 1)
+            # if anything goes wrong we log an error message and declare the file status as 'error'
             except Exception as e:
                 log_str = f"ERROR:  '{FILE}' ({e})"; log.error(log_str)
                 if verbose: print(log_str)                
@@ -253,28 +306,22 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 file_statuses.add( ("error", ID) )
                 continue
             else: obs_bufr[ID] = {} #shelve.open(f"shelves/{ID}", writeback=True)
-            
-            if config_script["skip_computed"]:      ec.codes_skip_computed(iterid)
-            if config_script["skip_function"]:      ec.codes_skip_function(iterid)
-            if config_script["skip_duplicates"]:    ec.codes_skip_duplicates(iterid)
-
+           
             # get descriptor data (unexpanded descriptors plus their values)
             vals    = tuple( ec.codes_get_array(bufr_file, "numericValues") )
             unexp   = ec.codes_get_array(bufr_file, "unexpandedDescriptors")
 
             if debug: pdb.set_trace()
              
-            codes_exp       = []                    # expanded list of codes / descriptors
+            codes_exp = [] # expanded list of codes / descriptors
             # value and code indices
             pos_val, pos_code = 0, 0
-
             previous_code = None
-
-            # replace sequence codes by actual sequences #and apply replication factors
+    
             while pos_code < len(unexp):
                 code = unexp[pos_code]
-                if code in bf.sequence_range and previous_code not in bf.replication_codes:
-                    code_offset = 0
+                if code in bf.sequence_range and previous_code not in bf.repl_info:
+                    # replace sequence codes by actual sequences and apply replication factors
                     codes_seq   = bf.bufr_sequences[code]
                     for pos_code_seq, code_seq in enumerate(codes_seq):
                         codes_exp.append(code_seq)
@@ -294,7 +341,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 print("CODES EXP:")
                 print(codes_exp)
             
-            # replace missing value by proper np.nan
+            # replace missing values by proper 'np.nan' so we can easily detect and exclude NaNs
             vals = [ i if i != -1e+100 else np.nan for i in vals ]
 
             codes       = cycle(codes_exp)  # self-repeating iterator
@@ -319,11 +366,11 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
                 Return:
                 -------
-
+                elements, repl_factor, (skip_codes, skip_vals)
                 """
                 if debug:
                     print("GET REPL")
-                    print( bufr.to_code(code), val)
+                    print( bc.to_code(code), val)
                 num_elements, repl_factor   = get_num_elements_repl_factor(code)
                 skip_codes, skip_vals       = -1, -1
 
@@ -396,7 +443,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     elements = [ next(codes_repl) for _ in range(num_elements) ]
                     skip_codes -= 1; skip_vals -= 1
 
-                #skip_codes  += num_elements #+ repl_present
+                #skip_codes  += num_elements + repl_present
                 #skip_codes  += repl_present
                 skip_vals   += repl_present
 
@@ -410,7 +457,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             while True:
                 try:
                     code = next(codes)
-                    if location and datetime:
+                    if location is not None and datetime is not None:
                         if code == 1001:
                             if debug: print("STOP", location)
                             if obs_list:
@@ -430,10 +477,11 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         elif code in bf.scale_size_alter:
                             if debug: print("SCALE / DATASIZE ALTERATION!")
                             if code in bf.scale_alter:
-                                if previous_code != 202129:
-                                    obs_list.append( (code, None) )
-                                else: del obs_list[-1]
-                                previous_code = copy(code)
+                                if location and datetime:
+                                    if previous_code != 202129:
+                                        obs_list.append( (code, None) )
+                                    else: del obs_list[-1]
+                                    previous_code = copy(code)
                         
                         elif code in bf.repl_range:
                             #val = next(vals)
@@ -453,22 +501,25 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                                 print(val_10)
                                 if 13011 in codes_repl or 26020 in codes_repl:
                                     print(13011, codes_repl)
-                                    obs_list.append( (13011, np.nansum(val_10)) )
+                                    if location and datetime:
+                                        obs_list.append( (13011, np.nansum(val_10)) )
                                 elif 20003 in codes_repl:
                                     print(20003, codes_repl)
-                                    obs_list.append( (20003, np.nanmax(val_10)) )
+                                    if location and datetime:
+                                        obs_list.append( (20003, np.nanmax(val_10)) )
                             else:
                                 for _ in range(repl_factor):
                                     for code_r in codes_repl:
                                         if code_r in bf.scale_size_alter:
                                             print("SCALE / DATASIZE ALTERATION!")
-                                            if code in bf.scale_alter:
+                                            if location and datetime and code in bf.scale_alter:
                                                 obs_list.append( (code, None) )
                                             continue
                                         val_r = next(vals)
-                                        if debug: print(bufr.to_code(code_r), val_r)
+                                        if debug: print(bc.to_code(code_r), val_r)
                                         if code_r in bf.relevant_codes and not np.isnan(val_r):
-                                            obs_list.append( (code_r, val_r) )
+                                            if location and datetime:
+                                                obs_list.append( (code_r, val_r) )
                             
                             #if not repl_factor: next(vals)
 
@@ -478,10 +529,11 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                                 if not np.isnan(val):
                                     # turn 1min values to 10min values
                                     if code == 4025 and val == -1: val = -10
-                                    if debug: print(bufr.to_code(code), val)
-                                    obs_list.append( (code, val) )
+                                    if debug: print(bc.to_code(code), val)
+                                    if location and datetime:
+                                        obs_list.append( (code, val) )
                             else:
-                                if debug: print(bufr.to_code(code))
+                                if debug: print(bc.to_code(code))
                                 next(vals)
 
                     # get blockNumber, stationNumber and datetime info
@@ -493,7 +545,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         for _ in range(skip_vals):  next(vals)
                     
                     else:
-                        if debug: print(bufr.to_code(code))
+                        if debug: print(bc.to_code(code))
                         next(vals)
 
                 # if we encounter a StopIteration error we break the loop
@@ -527,7 +579,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
             
-            db = database_class(config=config_database)
+            db = dc(config=config_database)
             db.set_file_statuses(file_statuses, retries=max_retries, timeout=bf.timeout)
             db.close()
 
@@ -539,7 +591,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             exe = sys.executable # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
     
-    db = database_class(config=config_database)
+    db = dc(config=config_database)
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=bf.timeout)
     db.close()
 
@@ -559,14 +611,14 @@ if __name__ == "__main__":
     msg    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
     msg   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
     parser = argparse.ArgumentParser(description=msg)
-    parser.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set log level")
-    parser.add_argument("-i","--pid_file", action='store_true', help="create a pid file to check if script is running")
+    parser.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set logging level")
+    parser.add_argument("-i","--pid_file", action='store_true', help="create a pid file to easily check if script is running")
     parser.add_argument("-f","--file", help="parse single file bufr file, will be handled as source=extra by default")
-    parser.add_argument("-v","--verbose", action='store_true', help="show detailed output")
+    parser.add_argument("-v","--verbose", action='store_true', help="show more detailed output")
     parser.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)")
     #TODO replace profiler by number of processes (prcs) when real multiprocessing (using module) is implemented
     parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
-    parser.add_argument("-C","--config", default="config", help="set name of config file")
+    parser.add_argument("-C","--config", default="config", help="set custom name of config file")
     parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
     parser.add_argument("-M","--mode", help="set operation mode; options available: {oper, dev, test}")
@@ -591,7 +643,7 @@ if __name__ == "__main__":
     conda_env       = os.environ['CONDA_DEFAULT_ENV']
 
     if config_script["conda_env"] != conda_env:
-        sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
+        sys.exit(f"Script needs to run in conda environment {config_script['conda_env']}, exiting!")
 
     config_general = config["general"]
     tables_default = config["bufr"]["tables"]
@@ -641,8 +693,7 @@ if __name__ == "__main__":
 
     if args.dev_mode: config_script["mode"] = "dev"
     
-    mode = config_script["mode"]
-    
+    mode        = config_script["mode"]
     output_path = config["general"]["output_path"]
 
     # output_path in script config has priority over general config
@@ -656,7 +707,7 @@ if __name__ == "__main__":
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
-    db = database_class(config=config_database)
+    db = dc(config=config_database)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
 
@@ -682,4 +733,4 @@ if __name__ == "__main__":
     if verbose:
         print(finished_str)
         time_taken = stop_time - start_time
-        print(f"{time_taken.seconds}.{time_taken.microseconds} s")
+        print(f"TIME TAKEN: {time_taken.seconds}.{time_taken.microseconds} s")

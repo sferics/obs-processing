@@ -210,10 +210,10 @@ class bufr_class:
                         202129 : 1, # temporarily increase scale by 1 digit
                     }
 
-                    self.replication_codes = frozenset( {31001, 31001, 31002} )
+                    self.repl_codes = frozenset( {31000, 31001, 31002} )
 
                     # all code relevant for extraction of expanded descriptors
-                    self.relevant_codes = frozenset( self.modifier_codes | set(self.bufr_translation) | set(self.scale_alter) - self.replication_codes )
+                    self.relevant_codes = frozenset( self.modifier_codes | set(self.bufr_translation) | set(self.scale_alter) - self.repl_codes )
         
                     self.size_alter = {
                         201000 : 0, # reset size
@@ -222,8 +222,9 @@ class bufr_class:
                     
                     self.scale_size_alter = frozenset(set(self.scale_alter) | set(self.size_alter))
 
-                    self.repl_range      = range(101000, 131000) # range of repeated elements
-                    self.repl_seq_range  = range(131000, 132000) # repeat next sequence (999 times)
+                    self.repl_range     = range(101000, 131000) # range of repeated elements
+                    self.repl_seq_range = range(131000, 132000) # repeat next sequence (999 times)
+                    self.repl_info      = frozenset( tuple(self.repl_codes) + tuple(self.repl_range) + tuple(self.repl_seq_range) )
 
             case "se" | "pd" | "fl":
                 
