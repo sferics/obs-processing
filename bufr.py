@@ -85,8 +85,10 @@ class bufr_class:
             if self.verbose: print( i, "=", config[i] )
 
         # check for mandatory class attributes
-        mandatory = ("verbose", "traceback", "bufr_translation", "bufr_flags", "mode", "output_path", "stations", "clusters")
-        for attr in mandatory: assert( hasattr(self, attr) )
+        mandatory = ("verbose", "traceback", "bufr_translation", "bufr_flags", "mode", "output_path", "stations")
+        for attr in mandatory:
+            print(attr)
+            assert( hasattr(self, attr) )
 
         if "log_level" in config and config["log_level"] in gv.log_levels: 
             self.log_level = config["log_level"]
@@ -102,6 +104,7 @@ class bufr_class:
         self.tp                 = "timePeriod"
         self.obs_sequence       = "observationSequenceNumber"
         self.replication        = "delayedDescriptorReplicationFactor"
+        self.replication_keys   = frozenset( {self.replication, "delayedDescriptorReplicationFactor", "extendedDelayedDescriptorReplicationFactor"} ) #, "delayedDescriptorAndDataRepetitionFactor", "extendedDelayedDescriptorAndDataRepetitionFactor"} )
         self.sensor_height      = "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform"
         self.sensor_depth       = "depthBelowLandSurface"
         self.vertical_signf     = "verticalSignificanceSurfaceObservations"
@@ -156,6 +159,8 @@ class bufr_class:
                                 self.height_keys.add(i)
 
                 self.unit_keys = frozenset(self.unit_keys)
+                self.obs_time_keys  = frozenset( set(self.bufr_translation_keys) | set(self.time_keys) - {"cloudBase"} )
+                self.relevant_keys  = frozenset( self.obs_time_keys | self.station_keys | self.typical_keys )
 
             case "us" | "ex":
                 
@@ -185,12 +190,15 @@ class bufr_class:
                 self.obs_time_keys  = frozenset( set(self.bufr_translation_keys) | set(self.time_keys) - {"cloudBase"} )
                 self.relevant_keys  = frozenset( self.obs_time_keys | self.station_keys | self.typical_keys )
 
-                # all codes which contain timePeriod information
-                self.tp_codes       = frozenset( {4023, 4024, 4025, 4026} )
+                # all codes which contain timePeriod information for our synoptic purposes
+                self.tp_codes       = frozenset( {4023, 4024, 4025} ) # d, h, min
+                self.tp_range       = range(4023, 4026)
+
                 # codes which alter height/depth of sensor
                 self.height_depth_codes = frozenset( self.height_codes | self.depth_codes )
                 # all codes which modify the following keys duration, height, depth and so on
-                self.modifier_codes = frozenset( self.tp_codes | self.height_depth_codes )
+                self.modifier_codes = frozenset( self.tp_codes | {1023, 7032, 7061, 8002, 31000, 31001, 31002} )
+                #TODO maybe add 31011, 31012
 
                 if script == "ex":
                     self.datetime_codes = {
@@ -257,7 +265,7 @@ class bufr_class:
                     self.wmo            = "WMO_station_id"
                     self.dt             = "data_datetime"
                     self.required_keys  = frozenset( {self.wmo, self.dt} )
-                    self.relevant_keys  = frozenset( self.bufr_obs_keys | self.required_keys | self.modifier_keys | {self.obs_sequence,self.replication} )
+                    self.relevant_keys  = frozenset( self.bufr_obs_keys | self.required_keys | self.modifier_keys | {self.obs_sequence} | self.replication_keys )
                 
                 elif script == "se":
                     self.bufr_mod_keys  = frozenset( set(self.bufr_translation_keys) | self.modifier_keys | {self.obs_sequence} )
@@ -422,7 +430,7 @@ class bufr_class:
         return key_db[0], value, duration
 
 
-    # version with units, without scale (decode_bufr_ex.py)
+    # version with units, without scale (decode_bufr_00.py)
     def convert_keys_00(self, obs, dataset, verbose=None):
         """
         Parameter:
@@ -533,7 +541,7 @@ class bufr_class:
         return obs_db
 
 
-    # version with units and scale (uses codes instead of keys)
+    # version with units and scale (uses codes instead of keys) + expanded keys + values
     def convert_keys_ex( self, obs, dataset, verbose=False):
         """
         Parameter:

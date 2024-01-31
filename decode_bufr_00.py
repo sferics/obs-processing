@@ -11,7 +11,7 @@ import global_variables as gv
 from database import database_class
 from bufr import bufr_class
 from obs import obs_class
-from bufr_functions import convert_keys_00
+#from bufr_functions import convert_keys_00
 
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
 #TODO raises error "API not implemented in CFFI porting"
@@ -60,13 +60,13 @@ def decode_bufr_00( source=None, file=None, known_stations=None, pid_file=None )
     if source:
         config_source   = config_sources[source]
         if "bufr" in config_source:
-             config_bufr = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
+             config_list = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
         else: return
 
         # previous dict entries will get overwritten by next list item during merge (right before left)
-        config_bf = gf.merge_list_of_dicts( config_bufr )
+        config_bufr = gf.merge_list_of_dicts( config_list )
 
-        bf = bufr_class(config_bf, script=script_name[-5:-3])
+        bf = bufr_class(config_bufr, script=script_name[-5:-3])
 
         bufr_dir = bf.dir + "/"
 
@@ -155,8 +155,8 @@ def decode_bufr_00( source=None, file=None, known_stations=None, pid_file=None )
 
         file_IDs = {FILE:ID}
 
-        config_bf   = gf.merge_list_of_dicts( [config["bufr"], config_script] )
-        bf          = bufr_class(config_bf, script=script_name[-5:-3])
+        config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
+        bf          = bufr_class(config_bufr, script=script_name[-5:-3])
 
     #TODO use defaultdic instead
     obs_bufr, file_statuses = {}, set()
@@ -165,7 +165,7 @@ def decode_bufr_00( source=None, file=None, known_stations=None, pid_file=None )
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
     config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
-    obs         = obs_class("raw", config_obs, source)
+    obs         = obs_class(config_obs, source, mode=config_script["mode"])
 
     obs, file_statuses = {}, set()
     file_statuses = set()
@@ -242,15 +242,15 @@ def decode_bufr_00( source=None, file=None, known_stations=None, pid_file=None )
                     subset += 1; continue
                 elif skip_obs: continue
 
-                clear_key = clear(key)
-                if clear_key not in relevant_keys: continue
+                clear_key = bf.clear(key)
+                if clear_key not in bf.relevant_keys: continue
                 #if debug: print(key)
 
                 if valid_obs:
                     if location not in obs[ID]:
                         obs[ID][location] = {}
 
-                    if clear_key in bufr_obs_time_keys:
+                    if clear_key in bf.obs_time_keys:
                         try: value = ec.codes_get( bufr, key )
                         except Exception as e:
                             if verbose: print(FILE, key, e)
@@ -264,9 +264,9 @@ def decode_bufr_00( source=None, file=None, known_stations=None, pid_file=None )
                             if value == 10: skip_next = 10
                             continue
 
-                        if value not in null_vals:
+                        if value not in bf.null_vals:
 
-                            if clear_key in unit_keys:
+                            if clear_key in bf.unit_keys:
                                 unit = ec.codes_get( bufr, key + "->units" )
 
                                 if clear_key == "timePeriod":
@@ -291,7 +291,7 @@ def decode_bufr_00( source=None, file=None, known_stations=None, pid_file=None )
                             try:    obs[ID][location][datetime].append(obs_data)
                             except: obs[ID][location][datetime] = [obs_data]
                             # avoid duplicate modifier keys (like timePeriod or depthBelowLandSurface) 
-                            if clear_key in modifier_keys:
+                            if clear_key in bf.modifier_keys:
                                 try:
                                     if clear_key == obs[ID][location][datetime][-2][0]:
                                         del obs[ID][location][datetime][-2]
@@ -299,19 +299,19 @@ def decode_bufr_00( source=None, file=None, known_stations=None, pid_file=None )
                             new_obs += 1
 
                 else:
-                    if not subset and key in typical_keys:
+                    if not subset and key in bf.typical_keys:
                         typical[key]    = ec.codes_get( bufr, key )
-                        if typical[key] in null_vals: del typical[key]
+                        if typical[key] in bf.null_vals: del typical[key]
                         last_key        = "typical"
                         continue
                     
-                    if location is None and clear_key in station_keys:
+                    if location is None and clear_key in bf.station_keys:
                         #meta[clear_key] = ec.codes_get(bufr, key)
                         try: meta[clear_key] = ec.codes_get(bufr, key)
                         except: meta[clear_key] = ec.codes_get_array(bufr, key)[0]
                         #TODO some OGIMET-BUFRs seem to contain multiple station numbers in one key (arrays)
                         
-                        if meta[clear_key] in null_vals:
+                        if meta[clear_key] in bf.null_vals:
                             del meta[clear_key]; continue
                     
                         # check for identifier of DWD stations (in German: "nebenamtliche Stationen")
@@ -335,36 +335,36 @@ def decode_bufr_00( source=None, file=None, known_stations=None, pid_file=None )
  
                     elif location:
                         
-                        if clear_key in time_keys: # {year, month, day, hour, minute}
+                        if clear_key in bf.time_keys: # {year, month, day, hour, minute}
                             meta[clear_key] = ec.codes_get_long(bufr, key)
-                            if meta[clear_key] in null_vals: del meta[clear_key]
+                            if meta[clear_key] in bf.null_vals: del meta[clear_key]
                         
                             if clear_key == "minute":
                                 # check if all essential time keys are now present
-                                valid_obs = time_keys.issubset(meta)
+                                valid_obs = bf.set_time_keys.issubset(meta)
                                 if valid_obs:
-                                    datetime = to_datetime(meta)
+                                    datetime = gf.to_datetime(meta)
                                     if debug: print(meta)
                                     if "skip3" in config_bufr: skip_next = config_bufr["skip3"]
                                     elif source in {"DWD","COD","NOAA"}: skip_next = 4
                                     continue
                                 
-                                elif time_keys_hour.issubset(meta):
+                                elif bf.set_time_keys_hour.issubset(meta):
                                     # if only minute is missing, assume that minute == 0
                                     meta["minute"] = 0; valid_obs = True
-                                    datetime = to_datetime(meta)
+                                    datetime = gf.to_datetime(meta)
                                     if debug: print("minute0:", meta)
                                     continue
                                 
                                 # if we are still missing time keys: use the typical information
                                 elif typical:
                                     # use the typical values we gathered earlier keys are missing
-                                    for i,j in zip(sorted_time_keys, sorted_typical_keys):
+                                    for i,j in zip(bf.time_keys, bf.typical_time_keys):
                                         try:    meta[i] = int(typical[j])
                                         except: pass
                                     
                                     # again, if only minute is missing, assume that minute == 0
-                                    if time_keys_hour.issubset(meta):
+                                    if bf.set_time_keys_hour.issubset(meta):
                                         meta["minute"] = 0; valid_obs = True; continue
 
                                     # no luck? possibly, there could be typicalDate or typicalTime present
@@ -428,29 +428,29 @@ def decode_bufr_00( source=None, file=None, known_stations=None, pid_file=None )
         if memory_free <= config_script["min_ram"]:
             
             db = database_class(config=config_database)
-            db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
+            db.set_file_statuses(file_statuses, retries=max_retries)
             db.close()
 
             print("Too much RAM used, RESTARTING...")
-            obs_db = convert_keys_00(obs,source,modifier_keys,unit_keys,height_depth_keys,bufr_translation,bufr_flags)
+            obs_db = bf.convert_keys_00( obs_bufr, source )
             if obs_db:
-                gf.obs_to_station_databases( obs_db, output_path, max_retries, timeout_station, verbose )
+                obs.to_station_databases( obs_db, output_path, max_retries, timeout_station, verbose )
             
             if pid_file: os.remove( pid_file )
             exe = sys.executable # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
     
     db = database_class(config=config_database)
-    db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
+    db.set_file_statuses(file_statuses, retries=max_retries)
     db.close()
 
-    obs_db = convert_keys_00(obs,source,modifier_keys,unit_keys,height_depth_keys,bufr_translation,bufr_flags)
+    obs_db = bf.convert_keys_00( obs_bufr, source )
     #for ID in obs: obs[ID].close()
 
-    if obs_db: gf.obs_to_station_databases(obs_db, output_path, max_retries, timeout_station, verbose)
+    if obs_db: obs.to_station_databases(obs_db, output_path, max_retries, timeout_station, verbose)
      
     # restore previous state of ECCODES_DEFINITION_PATH environment variable
-    if "tables" in config_bufr: old_path = os.environ['ECCODES_DEFINITION_PATH']
+    #if "tables" in config_bufr: old_path = os.environ['ECCODES_DEFINITION_PATH']
     
     # remove file containing the pid, so the script can be started again
     if pid_file: os.remove( pid_file )
@@ -559,7 +559,8 @@ if __name__ == "__main__":
     db.close()
 
     #parse command line arguments
-    if args.source:
+    if args.file: decode_bufr_00( file=args.file, pid_file=pid_file )
+    elif args.source:
         source = config["sources"][args.source]
 
         if "," in source:
@@ -569,7 +570,6 @@ if __name__ == "__main__":
 
         else: config_sources = { args.source : config["sources"][args.source] }
 
-    elif args.file: decode_bufr_00( file=args.file, pid_file=pid_file )
     else:           config_sources = config["sources"]
 
     if not args.file:

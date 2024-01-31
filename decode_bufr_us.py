@@ -59,13 +59,13 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
     if source:
         config_source   = config_sources[source]
         if "bufr" in config_source:
-             config_bufr = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
+             config_list = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
         else: return
 
         # previous dict entries will get overwritten by next list item during merge (right before left)
-        config_bf = gf.merge_list_of_dicts( config_bufr )
+        config_bufr = gf.merge_list_of_dicts( config_list )
 
-        bf = bufr_class(config_bf, script=script_name[-5:-3])
+        bf = bufr_class(config_bufr, script=script_name[-5:-3])
 
         bufr_dir = bf.dir + "/"
 
@@ -154,8 +154,8 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
 
         file_IDs = {FILE:ID}
 
-        config_bf   = gf.merge_list_of_dicts( [config["bufr"], config_script] )
-        bf          = bufr_class(config_bf, script=script_name[-5:-3])
+        config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
+        bf          = bufr_class(config_bufr, script=script_name[-5:-3])
 
     #TODO use defaultdic instead
     obs_bufr, file_statuses = {}, set()
@@ -164,7 +164,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
     config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
-    obs         = obs_class("raw", config_obs, source)
+    obs         = obs_class(config_obs, source, mode=config_script["mode"])
 
     for FILE in files_to_parse:
         if debug: print(bufr_dir + FILE) 
@@ -328,7 +328,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                                     elif source in {"DWD","COD","NOAA"}: skip_next = 4
                                     continue
                                 
-                                elif bf.time_keys_hour.issubset(meta):
+                                elif bf.set_time_keys_hour.issubset(meta):
                                     # if only minute is missing, assume that minute == 0
                                     meta["minute"] = 0; valid_obs = True
                                     datetime = gf.to_datetime(meta)
@@ -343,7 +343,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                                         except: pass
                                     
                                     # again, if only minute is missing, assume that minute == 0
-                                    if bf.time_keys_hour.issubset(meta):
+                                    if bf.set_time_keys_hour.issubset(meta):
                                         meta["minute"] = 0; valid_obs = True; continue
 
                                     # no luck? possibly, there could be typicalDate or typicalTime present
@@ -398,11 +398,12 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
     db.close()
 
     if verbose: print( obs_bufr )
-
     obs_db = bf.convert_keys_us( obs_bufr, source )
     #for ID in obs: obs_bufr[ID].close()
-
-    if obs_db: obs.to_station_databases( obs_db )
+    
+    if obs_db:
+        if verbose: print(obs_db)
+        obs.to_station_databases( obs_db )
      
     # restore previous state of ECCODES_DEFINITION_PATH environment variable
     if "tables" in config_bufr: old_path = os.environ['ECCODES_DEFINITION_PATH']
@@ -515,7 +516,8 @@ if __name__ == "__main__":
     db.close()
 
     #parse command line arguments
-    if args.source:
+    if args.file: decode_bufr_us( file=args.file, pid_file=pid_file )
+    elif args.source:
         source = config["sources"][args.source]
 
         if "," in source:
@@ -525,7 +527,6 @@ if __name__ == "__main__":
 
         else: config_sources = { args.source : config["sources"][args.source] }
 
-    elif args.file: decode_bufr_us( file=args.file, pid_file=pid_file )
     else:           config_sources = config["sources"]
 
     if not args.file:

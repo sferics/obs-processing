@@ -169,23 +169,24 @@
   14:
   15:
 
-020203: # formOfPrecipitation
-  0:
-  1:
-  2:
-  3:
-  4:
-  5:
+020203: # formOfPrecipitation (DWD only!)
+  0:  0
+  1:  0
+  2:  0
+  3:  0
+  4:  
+  5:  
   6:  6
   7:  7
   8:  7
-  9:
-  10:
+  9: 
+  10: 0
   11: 6
   12: 7
   13: 7
   14:
   15:
+  573440: #TODO is this correct???
 
 020021: # typeOfPrecipitation
   1:

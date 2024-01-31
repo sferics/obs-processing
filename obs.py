@@ -18,6 +18,7 @@ class obs_class:
         -------
         
         """
+        print(mode, stage)
         assert( mode in {"dev","oper","test"} and stage in {"raw","forge","final"} )
 
         self.source = source
@@ -84,11 +85,11 @@ class obs_class:
             case "raw":
                 if scale:
                     sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor,scale) VALUES "
-                        f"('{source}',?,?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
+                        f"('{source}',?,?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value=excluded.value, reduced=0, "
                         f"file = excluded.file WHERE excluded.cor > obs.cor and excluded.file > obs.file" )
                 else:
                     sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES "
-                        f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
+                        f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value=excluded.value, reduced=0, "
                         f"file = excluded.file WHERE excluded.cor > obs.cor and excluded.file > obs.file" )
             case "forge":
                 sql = ( f"INSERT INTO obs (dataset,datetime,duration,value) VALUES(?,?,?,?) "

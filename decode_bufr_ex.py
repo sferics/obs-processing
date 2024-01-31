@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
+# system modules
 import argparse, sys, os, psutil#, shelve
 import numpy as np
 from glob import glob 
 from copy import copy
 from itertools import cycle
+#import ecmwflibs
 import eccodes as ec        # bufr decoder by ECMWF
 from datetime import datetime as dt, timedelta as td
 import global_functions as gf
@@ -157,11 +159,16 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         bufr_dir    = bf.dir + "/"
 
         # in case we need BUFR tables, set the necessary environment variables for ECCODES
-        if args.tables:
-            os.environ['ECCODES_DEFINITION_PATH'] = args.tables + ":" + tables_default
-        elif "tables" in config_bufr:
-            os.environ['ECCODES_DEFINITION_PATH'] = config_bufr["tables"] + ":" + tables_default
-
+        # info on env vars: https://stackoverflow.com/questions/8365394/set-environment-variable-in-python-script
+        if args.tables or "tables" in config_bufr:
+            env_var = "ECMWFLIBS_ECCODES_DEFINITION_PATH"
+            if args.tables:
+                os.environ[env_var] = args.tables + ":" + tables_default
+            else:
+                os.environ[env_var] = config_bufr["tables"] + ":" + tables_default
+            print(f"DEFINITION_PATH: {os.environ[env_var]}")
+            #eccodes_path = ecmwflibs.find("eccodes")
+            
         # get cluster information from config which is source-specific; therefore happens here
         try:    clusters = set(config_source["clusters"].split(","))
         # if clusters setting is not present or in case of any errors, process all clusters
@@ -248,7 +255,11 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
     # processing single file only
     elif file:
         # once again if we need special BUFR tables provide an environment variable for ECCODES
-        if args.tables: os.environ['ECCODES_DEFINITION_PATH'] = args.tables + ":" + tables_default
+        if args.tables:
+            env_var = "ECMWFLIBS_ECCODES_DEFINITION_PATH"
+            os.environ[env_var] = args.tables + ":" + tables_default
+            print(f"DEFINITION_PATH: {os.environ[env_var]}")
+            #eccodes_path = ecmwflibs.find("eccodes")
 
         # get only the file name itself, without path
         FILE            = file.split("/")[-1]
@@ -301,7 +312,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
     
     # iterate over list of all files we want to parse
     for FILE in files_to_parse:
-        if verbose: print( f"PARSING FILE: {bufr_dir}/{FILE}" )
+        if verbose: print( f"PARSING FILE: {bufr_dir+FILE}" )
         # open file savely as readonly (byte-mode)
         with open(bufr_dir + FILE, "rb") as f:
             try:
@@ -332,11 +343,11 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             else: obs_bufr[ID] = {} #shelve.open(f"shelves/{ID}", writeback=True)
 
             iterid = ec.codes_bufr_keys_iterator_new(bufr_file)
-
+            """
             if config_script["skip_computed"]:      ec.codes_skip_computed(iterid)
             if config_script["skip_function"]:      ec.codes_skip_function(iterid)
             if config_script["skip_duplicates"]:    ec.codes_skip_duplicates(iterid)
-
+            """
             meta, typical   = {}, {}
             valid_obs       = False
             location        = None
@@ -350,6 +361,8 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             if "skip0" in config_bufr:
                 skip_next = config_bufr["skip0"]
             else: skip_next = 10
+            
+            radiation_codes = range(14000,14074)
 
             while ec.codes_bufr_keys_iterator_next(iterid):
 
@@ -391,7 +404,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
                         # skip 1min ww and RR which are reported 10 times
                         # 10min resolution is sufficient for us
-                        if clear_key == "delayedDescriptorReplicationFactor":
+                        if clear_key == bf.replication: # delayedDescriptorReplicationFactor
                             if value == 10: skip_next = 10
                             continue
 
@@ -399,6 +412,10 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
                             # get BUFR code number which gives us all necessary unit and scale info
                             code        = ec.codes_get_long( bufr_file, key + "->code" )
+                            # skip 1 min timePeriod since we do not use it
+                            if code == 4025 and value == -1: continue
+                            if code in radiation_codes:
+                                print(code, value)
                             obs_data    = ( code, value )
 
                             #TODO use a defaultdict instead?
@@ -410,14 +427,19 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                             """
                             try:    obs_bufr[ID][location][datetime].append( obs_data )
                             except: obs_bufr[ID][location][datetime] = [ obs_data ]
-
+                            
+                            """
                             # avoid duplicate modifier codes (like timePeriod/depthBelowLandSurface)
                             if code in bf.modifier_codes:
                                 try:
-                                    if code == obs_bufr[ID][location][datetime][-2][0]:
+                                    if code == obs_bufr[ID][location][datetime][-2][0] or code in bf.tp_range and obs_bufr[ID][location][datetime][-2][0] in bf.tp_range:
                                         del obs_bufr[ID][location][datetime][-2]
-                                except: pass
+                                except Exception as e:
+                                    if debug: print(e)
+                            """
                             new_obs += 1
+
+                        else: print(clear_key, value)
 
                 else:
                     if not subset and key in bf.typical_keys:
@@ -446,7 +468,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
                         # check if all essential station information for WMO station is present
                         elif "wmo" in config_bufr["stations"] and bf.WMO.issubset( set(meta) ):
-                            location        = bc.to_wmo(meta["stationNumber"], meta["blockNumber"])
+                            location        = bc.to_wmo(meta["blockNumber"], meta["stationNumber"])
                             station_type    = "wmo"
                             if "skip1" in config_bufr:
                                 skip_next = config_bufr["skip1"]
@@ -528,7 +550,9 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             vals    = tuple( ec.codes_get_array(bufr_file, "numericValues") )
             unexp   = ec.codes_get_array(bufr_file, "unexpandedDescriptors")
 
-            if debug: pdb.set_trace()
+            if debug:
+                print(obs_bufr)
+                pdb.set_trace()
              
             codes_exp = [] # expanded list of codes / descriptors
             # value and code indices

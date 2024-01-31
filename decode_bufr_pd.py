@@ -42,13 +42,13 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
     if source:
         config_source   = config_sources[source]
         if "bufr" in config_source:
-             config_bufr = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
+             config_list = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
         else: return
         
         # previous dict entries will get overwritten by next list item during merge (right before left)
-        config_bf = gf.merge_list_of_dicts( config_bufr )
+        config_bufr = gf.merge_list_of_dicts( config_list )
 
-        bf = bufr_class(config_bf, script=script_name[-5:-3])
+        bf = bufr_class(config_bufr, script=script_name[-5:-3])
 
         bufr_dir = bf.dir + "/"
         
@@ -137,8 +137,8 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
 
         file_IDs = {FILE:ID}
         
-        config_bf   = gf.merge_list_of_dicts( [config["bufr"], config_script] )
-        bf          = bufr_class(config_bf, script=script_name[-5:-3])
+        config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
+        bf          = bufr_class(config_bufr, script=script_name[-5:-3])
 
     #TODO use defaultdic instead
     obs_bufr, file_statuses = {}, set()
@@ -147,7 +147,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
     config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
-    obs         = obs_class("raw", config_obs, source)
+    obs         = obs_class( config_obs, source, mode=config_script["mode"] )
 
     for FILE in files_to_parse:
         
@@ -155,7 +155,8 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         obs_bufr[ID] = {}
         
         PATH = bufr_dir + FILE
-        
+        if verbose: print(PATH)
+
         #TODO from here on we could outsource into another function and would probably just need one decode_bufr.py
         
         #TODO for some reason my nice NaN removal filter doesnt work; fix or let it be...
@@ -380,8 +381,9 @@ if __name__ == "__main__":
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
 
-    #parse command line arguments
-    if args.source:
+    # parse command line arguments
+    if args.file: decode_bufr_pd( file=args.file, pid_file=pid_file ) # source=args.source
+    elif args.source:
         source = config["sources"][args.source]
 
         if "," in source:
@@ -391,7 +393,6 @@ if __name__ == "__main__":
 
         else: config_sources = { args.source : config["sources"][args.source] }
    
-    elif args.file: decode_bufr_pd( file=args.file, pid_file=pid_file )
     else:           config_sources = config["sources"]
     
     if not args.file:

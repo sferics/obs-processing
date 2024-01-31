@@ -100,7 +100,7 @@ scripts:
     stations:         wmo
     clusters:         germany
     mode:             dev
-    output_path:      /home/juri/data/stations
+    output_path:      /home/juri/data/stations_pd
     bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags           # code flag table conversions
 
@@ -148,7 +148,7 @@ scripts:
     clusters:         germany
 
   decode_bufr_ex.py:
-    conda_env:        obs # eccodes # uses system eccodes instead of conda-forge version
+    conda_env:        cforge #obs # eccodes # uses system eccodes instead of conda-forge version
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     profiler:         0 # use profiler  TODO
@@ -194,6 +194,8 @@ scripts:
     skip_function:    0
     skip_computed:    0
     skip_duplicates:  0
+    stations:         [wmo,dwd]
+    clusters:         germany
 
   decode_bufr_00.py:
     conda_env:        obs
@@ -217,6 +219,8 @@ scripts:
     skip_function:    0
     skip_computed:    0
     skip_duplicates:  0
+    stations:         [wmo,dwd]
+    clusters:         germany
 
   decode_synop.py:    #TODO
     conda_env:        obs
