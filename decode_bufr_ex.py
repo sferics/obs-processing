@@ -330,7 +330,200 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 continue
             # if all went down smoothly create an empty dictionary to store the data in it
             else: obs_bufr[ID] = {} #shelve.open(f"shelves/{ID}", writeback=True)
-           
+
+            iterid = ec.codes_bufr_keys_iterator_new(bufr_file)
+
+            if config_script["skip_computed"]:      ec.codes_skip_computed(iterid)
+            if config_script["skip_function"]:      ec.codes_skip_function(iterid)
+            if config_script["skip_duplicates"]:    ec.codes_skip_duplicates(iterid)
+
+            meta, typical   = {}, {}
+            valid_obs       = False
+            location        = None
+            subset, new_obs = 0, 0
+            skip_obs        = False
+            last_key        = None
+
+            #if debug: pdb.set_trace()
+
+            # initial skipping of unwanted keys (default is 10)
+            if "skip0" in config_bufr:
+                skip_next = config_bufr["skip0"]
+            else: skip_next = 10
+
+            while ec.codes_bufr_keys_iterator_next(iterid):
+
+                if skip_next:
+                    skip_next -= 1
+                    continue
+
+                key = ec.codes_bufr_keys_iterator_get_name(iterid)
+
+                if last_key == "typical" and last_key not in key:
+                    last_key = None
+                    skip_next = 3
+                    continue
+
+                if key == "subsetNumber":
+                    if subset > 0:
+                        meta = {}; location = None; valid_obs = False; skip_obs = False
+                    subset += 1
+                    continue
+                elif skip_obs: continue
+
+                clear_key = bf.clear(key)
+
+                if clear_key not in bf.relevant_keys: continue
+                #if debug: print(key)
+
+                if valid_obs:
+                    if location not in obs_bufr[ID]:
+                        obs_bufr[ID][location] = {}
+
+                    if clear_key in bf.obs_time_keys:
+                        try: value = ec.codes_get( bufr_file, key )
+                        except Exception as e:
+                            log_str = f"ERROR:  '{FILE}' ({key}, {e})"
+                            log.error(log_str)
+                            if verbose:     print(log_str)
+                            if traceback:   gf.print_trace(e)
+                            continue
+
+                        # skip 1min ww and RR which are reported 10 times
+                        # 10min resolution is sufficient for us
+                        if clear_key == "delayedDescriptorReplicationFactor":
+                            if value == 10: skip_next = 10
+                            continue
+
+                        if value not in bf.null_vals:
+
+                            # get BUFR code number which gives us all necessary unit and scale info
+                            code        = ec.codes_get_long( bufr_file, key + "->code" )
+                            obs_data    = ( code, value )
+
+                            #TODO use a defaultdict instead?
+                            #TODO find out which is faster (try/except, if or defaultdict)
+                            """
+                            if datetime not in stations[location]:
+                                stations[location][datetime] = []
+                            stations[location][datetime].append( obs_data )
+                            """
+                            try:    obs_bufr[ID][location][datetime].append( obs_data )
+                            except: obs_bufr[ID][location][datetime] = [ obs_data ]
+
+                            # avoid duplicate modifier codes (like timePeriod/depthBelowLandSurface)
+                            if code in bf.modifier_codes:
+                                try:
+                                    if code == obs_bufr[ID][location][datetime][-2][0]:
+                                        del obs_bufr[ID][location][datetime][-2]
+                                except: pass
+                            new_obs += 1
+
+                else:
+                    if not subset and key in bf.typical_keys:
+                        typical[key] = ec.codes_get( bufr_file, key )
+                        if typical[key] in bf.null_vals:
+                            del typical[key]
+                        last_key = "typical"
+                        continue
+
+                    if location is None and clear_key in bf.station_keys:
+                        meta[clear_key] = ec.codes_get(bufr_file, key)
+
+                        #TODO some OGIMET-BUFRs seem to contain multiple station numbers in one key
+                        #try:    meta[clear_key] = ec.codes_get(bufr_file, key)
+                        #except: meta[clear_key] = ec.codes_get_array(bufr_file, key)[0]
+
+                        if meta[clear_key] in bf.null_vals:
+                            del meta[clear_key]
+                            continue
+
+                        # check for identifier of DWD stations (in German "nebenamtliche Stationen")
+                        if "dwd" in config_bufr["stations"] and "shortStationName" in meta:
+                            location        = meta["shortStationName"]
+                            station_type    = "dwd"
+                            skip_next       = 4
+
+                        # check if all essential station information for WMO station is present
+                        elif "wmo" in config_bufr["stations"] and bf.WMO.issubset( set(meta) ):
+                            location        = bc.to_wmo(meta["stationNumber"], meta["blockNumber"])
+                            station_type    = "wmo"
+                            if "skip1" in config_bufr:
+                                skip_next = config_bufr["skip1"]
+
+                        """
+                        if location and location not in known_stations:
+                            meta = {}; location = None; skip_obs = True
+                            if station_type == "dwd":
+                                skip_next = 13
+                            elif "skip2" in config_bufr:
+                                skip_next = config_bufr["skip2"]
+                        """
+
+                    elif location:
+
+                        if clear_key in bf.set_time_keys: # {year, month, day, hour, minute}
+                            meta[clear_key] = ec.codes_get_long(bufr_file, key)
+                            if meta[clear_key] in bf.null_vals:
+                                del meta[clear_key]
+
+                            if clear_key == "minute":
+                                # check if all essential time keys are now present
+                                valid_obs = bf.set_time_keys.issubset(meta)
+                                if valid_obs:
+                                    datetime = gf.to_datetime(meta)
+                                    #if debug: print(meta)
+                                    if "skip3" in config_bufr:
+                                        skip_next = config_bufr["skip3"]
+                                    continue
+
+                                elif bf.set_time_keys_hour.issubset(meta):
+                                    # if only minute is missing, assume that minute == 0
+                                    meta["minute"]  = 0
+                                    valid_obs       = True
+                                    datetime        = gf.to_datetime(meta)
+                                    #if debug: print("minute0:", meta)
+                                    continue
+
+                                # if we are still missing time keys: use the typical information
+                                elif typical:
+                                    # use the typical values we gathered earlier keys are missing
+                                    for i, j in zip( bf.time_keys, bf.typical_keys ):
+                                        try:    meta[i] = int( typical[j] )
+                                        except: pass
+
+                                    # again, if only minute is missing, assume that minute == 0
+                                    if bf.set_time_keys_hour.issubset(meta):
+                                        meta["minute"]  = 0
+                                        valid_obs       = True
+                                        continue
+
+                                    # no luck yet? there could be typicalDate or typicalTime present
+                                    if not bf.YMD.issubset(set(meta)) and "typicalDate" in typical:
+                                        typical_date    = typical["typicalDate"]
+                                        meta["year"]    = int(typical_date[:4])
+                                        meta["month"]   = int(typical_date[4:6])
+                                        meta["day"]     = int(typical_date[-2:])
+                                    else:
+                                        skip_obs = True
+                                        continue
+
+                                    if ("hour" not in meta or "minute" not in meta) and "typicalTime" in typical:
+                                        typical_time = typical["typicalTime"]
+                                        if "hour" not in meta:
+                                            meta["hour"]    = int(typical_time[:2])
+                                        if "minute" not in meta:
+                                            meta["minute"]  = int(typical_time[2:4])
+                                    else:
+                                        skip_obs = True
+                                        continue
+
+                                else: skip_obs = True
+
+
+            # end of while loop
+            ec.codes_keys_iterator_delete(iterid)
+
             # get descriptor data (unexpanded descriptors plus their values)
             vals    = tuple( ec.codes_get_array(bufr_file, "numericValues") )
             unexp   = ec.codes_get_array(bufr_file, "unexpandedDescriptors")
