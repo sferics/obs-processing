@@ -148,7 +148,7 @@ scripts:
     clusters:         germany
 
   decode_bufr_ex.py:
-    conda_env:        cforge #obs # eccodes # uses system eccodes instead of conda-forge version
+    conda_env:        obs #eccodes #cforge #obs # uses system eccodes instead of conda-forge version
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     profiler:         0 # use profiler  TODO

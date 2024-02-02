@@ -3,6 +3,7 @@
 
 # system modules
 import argparse, sys, os, psutil#, shelve
+import pdbufr
 import numpy as np
 from glob import glob 
 from copy import copy
@@ -329,8 +330,15 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     file_statuses.add( ("empty", ID) )
                     if verbose: print(f"EMPTY:  '{FILE}'")
                     continue
+                # skip extra attributes like units and scale to decode 25% faster (we can get them via key->code)
+                # https://confluence.ecmwf.int/display/UDOC/Performance+improvement+by+skipping+some+keys+-+ecCodes+BUFR+FAQ)
+                ec.codes_set(msg, 'skipExtraKeyAttributes', 1)
                 # tell ECCODES to unpack all BUFR data, keys and elements
                 ec.codes_set(bufr_file, "unpack", 1)
+                # extract all subsets
+                ec.codes_set(msg, "extractSubsetIntervalStart", 1)
+                ec.codes_set(msg, "extractSubsetIntervalEnd", ec.codes_get_long(msg, "numberOfSubsets"))
+                ec.codes_set(msg, "doExtractSubsets", 1)
             # if anything goes wrong we log an error message and declare the file status as 'error'
             except Exception as e:
                 log_str = f"ERROR:  '{FILE}' ({e})"; log.error(log_str)
@@ -343,11 +351,11 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             else: obs_bufr[ID] = {} #shelve.open(f"shelves/{ID}", writeback=True)
 
             iterid = ec.codes_bufr_keys_iterator_new(bufr_file)
-            """
+            
             if config_script["skip_computed"]:      ec.codes_skip_computed(iterid)
             if config_script["skip_function"]:      ec.codes_skip_function(iterid)
             if config_script["skip_duplicates"]:    ec.codes_skip_duplicates(iterid)
-            """
+            
             meta, typical   = {}, {}
             valid_obs       = False
             location        = None
@@ -547,8 +555,8 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             ec.codes_keys_iterator_delete(iterid)
 
             # get descriptor data (unexpanded descriptors plus their values)
-            vals    = tuple( ec.codes_get_array(bufr_file, "numericValues") )
-            unexp   = ec.codes_get_array(bufr_file, "unexpandedDescriptors")
+            vals    = ec.codes_get_double_array(bufr_file, "numericValues")
+            unexp   = ec.codes_get_long_array(bufr_file, "unexpandedDescriptors")
 
             if debug:
                 print(obs_bufr)

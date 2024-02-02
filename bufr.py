@@ -65,7 +65,7 @@ class bufr_class:
         return location
 
 
-    def __init__(self, config={"log_level":"ERROR","verbose":0,"traceback":0,"debug":"0"}, script="us"):
+    def __init__(self, config={"bufr_translation":"bufr_translation", "bufr_flags":"bufr_flags", "mode":"dev", "output_path":"~/data/stations"}, script="us"):
         """
         Parameter:
         ----------
@@ -77,6 +77,11 @@ class bufr_class:
         -------
 
         """
+        # default settings values in case they are not present in the config dict
+        self.verbose    = False
+        self.traceback  = False
+        self.stations   = ["wmo"]
+        
         # parse all keys and values of config dict into namespace, a bit like in database.py
         for i in config:
             exec( f'self.{i} = "{config[i]}"' )
@@ -85,7 +90,7 @@ class bufr_class:
             if self.verbose: print( i, "=", config[i] )
 
         # check for mandatory class attributes
-        mandatory = ("verbose", "traceback", "bufr_translation", "bufr_flags", "mode", "output_path", "stations")
+        mandatory = ("bufr_translation", "bufr_flags", "mode", "output_path")
         for attr in mandatory:
             print(attr)
             assert( hasattr(self, attr) )
