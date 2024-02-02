@@ -784,36 +784,36 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                                 # the next 10 values are put into a list comprehension as follows
                                 val_10 = [ next(vals) for _ in range(10) ]
                                 if debug: print(val_10)
-                                #
+                                # this is necessary because stations that contain no data still need to be parsed
                                 if location and datetime:
-                                    #
+                                    # if we encounter a series of 10 precipitation values (amount or duration)
                                     if 13011 in codes_repl or 26020 in codes_repl:
                                         if debug: print(13011, codes_repl)
-                                        #
+                                        # add the sum of all 10 values to the list of observations
                                         obs_list.append( (13011, np.nansum(val_10)) )
-                                    #
+                                    # if there are 10 values of current weather statuses (ww codes)
                                     elif 20003 in codes_repl:
                                         if debug: print(20003, codes_repl)
-                                        #
+                                        # add only the highest, most siginificant ww code to the obs list
                                         obs_list.append( (20003, np.nanmax(val_10)) )
                             else:
-                                #
+                                # repeat the elements in the list according to the replication factor
                                 for _ in range(repl_factor):
-                                    #
+                                    # iterate over every elements in the codes_repl list
                                     for code_r in codes_repl:
-                                        #
+                                        # if we encounter a scale or size alteration code
                                         if code_r in bf.scale_size_alter:
                                             if debug: print("SCALE / DATASIZE ALTERATION!")
-                                            #
+                                            # only save the scale changes but in any case skip a value (continue)
                                             if location and datetime and code in bf.scale_alter:
                                                 obs_list.append( (code, None) )
                                             continue
-                                        #
+                                        # move on to the next value in our main values iterator
                                         val_r = next(vals)
                                         if debug: print(bc.to_code(code_r), val_r)
-                                        #
+                                        # only if location and datetime have a proper value (not None or "")
                                         if location and datetime:
-                                            #
+                                            # if the code_r is relevant and is not a NaN: add it to the obs list
                                             if code_r in bf.relevant_codes and not np.isnan(val_r):
                                                 obs_list.append( (code_r, val_r) )
                             
@@ -821,16 +821,16 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         
                         # if location and datetime are not None
                         else:
-                            #
+                            # we only want relevant codes and will skip the rest
                             if code in bf.relevant_codes:
-                                #
+                                # iterate to the next value
                                 val = next(vals)
-                                #
+                                # again location and datetime must have actual values and value should not be NaN
                                 if location and datetime and not np.isnan(val):
                                     # turn 1min values to 10min values
                                     if code == 4025 and val == -1: val = -10
                                     if debug: print(bc.to_code(code), val)
-                                    #
+                                    # last but not least append the (code, value) tuple to the list of obs
                                     obs_list.append( (code, val) )
                             #
                             else:
@@ -840,12 +840,12 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
                     # get blockNumber, stationNumber and datetime info
                     elif code == 1001:
-                        #
+                        # iterate to the next nalue
                         val = next(vals)
-                        #
+                        # get location, datetime and skip information
                         location,datetime,skip  = get_location_and_datetime(codes, code, vals, val)
                         skip_codes, skip_vals   = skip
-                        #
+                        # skip codes and values according to the information provided by the 'skip' tuple
                         for _ in range(skip_codes): next(codes)
                         for _ in range(skip_vals):  next(vals)
                     
@@ -876,56 +876,56 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         # end of with clause (closes file handle)
         ec.codes_release(bufr_file)
         
-        # 
+        # only if there was a new observation at least once in the dataset (new_obs has been set True) 
         if new_obs:
-            #
-            file_statuses.add( ("parsed", ID) )
-            log.debug(f"PARSED: '{FILE}'")
-        #
-        else:
-            #
-            file_statuses.add( ("empty", ID) )
-            log.info(f"EMPTY:  '{FILE}'")
+            # add the file as status==parsed to the file_statuses set and log the file's status as parsed
+            file_statuses.add( ("parsed", ID) ); log.debug(f"PARSED: '{FILE}'")
+        # else the file's status will be empty in the file_statuses and in the log file as well
+        else: file_statuses.add( ("empty", ID) ); log.info(f"EMPTY:  '{FILE}'")
         
         #TODO fix memory leak or find out how restarting script works together with multiprocessing
+        # check the amount of free RAM on the system and compare it to the min value defined in the settings
         memory_free = psutil.virtual_memory()[1] // 1024**2
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
-            #
+            # initialize a new instant of the database class (establishes a new connection)
             db = dc(config=config_database)
-            #
+            # bulk set all file statuses which have been saved previously in the file_statuses set
             db.set_file_statuses(file_statuses, retries=max_retries, timeout=bf.timeout)
             # close without forcing a commit
             db.close()
 
             print("TOO MUCH RAM USED, RESTARTING...")
-            #
-            obs_db = bf.convert_keys_ex( obs_bufr, source )
-            #
-            if obs_db: obs.to_station_databases( obs_db, scale=True )
+            # before restarting the script we need to convert the keys to the database format (if data present)
+            if obs_bufr:
+                obs_db = bf.convert_keys_ex( obs_bufr, source )
+                # and if we received a dictionary back: insert its information the station databases
+                if obs_db: obs.to_station_databases( obs_db, scale=True )
             
-            #
+            # in case we used a PID file: remove it since it will be created anew after the restart
             if pid_file: os.remove( pid_file )
             # get the name of the currently running executable
             exe = sys.executable
             # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
     
-    #
+    # create a new instance of the database class
     db = dc(config=config_database)
-    #
+    # bul set all file statuses
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=bf.timeout)
-    #
+    # close the database connection again without committing to the database
     db.close()
 
     if debug: print( obs_bufr )
-    
-    #
-    obs_db = bf.convert_keys_ex( obs_bufr, source )
-    #for ID in obs: obs_bufr[ID].close()
-    
-    #
-    if obs_db: obs.to_station_databases( obs_db, scale=True, traceback=True )
+   
+    # if any observation data have been recorded
+    if obs_bufr:
+        # convert the keys to the database format
+        obs_db = bf.convert_keys_ex( obs_bufr, source )
+        #for ID in obs: obs_bufr[ID].close()
+        
+        # if dictionary is not empty save its content to the station databases
+        if obs_db: obs.to_station_databases( obs_db, scale=True, traceback=True )
     
     # remove file containing the pid, so the script can be started again
     if pid_file: os.remove( pid_file )
@@ -969,105 +969,104 @@ if __name__ == "__main__":
 
     # read configuration file into a dictionary
     config          = gf.read_yaml( args.config )
-    #
+    # get the name of the currently running script
     script_name     = gf.get_script_name(__file__)
-    #
+    # get the config for this very script
     config_script   = config["scripts"][script_name]
-    #
+    # lookup the needed conda environment in the config
     conda_env       = os.environ['CONDA_DEFAULT_ENV']
     
-    #
+    # if the currently active environment differs form prequirement in the script: exit showing error message
     if config_script["conda_env"] != conda_env:
         sys.exit(f"Script needs to run in conda environment {config_script['conda_env']}, exiting!")
     
-    #
+    # save the general part of the configuration in a variable for easier acces
     config_general = config["general"]
-    #
+    # do the same with the default bufr tables settings
     tables_default = config["bufr"]["tables"]
     
-    #
-    pid = str(os.getpid())
-    
-    #
+    # if there is a max_files setting present in command line options or config: use it preferring the cmd value
     if args.max_files is not None:  config_script["max_files"]  = args.max_files
-    #
+    # same for sort_files
     if args.sort_files: config_script["sort_files"] = args.sort_files
     
-    #
+    # also for the PID file setting prefer the one from the command line arguments if present
     if args.pid_file: config_script["pid_file"] = True
-    #
+    # if a PID file is used: check whether there is already a script with the same name running
     if config_script["pid_file"]:
-        #
+        # get the pid of the currently running process
+        pid = str(os.getpid())
+        # the name of the PID file consists of script name plus extension '.pid'
         pid_file = script_name + ".pid"
-        #
+        # if an already running instance of the script is detected: exit the execution immediately
         if gf.already_running( pid_file ): sys.exit(f"{script_name} is already running... EXITING!")
-    #
+    # otherwise no PID file will be used
     else: pid_file = None
     
-    #
+    # if a profiler module is defined: once more prefer the command line's option other the config dictionary
     if args.profiler: config_script["profiler"] = args.profiler
-    #
+    # in case we are using a prfiler 
     if config_script["profiler"]:
-        #
+        # importlib lets us dynamically load modules (see https://docs.python.org/3/library/importlib.html)
         import importlib
-        #
+        # the profiler will be loaded into its own namespace (always 'profiler', regardless of what package name)
         profiler    = importlib.import_module(config_script["profiler"])
-        #
+        # indicate that we are using a profiler
         profile     = True
-    #
+    # no profiler is used
     else: profile = False
     
-    #
+    # log level also prefers the setting from command line arguments
     if args.log_level: config_script["log_level"] = args.log_level
-    #
+    # get a logger instance for the current script
     log = gf.get_logger(script_name)
     
-    #
+    # remeber the starting time of the script so we can measure its performance later (we do this quite late...)
     start_time  = dt.utcnow()
-    #
+    # a string that can be printed to log or stdout
     started_str = f"STARTED {script_name} @ {start_time}"; log.info(started_str)
     
-    #
+    # verbose setting also gives priority to command line value
     if args.verbose is not None: config_script["verbose"] = args.verbose
-    #
+    # shorthand for the setting
     verbose = config_script["verbose"]
-    #
+    # if verbose we will now print out the string we created a few lines before
     if verbose: print(started_str)
     
-    #
+    # once more the debug setting from command line comes first
     if args.debug:                  config_script["debug"] = True
-    #
+    # if we debug we will use the pdb module always
     if config_script["debug"]:      import pdb; debug = True
-    #
+    # else we provide a shorthand for lines in which debugging could be useful
     else:                           debug = False
     
-    #
+    # same procedure as always for traceback: command line goes first
     if args.traceback:              config_script["traceback"] = traceback = True
-    #
+    # traceback gets a shorthand as well because it will be used quite frequently to debug output from classes
     else:                           traceback = config_script["traceback"]
     
-    #
+    # same for timeout
     if args.timeout:                config_script["timeout"] = timeout_station = args.timeout
-    #
+    # the timeout setting is needed for database access and tells sqlite how long to wait fro the next try
     else:                           timeout_station = config_script["timeout"]
     
-    #
+    # and maximum retries
     if args.max_retries:            config_script["max_retries"] = max_retries = args.max_retries
-    #
+    # how many times do we want to try accessing the database?
     else:                           max_retries = config_script["max_retries"]
     
-    #
+    # also for the dev_mode setting we wll prefer whatever the command line arguments say
     if args.dev_mode: config_script["mode"] = "dev"
     
-    #
+    # shorthand for the execution mode {dev, oper, test}
     mode        = config_script["mode"]
-    #
+    # the general output path can differ from the one defined in scripts (or even per-source)
     output_path = config["general"]["output_path"]
 
     # output_path in script config has priority over general config
     if "output_path" in config_script: output_path = config_script["output_path"]
     
-    #
+    # clusters also prefer the command line argument setting
     if args.clusters: config_source["clusters"] = frozenset(args.clusters.split(","))
 
     # get configuration for the initialization of the database class
@@ -1076,10 +1075,10 @@ if __name__ == "__main__":
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
     db = dc(config=config_database)
-    #
+    # create the file_table in the main database
     db.cur.execute( gf.read_file( "file_table.sql" ) )
-    #
-    db.close()
+    # close the connection again and commit the changes
+    db.close(commit=True)
 
     # if processing a single file call the function with file argument
     if args.file: decode_bufr_ex( file=args.file, pid_file=pid_file )
@@ -1087,32 +1086,36 @@ if __name__ == "__main__":
     elif args.source:
         # source config can be accessed by its name in the sources section of the YAML
         source = config["sources"][args.source]
-        #
+        # source argument can be a list which is indicated by a comma (sources are comma-seperated)
         if "," in source:
-            #
-            sources = source.split(","); config_sources = {}
-            #
+            # split the sources string and create a proper list
+            sources = source.split(",")
+            # create the empty 'config_sources' dictionary which stores all needed configurations
+            config_sources = {}
+            # iterate over all sources and save the settings into 'config_source'
             for s in sources: config_sources[s] = config["sources"][s]
-        #
+        # if we use a single source only: create the  dictionary instantly
         else: config_sources = { args.source : config["sources"][args.source] }
-    #
+    # if no source argument is given: process all sources that are present in the config file
     else: config_sources = config["sources"]
     
-    #
+    # if we do not process a single file
     if not args.file:
-        #
+        # iterate over all sources in the config
         for SOURCE in config_sources:
             if verbose: print(f"PARSING SOURCE: {SOURCE}")
-            #
+            # run the program's main function, handing over source and pid_file (if desired)
             decode_bufr_ex( source = SOURCE, pid_file=pid_file )
     
-    #
+    # measure the time when the script has (almost) stopped
     stop_time = dt.utcnow()
-    #
-    finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)
+    # the finished_str consists of the script's name and its stop time
+    finished_str = f"FINISHED {script_name} @ {stop_time}"
+    # save it to the logs with priority 'info'
+    log.info(finished_str)
     
     if verbose:
         print(finished_str)
-        #
+        # measure the time taken for the execution of the script and print to stdout
         time_taken = stop_time - start_time
         print(f"TIME TAKEN: {time_taken.seconds}.{time_taken.microseconds} s")
