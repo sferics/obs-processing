@@ -4,7 +4,7 @@ import global_variables as gv
 
 class database_class:
     
-    def __init__(self, db_file="main.test.db", config={ "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
+    def __init__(self, db_file="main.db", config={ "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
         
         #TODO add logging statements where it makes sense for debugging/monitoring of database activities
         if "log_level" in config and config["log_level"] in gv.log_levels:

@@ -126,6 +126,7 @@ class obs_class:
                                 if loc[i][5]:   cor = "CC" + chr(64+loc[i][5])
                                 else:           cor = ""
                             except:             cor = ""
+                            #print(loc[i])
                             print(f"{loc[i][1]} {loc[i][2]:<6} {loc[i][3]:<20} {loc[i][4]:<21} {cor}")
                         print()
                     break

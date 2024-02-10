@@ -109,7 +109,10 @@ class bufr_class:
         self.tp                 = "timePeriod"
         self.obs_sequence       = "observationSequenceNumber"
         self.replication        = "delayedDescriptorReplicationFactor"
-        self.replication_keys   = frozenset( {self.replication, "delayedDescriptorReplicationFactor", "extendedDelayedDescriptorReplicationFactor"} ) #, "delayedDescriptorAndDataRepetitionFactor", "extendedDelayedDescriptorAndDataRepetitionFactor"} )
+        self.ext_replication    = "extendedDelayedDescriptorReplicationFactor"
+        self.short_replication  = "shortDelayedDescriptorReplicationFactor"
+        self.replication_keys   = frozenset( {self.replication, self.ext_replication, self.short_replication} )
+        #"delayedDescriptorAndDataRepetitionFactor", "extendedDelayedDescriptorAndDataRepetitionFactor"} )
         self.sensor_height      = "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform"
         self.sensor_depth       = "depthBelowLandSurface"
         self.vertical_signf     = "verticalSignificanceSurfaceObservations"
@@ -182,6 +185,7 @@ class bufr_class:
 
                             try:    subkey = list(self.bufr_translation[i][j])
                             except: continue
+                            
                             if type(subkey[0]) == float:
                                 if subkey[0] < 0:
                                     self.depth_keys.add(i)
@@ -203,9 +207,9 @@ class bufr_class:
                 self.height_depth_codes = frozenset( self.height_codes | self.depth_codes )
                 # all codes which modify the following keys duration, height, depth and so on
                 self.modifier_codes = frozenset( self.tp_codes | {1023, 7032, 7061, 8002, 31000, 31001, 31002} )
-                #TODO maybe add 31011, 31012
+                #TODO maybe add 31011, 31012 (not used by DWD but maybe other providers do use them)
 
-                if script == "ex":
+                if script in {"ex", "us"}:
                     self.datetime_codes = {
                         4001 : "year",  # XXXX
                         4002 : "month", # XX
@@ -214,7 +218,11 @@ class bufr_class:
                         4005 : "minute" # XX
                     }
                     self.station_codes  = frozenset( {1001, 1002} ) # 1018
-                    self.bufr_sequences = gf.read_yaml( self.bufr_sequences )
+                    
+                    if hasattr(self, "bufr_sequences"):
+                        self.bufr_sequences = gf.read_yaml( self.bufr_sequences )
+                    else: self.bufr_sequences = gf.read_yaml( "bufr_sequences" )
+
                     self.sequence_range = range(min(self.bufr_sequences), max(self.bufr_sequences))
                     self.scale_increase = 0
 
@@ -239,7 +247,7 @@ class bufr_class:
                     self.repl_seq_range = range(131000, 132000) # repeat next sequence (999 times)
                     self.repl_info      = frozenset( tuple(self.repl_codes) + tuple(self.repl_range) + tuple(self.repl_seq_range) )
 
-            case "se" | "pd" | "fl":
+            case "se" | "pd" | "pl" | "fl" | "gt":
                 
                 if script != "se": self.fixed_duration_keys = set()
 
@@ -264,24 +272,27 @@ class bufr_class:
                 
                 self.bufr_obs_keys = frozenset( set(self.bufr_translation_keys) - {"cloudBase"} )
 
-                if script == "pd":
+                if script in {"pd", "pl", "gt"}:
                     self.ww             = "presentWeather"
                     self.rr             = "totalPrecipitationOrTotalWaterEquivalent"
                     self.wmo            = "WMO_station_id"
                     self.dt             = "data_datetime"
                     self.required_keys  = frozenset( {self.wmo, self.dt} )
                     self.relevant_keys  = frozenset( self.bufr_obs_keys | self.required_keys | self.modifier_keys | {self.obs_sequence} | self.replication_keys )
-                
+                    
+                    if script in {"pl", "gt"}:
+                        self.ignore_keys    = frozenset( self.required_keys | self.replication_keys | {self.tp} )
+                        self.obs_list_keys  = frozenset( self.relevant_keys - self.ignore_keys )
+
                 elif script == "se":
                     self.bufr_mod_keys  = frozenset( set(self.bufr_translation_keys) | self.modifier_keys | {self.obs_sequence} )
                     self.relevant_keys  = frozenset( self.bufr_mod_keys | self.station_keys | self.typical_keys | set(self.time_keys) )
                     self.time_keys_set  = frozenset( self.time_keys )
         
-        if script != "us":
-            # we currently don't need these seperate key groups, outcommented for future use
-            #self.height_keys, self.depth_keys   = frozenset(self.height_keys), frozenset(self.depth_keys)
-            # union of both will be used later
-            self.height_depth_keys              = frozenset( self.height_keys | self.depth_keys )
+        # we currently don't need these seperate key groups, outcommented for future use
+        #self.height_keys, self.depth_keys   = frozenset(self.height_keys), frozenset(self.depth_keys)
+        # union of both will be used later
+        self.height_depth_keys              = frozenset( self.height_keys | self.depth_keys )
 
 
     ### class lambda functions
@@ -364,7 +375,7 @@ class bufr_class:
         return key_db[0], value, duration
 
 
-    def translate_key_ex( self, key, value, duration, h=None ):
+    def translate_key_us( self, key, value, duration, h=None ):
         """
         Parameter:
         ----------
@@ -547,7 +558,7 @@ class bufr_class:
 
 
     # version with units and scale (uses codes instead of keys) + expanded keys + values
-    def convert_keys_ex( self, obs, dataset, verbose=False):
+    def convert_keys_us( self, obs, dataset, verbose=False):
         """
         Parameter:
         ----------
@@ -620,7 +631,7 @@ class bufr_class:
                                     h = copy(sensor_height)
                                     if not h or h >= 1: h = 2.0
 
-                                element, val_db, duration, scale = self.translate_key_ex(code, val_obs, duration, h=h)
+                                element, val_db, duration, scale = self.translate_key_us(code, val_obs, duration, h=h)
 
                             elif code in {20013, 20092}:
                                 # we are first and foremost interested in the cloud base of the lowest cloud(ceiling)
@@ -634,33 +645,33 @@ class bufr_class:
 
                             elif code == 20010:
                                 cloud_cover = copy(val_obs)
-                                element, val_db, duration, scale = self.translate_key_ex(code, cloud_cover, duration)
+                                element, val_db, duration, scale = self.translate_key_us(code, cloud_cover, duration)
                                 if dataset in {"DWD","test"}: val_db = int(val_db)
 
                             elif code == 20011:
                                 if cloud_cover is None: cloud_amounts.add( val_obs )
 
-                                element, val_db, duration, scale = self.translate_key_ex(code, val_obs, duration, h=vertical_sigf )
+                                element, val_db, duration, scale = self.translate_key_us(code, val_obs, duration, h=vertical_sigf )
                                 if not vertical_sigf: continue
 
-                            else: element, val_db, duration, scale = self.translate_key_ex(code, val_obs, duration)
+                            else: element, val_db, duration, scale = self.translate_key_us(code, val_obs, duration)
                             if element is not None:
                                 obs_db[location].add( (file, datetime_db, duration, element, val_db, cor, scale) )
                             else: print(f"element is None for code: {code}, value: {val_obs}")
 
                     if cloud_ceiling < float("inf"):
                         code = copy(code_ceiling)
-                        element, val_db, duration, scale = self.translate_key_ex(code, cloud_ceiling, duration )
+                        element, val_db, duration, scale = self.translate_key_us(code, cloud_ceiling, duration )
                         obs_db[location].add( (file, datetime_db, duration, element, val_db, cor, scale) )
 
                     if cloud_cover is None and cloud_amounts: # we prefer cloud cover over cloud amount because it's in %
-                        element, val_db, duration, scale = self.translate_key_ex(20011, max(cloud_amounts), duration, h=0)
+                        element, val_db, duration, scale = self.translate_key_us(20011, max(cloud_amounts), duration, h=0)
                         obs_db[location].add( (file, datetime_db, duration, element, val_db, cor, scale) )
 
                     if cloud_bases:
                         cloud_bases = sorted(cloud_bases)[:4] # convert set into a sorted list (lowest to highest level)
                         for i, cloud_base in enumerate(cloud_bases): # get all the cloud base heights from 1-4
-                            element, val_db, duration, scale = self.translate_key_ex("cloudBase", cloud_base, duration, h=i+1)
+                            element, val_db, duration, scale = self.translate_key_us("cloudBase", cloud_base, duration, h=i+1)
                             obs_db[location].add( (file, datetime_db, duration, element, val_db, cor, scale) )
 
         return obs_db
@@ -799,7 +810,7 @@ class bufr_class:
 
 
     # pdbufr version
-    def convert_keys_pd( self, obs, dataset, verbose=None ):
+    def convert_keys_pd( self, obs, dataset, convert_datetime=True, verbose=None ):
         """
         Parameter:
         ----------
@@ -846,8 +857,11 @@ class bufr_class:
                         try:
                             if time_period: duration_obs = time_periods[time_period]
                         except: continue
-
-                        datetime_db     = datetime.to_pydatetime()
+                        
+                        if convert_datetime:
+                            datetime_db     = datetime.to_pydatetime()
+                        else: datetime_db = copy(datetime)
+                        
                         cor             = 0
 
                         for data in obs[file][location][datetime][time_period]:

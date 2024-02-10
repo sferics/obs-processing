@@ -2,7 +2,7 @@
 import os
 import sys
 from datetime import datetime as dt, timedelta as td
-from database import database_class
+from database import database_class as dc
 import global_functions as gf
 
 
@@ -69,12 +69,17 @@ def aggregate_obs(stations):
     -------
 
     """
+    
+    #TODO this function should make sure that in the forge stage we only have 30 min data resolution
+    # that means if there are missing 0min or 30min values, we should replace them with the closest values, e.g.
+    # 10min/50min for 0min and 20min/40min for 30min; TODO which of those should we prefer and why? average them?
+
     for loc in stations:
         
         sql_values = set()
         
         db_file = f"{output_path}/forge/{loc[0]}/{loc}.db"
-        try: db_loc = database_class( db_file, {"verbose":verbose, "traceback":traceback} )
+        try: db_loc = dc( db_file, {"verbose":verbose, "traceback":traceback} )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
@@ -288,7 +293,7 @@ if __name__ == "__main__":
     if "mode" in config_script:
         mode = config_script["mode"]
 
-    db              = database_class( config=config["database"] )
+    db              = dc( config=config["database"] )
 
     clusters        = set(config_script["clusters"].split(","))
     stations        = db.get_stations( clusters ); db.close(commit=False)

@@ -42,7 +42,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
     if source:
         config_source   = config_sources[source]
         if "bufr" in config_source:
-             config_list = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
+             config_list = [ config["bufr"], config_script, config_general, config_source["bufr"] ]
         else: return
         
         # previous dict entries will get overwritten by next list item during merge (right before left)
@@ -203,7 +203,8 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
             except: pass 
 
             try:
-                if time_period == -1 and row[bf.replication] == 10 and (pd.notna(row[bf.ww]) or pd.notna(row[bf.rr])):
+                repl_10 = row[bf.replication] == 10 or row[bf.ext_replication] == 10
+                if time_period == -1 and repl_10 and (pd.notna(row[bf.ww]) or pd.notna(row[bf.rr])):
                     continue
             except: pass
             
@@ -215,7 +216,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
                 if verbose: print("NO DATETIME:", FILE)
                 continue
             
-            for i in (bf.replication, bf.tp, bf.wmo, bf.dt):
+            for i in (bf.replication, bf.ext_replication, bf.tp, bf.wmo, bf.dt):
                 try:    del row[i]
                 except: continue
                 
@@ -327,6 +328,9 @@ if __name__ == "__main__":
     if config_script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
     
+    # save the general part of the configuration in a variable for easier acces
+    config_general = config["general"]
+
     pid = str(os.getpid())
 
     if args.max_files is not None:  config_script["max_files"]  = args.max_files

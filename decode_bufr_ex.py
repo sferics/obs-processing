@@ -3,13 +3,13 @@
 
 # system modules
 import argparse, sys, os, psutil#, shelve
-import pdbufr
 import numpy as np
 from glob import glob 
 from copy import copy
 from itertools import cycle
 #import ecmwflibs
-import eccodes as ec        # bufr decoder by ECMWF
+# bufr decoder by ECMWF
+import eccodes as ec
 from datetime import datetime as dt, timedelta as td
 import global_functions as gf
 import global_variables as gv
@@ -315,7 +315,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
     for FILE in files_to_parse:
         if verbose: print( f"PARSING FILE: {bufr_dir+FILE}" )
         # open file savely as readonly (byte-mode)
-        with open(bufr_dir + FILE, "rb") as f:
+        with open(bufr_dir + FILE, "rb") as file_handle:
             try:
                 # the file ID is the representation of the file in the main database (file_table)
                 ID = file_IDs[FILE]
@@ -323,9 +323,9 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 # continue with next file
                 if not ID: continue
                 # let ECCODES read the file into memory and handle it
-                bufr_file = ec.codes_bufr_new_from_file(f)
-                # bufr_file should be an integer; if not it is None (empty) and needs to be skipped
-                if bufr_file is None:
+                msg = ec.codes_bufr_new_from_file(file_handle)
+                # msg should be an integer (ID); if not it is None (empty) and needs to be skipped
+                if msg is None:
                     # status is empty if the bufr file contains no data
                     file_statuses.add( ("empty", ID) )
                     if verbose: print(f"EMPTY:  '{FILE}'")
@@ -334,7 +334,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 # https://confluence.ecmwf.int/display/UDOC/Performance+improvement+by+skipping+some+keys+-+ecCodes+BUFR+FAQ)
                 ec.codes_set(msg, 'skipExtraKeyAttributes', 1)
                 # tell ECCODES to unpack all BUFR data, keys and elements
-                ec.codes_set(bufr_file, "unpack", 1)
+                ec.codes_set(msg, "unpack", 1)
                 # extract all subsets
                 ec.codes_set(msg, "extractSubsetIntervalStart", 1)
                 ec.codes_set(msg, "extractSubsetIntervalEnd", ec.codes_get_long(msg, "numberOfSubsets"))
@@ -350,7 +350,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             # if all went down smoothly create an empty dictionary to store the data in it
             else: obs_bufr[ID] = {} #shelve.open(f"shelves/{ID}", writeback=True)
 
-            iterid = ec.codes_bufr_keys_iterator_new(bufr_file)
+            iterid = ec.codes_bufr_keys_iterator_new(msg)
             
             if config_script["skip_computed"]:      ec.codes_skip_computed(iterid)
             if config_script["skip_function"]:      ec.codes_skip_function(iterid)
@@ -402,7 +402,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         obs_bufr[ID][location] = {}
 
                     if clear_key in bf.obs_time_keys:
-                        try: value = ec.codes_get( bufr_file, key )
+                        try: value = ec.codes_get(msg, key)
                         except Exception as e:
                             log_str = f"ERROR:  '{FILE}' ({key}, {e})"
                             log.error(log_str)
@@ -419,7 +419,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         if value not in bf.null_vals:
 
                             # get BUFR code number which gives us all necessary unit and scale info
-                            code        = ec.codes_get_long( bufr_file, key + "->code" )
+                            code        = ec.codes_get_long(msg, key+"->code")
                             # skip 1 min timePeriod since we do not use it
                             if code == 4025 and value == -1: continue
                             if code in radiation_codes:
@@ -451,18 +451,18 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
                 else:
                     if not subset and key in bf.typical_keys:
-                        typical[key] = ec.codes_get( bufr_file, key )
+                        typical[key] = ec.codes_get(msg, key)
                         if typical[key] in bf.null_vals:
                             del typical[key]
                         last_key = "typical"
                         continue
 
                     if location is None and clear_key in bf.station_keys:
-                        meta[clear_key] = ec.codes_get(bufr_file, key)
+                        meta[clear_key] = ec.codes_get(msg, key)
 
                         #TODO some OGIMET-BUFRs seem to contain multiple station numbers in one key
-                        #try:    meta[clear_key] = ec.codes_get(bufr_file, key)
-                        #except: meta[clear_key] = ec.codes_get_array(bufr_file, key)[0]
+                        #try:    meta[clear_key] = ec.codes_get(msg, key)
+                        #except: meta[clear_key] = ec.codes_get_array(msg, key)[0]
 
                         if meta[clear_key] in bf.null_vals:
                             del meta[clear_key]
@@ -493,7 +493,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     elif location:
 
                         if clear_key in bf.set_time_keys: # {year, month, day, hour, minute}
-                            meta[clear_key] = ec.codes_get_long(bufr_file, key)
+                            meta[clear_key] = ec.codes_get_long(msg, key)
                             if meta[clear_key] in bf.null_vals:
                                 del meta[clear_key]
 
@@ -555,8 +555,8 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             ec.codes_keys_iterator_delete(iterid)
 
             # get descriptor data (unexpanded descriptors plus their values)
-            vals    = ec.codes_get_double_array(bufr_file, "numericValues")
-            unexp   = ec.codes_get_long_array(bufr_file, "unexpandedDescriptors")
+            vals    = ec.codes_get_double_array(msg, "numericValues")
+            unexp   = ec.codes_get_long_array(msg, "unexpandedDescriptors")
 
             if debug:
                 print(obs_bufr)
@@ -608,7 +608,11 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             location, datetime = None, None
             # we need to keep track of the previous code; 1st code in the beginning of the iteration
             previous_code = unexp[0]
-        
+    
+            #TODO instead of defining the following functions and using standard iterators we could also write
+            #our own (complex) generator function with explicit return and/or yield from statements or decorators
+            #inspiration here: https://pub.aimind.so/subtle-aspects-of-pythons-generator-function-3a244e197da
+
             def get_repl_codes(codes_repl, code, vals_repl, val):
                 """
                 Parameter:
@@ -648,41 +652,32 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         case 31000: # short delayed replication factor
                             if debug: print(next_code, next_val)
                             # if the next value is not zero or contains a NaN set repl_factor to 1
-                            if next_val and not np.isnan(next_val):
-                                repl_factor = 1
-                                #skip_vals += 1
-                            else: repl_factor = 0
+                            if next_val and not np.isnan(next_val): repl_factor = 1
+                            else:                                   repl_factor = 0
                         case 31001 | 31002: # (extended) delayed replication factor
                             if debug: print(next_code, next_val)
-                            #if next_val >= 0 and not np.isnan(next_val):
                             # if the next value is not zero or NaN: set repl_factor to value itself
-                            if next_val and not np.isnan(next_val):
-                                repl_factor = int(next_val)
-                                #skip_vals += 1
-                            else: repl_factor = 0
-                        case _:
-                            if debug: print(code, next_code)
-                            # in case we get some other code; release BUFR and stop execution
-                            #TODO just log an error message and set file to error would be better
-                            ec.codes_release(bufr_file)
-                            sys.exit("MISSING REPLICATION FACTOR CODE!")
+                            if next_val and not np.isnan(next_val): repl_factor = int(next_val)
+                            else:                                   repl_factor = 0
+                        case _: # this case should rarely occur and actually only in case of faulty BUFR data
+                            # in case we get some other code; release BUFR and skip this file to be save
+                            ec.codes_release(msg)
+                            # log an error message with the file that is currently processed + 'code/next_code'
+                            log_str = f"ERROR:  '{FILE}' (MISSING REPLICATION FACTOR CODE '{code}/{next_code}')"
+                            log.error(log_str)
+                            if verbose or debug: print(log_str)
+                            # set file status to 'error' in order to be able to track down what went wrong
+                            file_statuses.add( ("error", ID) )
+                            # raising a ValueError enables us to exit the function and except the error outwards
+                            raise ValueError
                 else:
                     repl_present = 1
                     skip_codes  -= num_elements + 1
 
                 if not repl_factor: # and not repl_present
-                    if debug:
-                        print("NO REPL")
-                        #print("NEXT elements")
-                        #print( [next(vals_repl) for _ in range(num_elements)] )
+                    if debug: print("NO REPL")
                     # if no element to be repeated: return an empty list and 0 as replication factor
                     return [], 0, (num_elements + repl_present, 0)
-                    #return [], 0, (num_elements + repl_present, repl_present)
-                    #return [], 0, (num_elements + repl_present, 1)
-                    #TODO incomment for 1 min value stations to work
-                    #return [], 0, (num_elements + repl_present, repl_present)
-                    #TODO incomment for regular stations to work
-                    #return [], 0, (num_elements + 1, 0)
                 elif repl_factor == 10:
                     # replication factor 10 is always defined by 3100X code
                     if debug: pdb.set_trace()
@@ -693,21 +688,14 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     # if next_code is a BUFR sequence get the elements it contains
                     if next_code in bf.sequence_range:
                         elements = bf.bufr_sequences[next_code]
-                        #skip_codes += 1; skip_vals -= 1
-                        #skip_vals -= 1
                     else:
                         # otherwise elements is just a single-element list
                         elements = [next_code]
-                        #TODO incomment for 1 min value stations to work
-                        #skip_vals -= repl_present
-                        #skip_vals -= 1
                 else:
                     # get the next elements in range and save them into a list comprehension
                     elements = [ next(codes_repl) for _ in range(num_elements) ]
                     skip_codes -= 1; skip_vals -= 1
 
-                #skip_codes  += num_elements + repl_present
-                #skip_codes  += repl_present
                 # only if a replication factor is given directly in the code: skip one value
                 skip_vals   += repl_present
 
@@ -716,7 +704,10 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                     print(tuple(elements), repl_factor, skip_codes, skip_vals)
                 # return elements list, replication factor and tuple containing skip information
                 return elements, repl_factor, (skip_codes, skip_vals)
-            
+           
+            # if everything goes well this bool should stay False; only for the rare case of wrong values or keys
+            skip_file = False
+
             # this loop runs until one of the iteration causes a StopIteration error which we accept
             #continue_loop = True
             #while continue_loop:
@@ -767,8 +758,12 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                         # if the code is a replication information indicator (not 3100X though)
                         elif code in bf.repl_range:
                             #val = next(vals)
-                            # get codes to repeat and replication factor (how many times?)
-                            codes_repl, repl_factor, skip   = get_repl_codes(codes, code, vals, val)
+                            # try to get codes to repeat and replication factor (how many times?)
+                            try: codes_repl, repl_factor, skip = get_repl_codes(codes, code, vals, val)
+                            # if we come across a faulty value we need to skip the current file; therefore break
+                            except ValueError:
+                                skip_file = True
+                                break
                             skip_codes, skip_vals           = skip
                             # skip codes and values again
                             if debug: print("SKIP CODES", skip_codes)
@@ -862,7 +857,10 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 #else:                   continue_loop = True            # continue while loop
             
             # end of while loop
-            
+
+            # if we need to skip the current file: continue to next one or, if it is the last, quit the for loop
+            if skip_file: continue
+
             # if the obs list contains any data add it to the dictionary
             if obs_list:
                 if debug:
@@ -872,9 +870,10 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 try:    obs_bufr[ID][location][datetime] += obs_list
                 except: obs_bufr[ID][location] = { datetime : obs_list }
 
-        
-        # end of with clause (closes file handle)
-        ec.codes_release(bufr_file)
+        # end of with clause (closes file handle automatically)
+
+        # free up memory again
+        ec.codes_release(msg)
         
         # only if there was a new observation at least once in the dataset (new_obs has been set True) 
         if new_obs:
@@ -898,7 +897,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             print("TOO MUCH RAM USED, RESTARTING...")
             # before restarting the script we need to convert the keys to the database format (if data present)
             if obs_bufr:
-                obs_db = bf.convert_keys_ex( obs_bufr, source )
+                obs_db = bf.convert_keys_us( obs_bufr, source )
                 # and if we received a dictionary back: insert its information the station databases
                 if obs_db: obs.to_station_databases( obs_db, scale=True )
             
@@ -908,7 +907,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             exe = sys.executable
             # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
-    
+
     # create a new instance of the database class
     db = dc(config=config_database)
     # bul set all file statuses
@@ -921,7 +920,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
     # if any observation data have been recorded
     if obs_bufr:
         # convert the keys to the database format
-        obs_db = bf.convert_keys_ex( obs_bufr, source )
+        obs_db = bf.convert_keys_us( obs_bufr, source )
         #for ID in obs: obs_bufr[ID].close()
         
         # if dictionary is not empty save its content to the station databases
@@ -934,10 +933,10 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 if __name__ == "__main__":
  
     # define program info message (--help, -h) and parser arguments with explanations on them (help)
-    msg    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
-    msg   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
+    info    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
+    info   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
     #
-    parser = argparse.ArgumentParser(description=msg)
+    parser = argparse.ArgumentParser(description=info)
     
     # add all needed command line arguments to the program's interface
     parser.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set logging level")
@@ -985,7 +984,7 @@ if __name__ == "__main__":
     # do the same with the default bufr tables settings
     tables_default = config["bufr"]["tables"]
     
-    # if there is a max_files setting present in command line options or config: use it preferring the cmd value
+    # if there is a max_files setting present in command line options or config: use it preferring the cli value
     if args.max_files is not None:  config_script["max_files"]  = args.max_files
     # same for sort_files
     if args.sort_files: config_script["sort_files"] = args.sort_files

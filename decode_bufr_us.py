@@ -69,14 +69,6 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
 
         bufr_dir = bf.dir + "/"
 
-        if hasattr(bf, "filter"):
-            filter_keys             = set(bf.filter)
-            number_of_filter_keys   = len(filter_keys)
-
-            fun = lambda x : not pd.isnull(x);      filters     = {}
-            for i in filter_keys:                   filters[i]  = fun
-        else: filters = {}; number_of_filter_keys = float("inf")
-
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
 
@@ -173,12 +165,15 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                 ID = file_IDs[FILE]
                 # if for whatever reason no ID (database lock?) or filestatus means skip: continue with next file
                 if not ID: continue
-                bufr = ec.codes_bufr_new_from_file(f)
+                #bufr = ec.codes_bufr_new_from_file(f)
+                bufr = ec.codes_new_from_file(f, ec.CODES_PRODUCT_BUFR)
                 if bufr is None:
                     file_statuses.add( ("empty", ID) )
                     if verbose: print(f"EMPTY:  '{FILE}'")
                     continue
-                #codes_set(msgid, 'skipExtraKeyAttributes', 1)
+                # skip extra attributes like units and scale to decode 25% faster (we can get them via key->code)
+                # https://confluence.ecmwf.int/display/UDOC/Performance+improvement+by+skipping+some+keys+-+ecCodes+BUFR+FAQ)
+                ec.codes_set(bufr, 'skipExtraKeyAttributes', 1)
                 ec.codes_set(bufr, "unpack", 1)
                 if args.extract_subsets:
                     subsets = ec.codes_get_long( bufr, "numberOfSubsets" )
@@ -387,7 +382,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
 
             print("Too much RAM used, RESTARTING...")
             obs_db = bf.convert_keys_us( obs_bufr, source )
-            if obs_db: obs.to_station_databases( obs_db )
+            if obs_db: obs.to_station_databases( obs_db, scale=True )
             
             if pid_file: os.remove( pid_file )
             exe = sys.executable # restart program with same arguments
@@ -403,7 +398,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
     
     if obs_db:
         if verbose: print(obs_db)
-        obs.to_station_databases( obs_db )
+        obs.to_station_databases( obs_db, scale=True )
      
     # restore previous state of ECCODES_DEFINITION_PATH environment variable
     if "tables" in config_bufr: old_path = os.environ['ECCODES_DEFINITION_PATH']
@@ -527,7 +522,7 @@ if __name__ == "__main__":
 
         else: config_sources = { args.source : config["sources"][args.source] }
 
-    else:           config_sources = config["sources"]
+    else: config_sources = config["sources"]
 
     if not args.file:
         for SOURCE in config_sources:
