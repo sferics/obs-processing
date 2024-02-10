@@ -1,0 +1,504 @@
+### UNIT CONVERSIONS
+# excact-as-possible unit conversion factors
+# great source for these fractions: https://unitchefs.com/speed/
+
+# TEMPERATURE
+K2C:    &K2C    -2731.5               # K to C*10
+
+# WIND SPEED
+ms2kn:  &ms2kn  1.9438444924406046    # m/s to kn
+kh2kn:  &kh2kn  0.5399568034557235    # km/h to kn
+
+# LENGTH
+#m2ft:   &m2ft   3.2808398950131235   # m to ft
+#ft2m:   &ft2m   0.3048
+m2m30:  &m2m30  0.03333333333333333   # m  to m/30 
+ft2m30: &ft2m30 0.01016               # ft to m/30
+
+# TIME
+#min2h: &min2h   0.016666666666666666  # min to h
+
+# helper key to trasform timePeriod information into readable form
+timePeriod:
+  004023:   # d
+    0:      0s  
+    -1:     24h
+  004024:   # h
+    0:      0s
+    -1:     1h
+    -3:     3h
+    -6:     6h
+    -9:     9h
+    -12:    12h
+    -15:    15h
+    -24:    24h
+    -25:    25h
+    -30:    30h
+    -36:    36h
+  004025:   # min
+    0:      0s
+    -1:     1min
+    -10:    10min
+    -30:    30min
+    -60:    1h
+    -180:   3h
+    -360:   6h
+    -720:   12h
+    -960:   15h
+    -1440:  24h
+    -1470:  25h
+    -1800:  30h
+    -2160:  36h
+  004026:   # s
+    0:      0s
+    -1:     1s
+    -10:    10s
+    -30:    30s
+    -60:    1min
+    -600:   10min
+    -1800:  30min
+    -3600:  1h
+    -10800: 3h
+    -21600: 6h
+    -43200: 12h
+    -86400: 24h
+
+# meaning of columns:
+# element_name, duration, multiply, add, scale
+
+# another helper key, not part of BUFR tables
+helpers:
+  cloudBase:
+    1:                                [CB1_syn,     1s, *m2m30, 0, 0]
+    2:                                [CB2_syn,     1s, *m2m30, 0, 0]
+    3:                                [CB3_syn,     1s, *m2m30, 0, 0]
+    4:                                [CB4_syn,     1s, *m2m30, 0, 0]
+    #TODO see obs.cfg for cloud level thresholds
+
+#TODO seperate between keys which can have different UNIT and/or SCALE - and the ones which always have the same
+
+#TODO we need to skip these (monthly) statistics if present
+#firstOrderStatistics
+#008023: ~
+#skip next 10 (DWD only!)
+#102005: ~
+#TODO then it gets tooooo wild, see DWD manula page 141-146
+
+observationSequenceNumber: #(COR/CCX)
+  001023: ~
+
+#TODO check whether we need to skip these international climate data as well if present (page 147-169)
+#307073: ~
+
+#TODO and the national climate/statistical data (page 170-178)
+#307219: ~
+
+#TODO add scale (scale*conversion?) as last column
+
+  ### EXTRA HELPER PARAMETERS
+  #TODO use for derived paramters during decoding or remove -> derive_obs.py
+relativeHumidity:
+  013003:                             [RH_2m_syn,  1s, 1, 0, 0]
+  013009:                             [RH_2m_syn,  1s, 1, 0, 1]
+wetBulbTemperature:
+  012002:
+    0.05:                             [TW_5cm_syn, 1s, 10, *K2C, 1]
+    2.0:                              [TW_2m_syn,  1s, 10, *K2C, 1]
+  012102:
+    0.05:                             [TW_5cm_syn, 1s, 10, *K2C, 2]
+    2.0:                              [TW_2m_syn,  1s, 10, *K2C, 2]
+wetBulbTemperatureAt2M:
+  012005:                             [TW_2m_syn,  1s, 10, *K2C, 1]
+virtualTemperature:
+  012007:
+    0.05:                             [TV_5cm_syn, 1s, 10, *K2C, 1]
+    2.0:                              [TV_2m_syn,  1s, 10, *K2C, 1]
+  012107:
+    0.05:                             [TV_5cm_syn, 1s, 10, *K2C, 2]
+    2.0:                              [TV_2m_syn,  1s, 10, *K2C, 2]
+  #specificHumidity:                   [SH_2m_syn,  1s,  1,    0]
+  #mixingRatio:                        [MR_2m_syn,  1s,  1,    0]
+  #mixingHeights:                      [MH_syn,     1s,  1,    0]
+  #vapourPressure:                     [VP_2m_syn,  1s,  1,    0]
+  #vapourDensity:                      [VD_2m_syn,  1s,  1,    0]
+
+#for clouds we might need occurence_descritors (see https://metview.readthedocs.io/en/latest/gen_files/icon_functions/obsfilter.html#id0)
+
+### META INFORMATION (HEIGHT OF SENSORS AND REPLICATION FACTORS)
+verticalSignificance:   # Vertikale Einordnung (Wolkenschicht)
+  008002: ~
+#shortTimeIncrement:     # Minutenwerte (RR und ww)
+#  004065: ~
+#level_descriptors:
+heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform:
+  007032: ~
+depthBelowLandSurface:  # Messtiefe
+  007061: ~
+delayedDescriptorReplicationFactor:
+  031001: ~
+
+  #TODO apparently not present in DWD BUFRs but could be useful for other data sources in future...
+  #representativeHeightOfSensorAboveStation:            ~
+  #modificationOfSensorHeightToAnotherValue:            ~
+  #heightOfSensorAboveWaterSurface:                     ~
+  #nonCoordinateHeight:                                 ~
+
+### SNOW
+#TODO units/scale
+totalSnowDepth:
+  013013:                             [SNOD_srf_syn,    1s, 100, 0, 2]   # Gesamtschneehöhe [in cm]
+depthOfFreshSnow:                     #TODO possible mistake in amalthea/config/lookup.yaml (NWESNOD)
+  013012:                             [NEWSNOD_srf_syn,  ~, 100, 0, 2]   # Neuschneehöhe [in cm] im Bezugszeitraum
+
+### PRECIPITATION
+#TODO units/scale
+totalPrecipitationOrTotalWaterEquivalent:
+  013011:                             [PRATE_1m_syn,   ~,  1, 0, 1]     # Niederschlagsmenge
+totalPrecipitationPast1Hour:
+  013019:                             [PRATE_1m_syn,  1h, 1, 0, 1]
+totalPrecipitationPast3Hours:
+  013020:                             [PRATE_1m_syn,  3h,   1, 0, 1]
+totalPrecipitationPast6Hours:
+  013021:                             [PRATE_1m_syn,  6h,   1, 0, 1]
+totalPrecipitationPast12Hours:
+  013022:                             [PRATE_1m_syn,  12h,  1, 0, 1]
+totalPrecipitationPast24Hours:
+  013023:                             [PRATE_1m_syn,  24h,  1, 0, 1]     # Niederschlagsmenge der letzten 24 Stunden
+totalAccumulatedPrecipitation:
+  013060:                             [PRATE_1m_syn,  ~,    1, 0, 1]     # Niederschlagsmenge im Bezugszeitraum
+durationOfPrecipitation:
+  026020:                             [PDUR_1m_syn,   ~,    1, 0, 0]     # min
+  #TODO precipitation could also be derived from duration + intensity
+  #intensityOfPrecipitation:           [PINT_srf_syn, ~,    1, 0]
+  #highestDailyAmountOfPrecipitation:  [PMAX_srf_syn, 24h,  1, 0]
+  #TODO might be useful if WW is missing?
+
+#DWD only!!!
+typeOfPrecipitation:
+  020021:                             [PTYPE_1m_syn,  ~, 1, 0, 0]
+  
+formOfPrecipitation:
+  020203:                             [PFORM_1m_syn,  ~, 1, 0, 0]
+
+### PRESSURE
+pressure:
+  007004:                             [PRES_0m_syn, 1s, 0.01, 0,-1]      # PRESSURE
+  007011:                             [PRES_0m_syn, 1s, 0.01, 0, 0]      # PRESSURE (HIGH PRECISION)
+nonCoordinatePressure:
+  010004:                             [PRES_0m_syn, 1s, 0.01, 0,-1]
+pressureReducedToMeanSeaLevel:
+  010051:                             [PRMSL_ms_syn,1s, 0.01, 0,-1]
+nonCoordinateGeopotential:
+  010003:                             [GP_syn,      1s, 0.01, 0,-1]
+  010008:                             [GP_syn,      1s, 0.01, 0, 0]
+  #nonCoordinateGeopotentialHeight:
+  #  010009:                             [GPH_syn,     1s, 0.01, 0, 0]
+
+
+### RADIATION / SUN
+globalSolarRadiationIntegratedOverPeriodSpecified:
+  014021:                                             [GLRAD_srf_syn,   ~,    0.001, 0,-4]
+  014028:                                             [GLRAD_srf_syn,   ~,    0.001, 0,-2] # HIGH ACCURACY
+globalSolarRadiation24Hours:
+  014020:                                             [GLRAD_srf_syn,   24h,  0.001, 0,-4]
+longWaveRadiationIntegratedOverPeriodSpecified:
+  014002:                                             [LONGRAD_srf_syn, ~,    0.001, 0,-3]
+longWaveRadiationIntegratedOver24Hours:
+  014001:                                             [LONGRAD_srf_syn, 24h,  0.001, 0,-3]
+#TODO is net~ really the same as above?
+netLongWaveRadiationIntegratedOverPeriodSpecified:
+  014012:                                             [LONGRAD_srf_syn, ~,    0.001, 0,-3]
+netLongWaveRadiationIntegratedOver24Hours:
+  014011:                                             [LONGRAD_srf_syn, ~,    0.001, 0,-3]
+diffuseSolarRadiationIntegratedOverPeriodSpecified:
+  014023:                                             [DIFFRAD_srf_syn, ~,    0.001, 0,-4]
+  014029:                                             [DIFFRAD_srf_syn, ~,    0.001, 0,-2] # HIGH ACCURACY
+diffuseSolarRadiationIntegratedOver24Hours:
+  014022:                                             [DIFFRAD_srf_syn, ~,    0.001, 0,-4]
+totalSunshine:
+  014031:                             [SUNDUR_srf_syn,      ~, 1, 0, 0] # min
+  014032:                             [SUNDUR_srf_syn,      ~,60, 0, 0] # h
+  014033:                             [SUNDUR_perc_srf_syn, ~, 1, 0, 0] # %
+sunshineOverPeriodSpecified:
+  014034:                             [SUNDUR_srf_syn,      ~, 1, 0, 0] # min
+
+### WEATHER / PHENOMENA
+presentWeather:
+  020003:                             [WW_syn,  1min, 1, 0, 0]           # Signifikantes Wetter
+
+  #TODO these keys contain characters (CCITT IA5 code), useful?
+  #significantWeather:                 [WW_sig_syn,1min, 1, 0, 0]         # Signifikantes Wetter
+  #significantRecentWeatherPhenomena:  [WW_sig_syn,1min, 1, 0, 0]         # Signifikantes Wetter
+
+pastWeather1:
+  020004:                             [W1_syn,  ~,    1, 0, 0]           # Wetterverlauf (Typ 1)
+
+pastWeather2:
+  020005:                             [W1_syn,  ~,    1, 0, 0]           # Wetterverlauf (Typ 1)
+
+#DWD only!!!
+additionalWeatherPhenomena:
+  020193:                             [natWW,   1min, 1, 0, 0]           # Zusätzliches Wetter (Nationale Meldung)
+  #TODO some interesting BUFR keys, maybe with potential future usefulness?
+  #intensityOfPhenomena:               [PH_int, ~, 1, 0]              #
+  #phenomenaOccurrence:                [PH_occ, ~, 1, 0]              #
+  #specialPhenomena:                   [PH_spc, ~, 1, 0]              #
+  #020063:                             [PH_spc, ~, 1, 0, 0]              # 
+
+#DWD only!
+#otherWeatherPhenomena:
+#  020023:                             [PH_oth, ~, 1, 0, 0]              #
+
+#reason of obscuration
+#020025:                             [OBSC_syn, ~, 1, 0, 0]
+
+#TODO check if this matches!
+generalWeatherIndicatorTafOrMetar:
+  020009:                             [WWN_syn, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
+
+
+### VISIBILITY
+#TODO which of these visibility/optical range parameters should have priority? how do we order them?
+meteorologicalOpticalRange:
+  015051:                             [VIS_syn,     0s, 0.001, 0, 0]     # Horizontale Sichtweite
+  020237:                             [VIS_syn,     0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
+minimumMeteorologicalOpticalRange:
+  020238:                             [VIS_min_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
+maximumMeteorologicalOpticalRange:
+  020239:                             [VIS_max_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
+horizontalVisibility:
+  020001:                             [VIS_syn,     0s, 0.001, 0,-1]     # Horizontale Sichtweite
+minimumHorizontalVisibility:
+  020059:                             [VIS_min_syn, 0s, 0.001, 0,-1]     # Horizontale Sichtweite
+prevailingHorizontalVisibility:
+  020060:                             [VIS_pre_syn, 0s, 0.001, 0,-1]     # Horizontale Sichtweite
+runwayVisualRangeRvr:
+  020061:                             [VIS_run_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite
+visibilitySeawardsFromACoastalStation:
+  020058:                             [VIS_sea_syn, 0s, 0.001, 0,-1]      # # Horizontale Sichtweite (Küstenstation, Richtung See)
+
+### TEMPERATURE / GROUND
+stateOfGround:
+  020062:                             [GS_syn,    1min,  1,    0, 0]     # Erdbodenzustand
+soilTemperature:
+  012030:
+    -0.05:                            [TMP_n5cm_syn,  1s, 10, *K2C, 1]     # Erdbodentemperatur -5cm
+    -0.1:                             [TMP_n10cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -10cm
+    -0.2:                             [TMP_n20cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -20cm
+    -0.5:                             [TMP_n50cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -50cm
+    -1.0:                             [TMP_n1m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -1m
+    -2.0:                             [TMP_n2m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -2m
+  012130:
+    -0.05:                            [TMP_n5cm_syn,  1s, 10, *K2C, 1]     # Erdbodentemperatur -5cm
+    -0.1:                             [TMP_n10cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -10cm
+    -0.2:                             [TMP_n20cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -20cm
+    -0.5:                             [TMP_n50cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -50cm
+    -1.0:                             [TMP_n1m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -1m
+    -2.0:                             [TMP_n2m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -2m
+
+groundTemperature:
+  012120:                             [TMP_srf_syn,   1s, 10, *K2C, 2]     # Erdbodentemperatur 0cm
+  012161:                             [TMP_srf_syn,   1s, 10, *K2C, 2]     # Erdbodentemperatur 0cm
+  #TODO interesting parameters
+  #groundMinimumTemperature
+  #groundMinimumTemperatureOfPrecedingNight
+  #groundMinimumTemperaturePast12Hours
+
+  #TODO could be useful for other data sources than DWD
+  #principalTimeOfDailyReadingInUtcOfMaximumTemperature: ~
+  #principalTimeOfDailyReadingInUtcOfMinimumTemperature: ~
+  #timeDifference:                                       ~
+  #hoursIncluded:                                        ~
+  #measurementIntegrationTime:                           ~
+  #durationOfTimeRelatingToFollowingValue:
+
+
+temperature: # in Celsius! 
+  012023:
+    0.05:                             [TMP_5cm_syn, 1s, 10, 0, 0]          # 5cm-Lufttemperatur
+    2.0:                              [TMP_2m_syn,  1s, 10, 0, 0]          # 2m-Lufttemperatur
+
+airTemperature:                     
+  012001:
+    0.05:                             [TMP_5cm_syn, 1s, 10, *K2C, 1]       # 5cm-Lufttemperatur
+    2.0:                              [TMP_2m_syn,  1s, 10, *K2C, 1]       # 2m-Lufttemperatur
+  012101:
+    0.05:                             [TMP_5cm_syn, 1s, 10, *K2C, 2]
+    2.0:                              [TMP_2m_syn,  1s, 10, *K2C, 2]
+
+airTemperatureAt2M:
+  012004:                             [TMP_2m_syn,  1s, 10, *K2C, 1]       # 2m-Lufttemperatur
+  012104:                             [TMP_2m_syn,  1s, 10, *K2C, 2]
+
+dewpointTemperature:
+  012003:
+    0.05:                             [DPT_5cm_syn, 1s, 10, *K2C, 1]      # 5cm-Taupunktstemperatur
+    2.0:                              [DPT_2m_syn, 1s,  10, *K2C, 1]      # 2m-Taupunktstemperatur
+  012024:
+    0.05:                             [DPT_5cm_syn, 1s, 10, 1, 0]         # 5cm-Taupunktstemperatur
+    2.0:                              [DPT_2m_syn, 1s,  10, 1, 0]         # 2m-Taupunktstemperatur
+  012103:
+    0.05:                             [DPT_5cm_syn, 1s, 10, *K2C, 2]      # 5cm-Taupunktstemperatur
+    2.0:                              [DPT_2m_syn, 1s,  10, *K2C, 2]      # 2m-Taupunktstemperatur
+
+dewpointTemperatureAt2M:
+  012006:                             [DPT_2m_syn, 1s,  10, *K2C, 1]
+  012106:                             [DPT_2m_syn, 1s,  10, *K2C, 2]
+
+maximumTemperatureAt2M:
+  012021:                             [TMAX_2m_syn, 12h,    10, *K2C, 2] # 24h-Maximum der 2m-Lufttemperatur
+
+minimumTemperatureAt2M:
+  012022:                             [TMIN_2m_syn, 12h,    10, *K2C, 2] # 24h-Minimum der 2m-Lufttemperatur
+
+maximumTemperatureAtHeightAndOverPeriodSpecified:
+  012011:
+    0.05:                             [TMAX_5cm_syn, 12h,   10, *K2C, 1] # 24h-Maximum der 5cm-Lufttemperatur
+    2.0:                              [TMAX_2m_syn,  12h,   10, *K2C, 1] # 24h-Maximum der 2m-Lufttemperatur
+  012111:
+    0.05:                             [TMAX_5cm_syn, 12h,   10, *K2C, 2] # 24h-Maximum der 5cm-Lufttemperatur
+    2.0:                              [TMAX_2m_syn,  12h,   10, *K2C, 2] # 24h-Maximum der 2m-Lufttemperatur
+
+minimumTemperatureAtHeightAndOverPeriodSpecified:
+  012012:
+    0.05:                             [TMIN_5cm_syn,12h,    10, *K2C, 1] # 24h-Minimum der 5cm-Lufttemperatur
+    2.0:                              [TMIN_2m_syn, 12h,    10, *K2C, 1] # 24h-Minimum der 2m-Lufttemperatur
+  012112:
+    0.05:                             [TMIN_5cm_syn,12h,    10, *K2C, 2] # 24h-Minimum der 5cm-Lufttemperatur
+    2.0:                              [TMIN_2m_syn, 12h,    10, *K2C, 2] # 24h-Minimum der 2m-Lufttemperatur
+
+maximumTemperatureAt2MPast12Hours:
+  012014:                             [TMAX_2m_syn,   12h,  10, *K2C, 1]
+  012114:                             [TMAX_2m_syn,   12h,  10, *K2C, 2]
+
+minimumTemperatureAt2MPast12Hours:
+  012015:                             [TMIN_2m_syn,   12h,  10, *K2C, 1]
+  012115:                             [TMIN_2m_syn,   12h,  10, *K2C, 2]
+  
+maximumTemperatureAt2MPast24Hours:
+  012016:                             [TMAX_2m_syn,   24h,  10, *K2C, 1]
+  012116:                             [TMAX_2m_syn,   24h,  10, *K2C, 2]
+  
+minimumTemperatureAt2MPast24Hours:
+  012017:                             [TMIN_2m_syn,   24h,  10, *K2C, 1]
+  012117:                             [TMIN_2m_syn,   24h,  10, *K2C, 2]
+
+maximumTemperatureAtHeightSpecifiedPast24Hours:
+  012118:
+    0.05:                             [TMAX_5cm_syn,  24h,  10, *K2C, 2]
+    2.0:                              [TMAX_2m_syn,   24h,  10, *K2C, 2]
+
+minimumTemperatureAtHeightSpecifiedPast24Hours:
+  012119:
+    0.05:                             [TMIN_5cm_syn,  24h,  10, *K2C, 2]
+    2.0:                              [TMIN_2m_syn,   24h,  10, *K2C, 2]
+
+oceanographicWaterTemperature:
+  022042:                             [Twater_sst_syn, 1s, 10,  *K2C, 1] # Wassertemperatur sea surface temperature
+  022043:                             [Twater_sst_syn, 1s, 10,  *K2C, 2] # Wassertemperatur sea surface temperature
+
+
+### WIND
+u:
+  011003:                             [u_10m_syn, ~, *ms2kn, 0, 1] # m/s
+v:
+  011004:                             [v_10m_syn, ~, *ms2kn, 0, 1] # m/s
+w:
+  011005:                             [w_10m_Pa_syn, ~, 1, 0, 1] # Pa/s
+  011006:                             [w_10m_syn, ~, *ms2kn, 0, 1] # m/s
+
+windDirection:
+  011001:                             [WDIR_10m_syn, 10min, 1, 0, 0]       # Windrichtung
+
+windDirectionAt5m:
+  011013:                             [WDIR_5m_syn, 10min, 1, 0, 0]       # Windrichtung
+
+windDirectionAt10M:
+  011011:                             [WDIR_10m_syn, 10min, 1, 0, 0]       # Windrichtung
+  
+  #windDirectionAssociatedWithWindSpeedWhichFollows:
+  #011010:                             [WDIR_ass_10m_syn, ~, 1, 0, 0]       # Windrichtung
+
+maximumWindGustDirection:
+  011043:                             [WDIRmax_10m_syn, ~, 1, 0, 0] # Windrichtung der max Böen
+
+windSpeed:
+  011002:                             [WIND_10m_syn, 10min, *ms2kn, 0, 1]
+  011083:                             [WIND_10m_syn, 10min, *kh2kn, 0, 0]
+  011084:                             [WIND_10m_syn, 10min, 1,      0, 0]
+  
+windSpeedAt5M:
+  011014:                             [WIND_5m_syn, 10min,  *ms2kn, 0, 1]
+  
+windSpeedAt10M:
+  011012:                             [WIND_10m_syn, 10min, *ms2kn, 0, 1]
+
+#DWD only!!!
+meanWindSpeed:
+  011202:                             [WIND_10m_syn, 1h,    *ms2kn, 0, 1]
+
+maximumWindSpeedMeanWind:
+  011040:                             [WINDmax_avg_10m_syn, ~, *ms2kn, 0, 1] # Maximales 10min-Mittel im Bezugszeitraum
+
+maximumWindGustSpeed:
+  011041:                             [GUST_10m_syn,     ~, *ms2kn, 0, 1] # m/s
+  011085:                             [GUST_10m_syn,     ~, *kh2kn, 0, 0] # km/h
+  011086:                             [GUST_10m_syn,     ~, 1,      0, 0] # kn
+
+#TODO spotted potential mistake in amalthea/config/lookup.yml
+maximumWindSpeed10MinuteMeanWind: #TODO always 1h TR?
+  011042:                             [MAXGUST_10min_10m_syn,1h, *ms2kn, 0, 1] # Maximales 10min-Mittel im Bezugszeitraum
+
+  #TODO what are these? how is their duration defined? Different from gust speeds or equal/comparable?
+  #maximumInstantaneousWindSpeed:      [FFmax_10m_syn, ~,  *ms2kn, 0]
+  #maximumInstantaneousWindSpeedOver10Minutes:  [FFmax_10m_syn, 10min, *ms2kn, 0]
+
+
+### CLOUDS
+  #TODO could these keys be useful in future?
+  #cloudIndex:                      [Cindex_syn, 1s, 1,   0]
+  #verticalSignificanceSurfaceObservations: [VERTSIG_surf_syn, 1s, 1, 0]
+  
+  #TODO implement in derive_obs.py
+  #ClNCmNChN: [CLCMCH_syn,  ~, 1, 0]  # Wolkenarten in den Stockwerken                   (zB: Cu3Ac4Cs51Cb, 1Cu)
+  #ClNCmNChN: [CLCMCH_syn,  ~, 1, 0]  # -> Wolkenmenegen in den Stockwerken              (zB: 3451, 1///)
+  #NC1XXX:    [CL1_syn,     ~, 1, 0]  # unterste Wolkenschicht Bedeckung/Art/Untergrenze (zB: 2ST020 oder OBS///)
+  #NC2XXX:    [CL2_syn,     ~, 1, 0]  # 2.Wolkenschicht                                  (zB: 4AC100)
+  #NC3XXX:    [CL3_syn,     ~, 1, 0]  # 3.Wolkenschicht                                  (zB: 5CS300)
+  #NC4XXX:    [CL4_syn,     ~, 1, 0]  # 4.Wolkenschicht                                  (zB: 2CB080)
+  #NC1XXX:    [CL?_syn,     ~, 1, 0]  # Wolkenschicht Bedeckung+Untergrenze              (zB: 2020, 5300, 2080)
+
+# helper key to find out correct cloud layers and cloud ceiling
+verticalSignificanceSurfaceObservations:
+  008002: ~
+
+cloudAmount:
+  020011:
+    0:                                [TCDC_2m_syn, 1s,   1,  0, 0]    # Bedeckungsgrad gesamt
+    C:                                [TCC_1C_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der niedrigsten Schicht (Nh)
+    L:                                [TCC_LC_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der niedrigen Wolken
+    M:                                [TCC_MC_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der mitteleren Wolken
+    H:                                [TCC_HC_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der hohen Wolken
+    1:                                [TCC_1C_syn,    1s,   1,  0, 0]    # Bedeckungsgrad 1. Schicht
+    2:                                [TCC_2C_syn,    1s,   1,  0, 0]    # Bedeckungsgrad 2. Schicht
+    3:                                [TCC_3C_syn,    1s,   1,  0, 0]    # Bedeckungsgrad 3. Schicht
+    4:                                [TCC_4C_syn,    1s,   1,  0, 0]    # Bedeckungsgrad 4. Schicht (Cb oder 4. Automat)
+
+cloudCoverTotal:
+  020010:                             [TCDC_2m_syn, 1s, 0.08, 0, 0]    # Bedeckungsgrad gesamt
+
+heightOfBaseOfCloud:
+  020013:                             [HLC_syn,       1s,*m2m30, 0,-1]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+  020092:                             [HLC_syn,       1s,*ft2m30,0,-2]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+  #DWD only! lowest cloud ceiling during last hour (automatic only!)
+  020199:                             [HLC_syn,       1h,*m2m30, 0,-1]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+
+# usually not used by DWD
+amountOfLowClouds:
+  020051:                             [TCC_LC_syn,    1s,   1,   0, 0]   # Bedeckungsgrad der niedrigen Wolken
+
+amountOfMiddleClouds:
+  020052:                             [TCC_MC_syn,    1s,   1,   0, 0]   # Bedeckungsgrad der mitteleren Wolken
+
+amountOfHighClouds:
+  020053:                             [TCC_HC_syn,    1s,   1,   0, 0]   # Bedeckungsgrad der hohen Wolken
