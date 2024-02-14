@@ -13,9 +13,9 @@ import eccodes as ec
 from datetime import datetime as dt, timedelta as td
 import global_functions as gf
 import global_variables as gv
-from database import database_class as dc
-from obs import obs_class as oc
-from bufr import bufr_class as bc
+from database import DatabaseClass as dc
+from obs import ObsClass as oc
+from bufr import BufrClass as bc
 
 #TODO write more (inline) comments, docstrings and make try/except blocks shorter whereever possible
 #TODO raises error "API not implemented in CFFI porting"

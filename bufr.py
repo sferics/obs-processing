@@ -23,7 +23,7 @@ def to_wmo( block, station, add_zero=True ):
     return location
 
 
-class bufr_class:
+class BufrClass:
    
     # general function definitions and constants which are always available, even before class init
     # https://stackoverflow.com/questions/45268794/calling-a-class-function-without-triggering-the-init
@@ -438,10 +438,9 @@ class bufr_class:
         value = float(value) * key_db[2] + key_db[3]
 
         # if we already got a timePeriod from BUFR we dont need to translate it with the dict
-        if duration is None:
-            duration = "NULL"
-        elif not duration or key in self.fixed_duration_keys:
+        if duration is None or key in self.fixed_duration_keys:
             duration = key_db[1]
+        if duration is None: duration = ""
 
         return key_db[0], value, duration
 
@@ -577,13 +576,10 @@ class bufr_class:
         #obs_db = shelve.open("shelves/obs_db.shelve", writeback=True)
 
         for file in obs:
-            print(file)
             for location in obs[file]:
-                print(file)
                 if location not in obs_db: obs_db[location] = set()
 
                 for datetime in obs[file][location]:
-                    print(datetime)
                     if datetime.minute in {0,30}:   datetime_db = datetime - td(minutes=10)
                     else:                           datetime_db = copy(datetime)
 
@@ -733,7 +729,7 @@ class bufr_class:
                         elif key == "timePeriod":
                             try:    counter[key] += 1
                             except: counter[key] = 0
-                            duration    = time_periods[val_obs]
+                            duration = time_periods[val_obs]
                             """
                             if val_obs == -10:
                                 offset += 10
@@ -859,10 +855,10 @@ class bufr_class:
                         except: continue
                         
                         if convert_datetime:
-                            datetime_db     = datetime.to_pydatetime()
+                            datetime_db = datetime.to_pydatetime()
                         else: datetime_db = copy(datetime)
                         
-                        cor             = 0
+                        cor = 0
 
                         for data in obs[file][location][datetime][time_period]:
 

@@ -1,4 +1,4 @@
-class clock_iter_class:
+class ClockIterClass:
     """Iterator class; adds 10 mins to the iterated variable"""
     def __init__(self, start="0000"):
        self.hh = start[0:2]; self.mm = start[2:]; self.time = start

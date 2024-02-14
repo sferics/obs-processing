@@ -14,7 +14,7 @@ import sqlite3
 to_datetime         = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"], DT["minute"])
 to_datetime_hour    = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"])
 
-#TODO maybe we need a log_class???
+#TODO maybe we need a LoggerClass???
 def get_logger(script_name, log_level="NOTSET", log_path="log", mode="w", formatter=""):
     """
     Parameter:
@@ -82,7 +82,7 @@ def obs_to_station_databases( obs_db, source, output_path, max_retries=100, time
     -------
 
     """ 
-    from database import database_class
+    from database import DatabaseClass
     # insert values or update value if we have a newer cor, then set parsed = 0 as well
     sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES " 
         f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
@@ -96,7 +96,7 @@ def obs_to_station_databases( obs_db, source, output_path, max_retries=100, time
 
         while retries > 0:
             try:
-                db_loc = database_class( f"{output_path}/raw/{loc[0]}/{loc}.db", timeout=timeout)
+                db_loc = DatabaseClass( f"{output_path}/raw/{loc[0]}/{loc}.db", timeout=timeout)
                 db_loc.exemany( sql, obs_db[loc] )
             except sqlite3.Error as e:
                 print(e, retries)
@@ -134,7 +134,7 @@ def create_station_tables( location, output_path, typ, max_retries=100, commit=T
     -------
     True if succesful, False if not, None if tables already exists and completely setup (ready == 1)
     """
-    from database import database_class
+    from database import DatabaseClass
     station_path = f'{output_path}/{typ}/{location[0]}'
     create_dir( station_path )
     db_path = f'{station_path}/{location}.db'
@@ -145,7 +145,7 @@ def create_station_tables( location, output_path, typ, max_retries=100, commit=T
 
     while retries > 0:
         try:
-            db = database_class( db_path )
+            db = DatabaseClass( db_path )
             # get number of tables in attached DB
             db.exe(f"SELECT count(*) FROM sqlite_master WHERE type='table'")
             n_tables = db.fetch1()

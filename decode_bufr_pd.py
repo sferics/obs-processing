@@ -8,9 +8,9 @@ import eccodes as ec        # bufr decoder by ECMWF
 import pandas as pd
 from collections import defaultdict
 from datetime import datetime as dt, timedelta as td
-from database import database_class
-from bufr import bufr_class
-from obs import obs_class
+from database import DatabaseClass
+from bufr import BufrClass
+from obs import ObsClass
 import global_functions as gf
 import global_variables as gv
 import warnings
@@ -48,7 +48,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         # previous dict entries will get overwritten by next list item during merge (right before left)
         config_bufr = gf.merge_list_of_dicts( config_list )
 
-        bf = bufr_class(config_bufr, script=script_name[-5:-3])
+        bf = BufrClass(config_bufr, script=script_name[-5:-3])
 
         bufr_dir = bf.dir + "/"
         
@@ -63,7 +63,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
 
-        db = database_class(config=config_database)
+        db = DatabaseClass(config=config_database)
 
         for i in range(max_retries):
             try:    known_stations = db.get_stations( clusters )
@@ -126,7 +126,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         bufr_dir        = "/".join(file.split("/")[:-1]) + "/"
         source          = args.extra # default: extra
 
-        db = database_class(config=config_database)
+        db = DatabaseClass(config=config_database)
         known_stations  = db.get_stations()
 
         ID = db.get_file_id(FILE, file_path)
@@ -138,7 +138,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         file_IDs = {FILE:ID}
         
         config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
-        bf          = bufr_class(config_bufr, script=script_name[-5:-3])
+        bf          = BufrClass(config_bufr, script=script_name[-5:-3])
 
     #TODO use defaultdic instead
     obs_bufr, file_statuses = {}, set()
@@ -147,7 +147,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
     config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
-    obs         = obs_class( config_obs, source, mode=config_script["mode"] )
+    obs         = ObsClass( config_obs, source, mode=config_script["mode"] )
 
     for FILE in files_to_parse:
         
@@ -216,7 +216,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
                 if verbose: print("NO DATETIME:", FILE)
                 continue
             
-            for i in (bf.replication, bf.ext_replication, bf.tp, bf.wmo, bf.dt):
+            for i in (bf.replication, bf.short_replication, bf.ext_replication, bf.tp, bf.wmo, bf.dt):
                 try:    del row[i]
                 except: continue
                 
@@ -253,7 +253,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= bf.min_ram:
             
-            db = database_class(config=config_database)
+            db = DatabaseClass(config=config_database)
             db.set_file_statuses(file_statuses, retries=bf.max_retries, timeout=bf.timeout)
             db.close()
 
@@ -276,7 +276,7 @@ def decode_bufr_pd( source=None, file=None, known_stations=None, pid_file=None )
             os.execl(exe, exe, * sys.argv, "-R", pid); sys.exit()
 
 
-    db = database_class(config=config_database)
+    db = DatabaseClass(config=config_database)
     db.set_file_statuses(file_statuses, retries=bf.max_retries, timeout=bf.timeout)
     db.close(commit=True)
     
@@ -381,7 +381,7 @@ if __name__ == "__main__":
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
-    db = database_class(config=config_database)
+    db = DatabaseClass(config=config_database)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
 

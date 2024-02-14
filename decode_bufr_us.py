@@ -8,9 +8,9 @@ import eccodes as ec        # bufr decoder by ECMWF
 from datetime import datetime as dt, timedelta as td
 import global_functions as gf
 import global_variables as gv
-from database import database_class
-from bufr import bufr_class
-from obs import obs_class
+from database import DatabaseClass
+from bufr import BufrClass
+from obs import ObsClass
 
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
 #TODO raises error "API not implemented in CFFI porting"
@@ -65,14 +65,14 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
         # previous dict entries will get overwritten by next list item during merge (right before left)
         config_bufr = gf.merge_list_of_dicts( config_list )
 
-        bf = bufr_class(config_bufr, script=script_name[-5:-3])
+        bf = BufrClass(config_bufr, script=script_name[-5:-3])
 
         bufr_dir = bf.dir + "/"
 
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
 
-        db = database_class(config=config_database)
+        db = DatabaseClass(config=config_database)
 
         for i in range(max_retries):
             try:    known_stations = db.get_stations( clusters )
@@ -135,7 +135,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
         bufr_dir        = "/".join(file.split("/")[:-1]) + "/"
         source          = args.extra # default: extra
 
-        db = database_class(config=config_database)
+        db = DatabaseClass(config=config_database)
         known_stations  = db.get_stations()
 
         ID = db.get_file_id(FILE, file_path)
@@ -147,7 +147,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
         file_IDs = {FILE:ID}
 
         config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
-        bf          = bufr_class(config_bufr, script=script_name[-5:-3])
+        bf          = BufrClass(config_bufr, script=script_name[-5:-3])
 
     #TODO use defaultdic instead
     obs_bufr, file_statuses = {}, set()
@@ -156,7 +156,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
     config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
-    obs         = obs_class(config_obs, source, mode=config_script["mode"])
+    obs         = ObsClass(config_obs, source, mode=config_script["mode"])
 
     for FILE in files_to_parse:
         if debug: print(bufr_dir + FILE) 
@@ -376,7 +376,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
             
-            db = database_class(config=config_database)
+            db = DatabaseClass(config=config_database)
             db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
             db.close()
 
@@ -388,7 +388,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
             exe = sys.executable # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
     
-    db = database_class(config=config_database)
+    db = DatabaseClass(config=config_database)
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=bf.timeout)
     db.close()
 
@@ -506,7 +506,7 @@ if __name__ == "__main__":
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
-    db = database_class(config=config_database)
+    db = DatabaseClass(config=config_database)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
 

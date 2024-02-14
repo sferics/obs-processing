@@ -2,7 +2,7 @@ import sys, re, inspect, sqlite3 # sqlite connector python base module
 import global_functions as gf
 import global_variables as gv
 
-class database_class:
+class DatabaseClass:
     
     def __init__(self, db_file="main.db", config={ "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
         
@@ -1413,7 +1413,7 @@ class database_class:
     #TODO from here on move to getter_settter.py as soon as it uses the database class?
 
 
-    def register_file( self, name, path, source, status="locked", date="NULL", verbose=None ):
+    def register_file( self, name, path, source, status="locked", date="NULL", verbose=None, traceback=None ):
         #TODO
         """
         Parameter:
@@ -1427,6 +1427,7 @@ class database_class:
 
         """
         if verbose is None: verbose = self.verbose
+        if traceback is None: traceback = self.traceback
 
         values = f"VALUES ('{name}','{path}','{source}','{status}','{date}')"
         sql = f"INSERT INTO file_table (name,path,source,status,date) {values} ON CONFLICT DO NOTHING"
@@ -1434,7 +1435,7 @@ class database_class:
             self.exe( sql )
             return self.cur.lastrowid
         except Exception as e:
-            if self.traceback: gf.print_trace(e)
+            if traceback: gf.print_trace(e)
             return False
 
     

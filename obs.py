@@ -1,11 +1,11 @@
 import sqlite3
 from copy import copy
-from database import database_class
+from database import DatabaseClass
 import global_functions as gf
 import global_variables as gv
 
 
-class obs_class:
+class ObsClass:
     def __init__(self, config: dict={}, source: str="test", mode: str="dev", stage: str="raw"):
         """
         Parameter:
@@ -109,7 +109,7 @@ class obs_class:
 
             while retries > 0:
                 try:
-                    db_loc = database_class( f"{station_path}/{loc[0]}/{loc}.db", config_dict )
+                    db_loc = DatabaseClass( f"{station_path}/{loc[0]}/{loc}.db", config_dict )
                     db_loc.exemany( sql, obs_db[loc] )
                 except sqlite3.Error as e:
                     print(e, retries)
@@ -126,7 +126,6 @@ class obs_class:
                                 if loc[i][5]:   cor = "CC" + chr(64+loc[i][5])
                                 else:           cor = ""
                             except:             cor = ""
-                            #print(loc[i])
                             print(f"{loc[i][1]} {loc[i][2]:<6} {loc[i][3]:<20} {loc[i][4]:<21} {cor}")
                         print()
                     break
@@ -174,7 +173,7 @@ class obs_class:
 
         while retries > 0:
             try:
-                db_loc = database_class( db_path, {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose} )
+                db_loc = DatabaseClass( db_path, {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose} )
                 # get number of tables in attached DB
                 db_loc.exe(f"SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
                 n_tables = db_loc.fetch1()

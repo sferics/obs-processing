@@ -5,10 +5,10 @@ general:
   debug:        0
   traceback:    0
 
-#configuration of classes (key name == name of class without '_class')
+#configuration of classes (key name == name of class without 'Class')
 #TODO add indentation and adjust all affected scripts to the change
 #classes:
-database:
+Database:
   db_file:    main.test.db
   verbose:    0
   log_level:  ERROR
@@ -50,13 +50,13 @@ database:
     user_version:               
     writable_schema:            
 
-bufr:
+Bufr:
   verbose:          0
   log_level:        ERROR
   traceback:        1
   tables:           /home/juri/miniconda3/envs/obs/share/eccodes/definitions
 
-obs:
+Obs:
   verbose:
   log_level:        WARNING
   traceback:
@@ -67,6 +67,8 @@ obs:
   commit:           True
   settings:         {} # add SQLite PRAGMA settings analog to settings of main database here
 
+#Config:
+#Logger:
 
 #script configurations (key name == script name)
 scripts:
@@ -183,7 +185,7 @@ scripts:
     skip_computed:    0
     skip_duplicates:  0
     mode:             dev
-    output_path:      /home/juri/data/stations
+    output_path:      /home/juri/data/stations_ex
     bufr_translation: bufr_translation_us # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
     bufr_sequences:   bufr_sequences
