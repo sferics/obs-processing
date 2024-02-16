@@ -11,7 +11,7 @@ fi
 python -m compileall
 source export_bufr_tables.sh
 
-echo "Starting decode_bufr_pd.py $N times..."
+echo "Starting decode_bufr_pl.py $N times..."
 
 for (( c=1; c<=$N; c++ )); do
 	nohup python decode_bufr_pl.py test & sleep 3

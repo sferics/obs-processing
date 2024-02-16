@@ -4,6 +4,12 @@ from global_functions import read_yaml
 class ConfigClass:
     def __init__(self, config={}, pos={}, flags={}, info="", parser_args="parser_args", verbose=False):
         
+        #TODO take script name as argument & combine config_general+config_script (script has priority)
+        #script_name        = gf.get_script_name(__file__)
+        #config             = gf.read_yaml( "config" )
+        #config_script      = config["scripts"][script_name]
+        #config_general     = config["general"]
+
         self.config = config
         self.psr    = argparse.ArgumentParser(description=info)
         args_dict   = read_yaml(parser_args)

@@ -4,8 +4,10 @@
 if [ $# -ge 1 ]
 then
     N=$1
+    a=$2
 else
     N=15
+    a=gt
 fi
 
 python -m compileall
@@ -14,5 +16,5 @@ source export_bufr_tables.sh
 echo "Starting decode_bufr.py $N times..."
 
 for (( c=1; c<=$N; c++ )); do
-	python decode_bufr.py test & sleep 2
+	python decode_bufr.py test -a $a & sleep 2
 done
