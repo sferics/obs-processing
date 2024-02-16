@@ -97,6 +97,7 @@ if __name__ == "__main__":
     psr.add_argument("-d","--debug", action="store_true", help="enable or disable debugging")
     psr.add_argument("-t","--traceback", action="store_true", help="enable or disable traceback")
     psr.add_argument("-e","--export", action="store_true", help="export data to legacy CSV format")
+    psr.add_argument("-P","--processes", help="set number of processes for multiprocessing module")
     psr.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
 
     # parse all command line arguments and make them accessible via the args variable
@@ -107,6 +108,9 @@ if __name__ == "__main__":
     # default source name is test
     #TODO if no source is provided it should instead iterate over all sources, like in decode_bufr.py
     else:           source = "test"
+
+    if args.processes:
+        config_script["processes"] = args.processes
 
     script_name     = gf.get_script_name(__file__)
     config          = gf.read_yaml( "config" )
@@ -125,9 +129,9 @@ if __name__ == "__main__":
     db              = DatabaseClass( config=config["database"], ro=1 )
     stations        = db.get_stations( cluster ); db.close(commit=False)
 
-    if config_script["multiprocessing"]:
+    if config_script["processes"]:
         # number of processes
-        npcs = config_script["multiprocessing"]
+        npcs = config_script["processes"]
         import multiprocessing as mp
         from random import shuffle
         import numpy as np

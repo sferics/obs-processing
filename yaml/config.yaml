@@ -1,9 +1,12 @@
 general:
   mode:         dev # oper, test, ???
   output:       /home/juri/data/stations
+  log_level:    INFO
   verbose:      0
   debug:        0
   traceback:    0
+  timeout:      5
+  max_retries:  100
 
 #configuration of classes (key name == name of class without 'Class')
 #TODO add indentation and adjust all affected scripts to the change
@@ -53,13 +56,13 @@ Database:
 Bufr:
   verbose:          0
   log_level:        ERROR
-  traceback:        1
+  traceback:        0
   tables:           /home/juri/miniconda3/envs/obs/share/eccodes/definitions
 
 Obs:
-  verbose:
+  verbose:          0
   log_level:        WARNING
-  traceback:
+  traceback:        0
   mode:             dev
   output:           /home/juri/data/stations
   max_retries:      1200
@@ -79,7 +82,7 @@ scripts:
     traceback:        1
     max_files:        0 # 0 or None (~) means no limit
     max_retries:      100
-    multiprocessing:  15
+    processes:        15
     station_info:     bufr_station_info
     null_vals:        ["null", "NULL", MISSING, XXXX, " ", "", ~]
     mandatory_keys:   [stationOrSiteName, latitude, longitude]
@@ -94,7 +97,7 @@ scripts:
     debug:            0
     traceback:        0 # enable traceback prints
     timeout:          3 # timeout for station databases
-    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    processes:        15 # if > 0 use processes, number of worker processes TODO
     min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
     max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
     max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
@@ -115,7 +118,7 @@ scripts:
     debug:            0
     traceback:        0 # enable traceback prints
     timeout:          3 # timeout for station databases
-    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    processes:        15 # if > 0 use processes, number of worker processes TODO
     min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
     max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
     max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
@@ -136,7 +139,7 @@ scripts:
     debug:            0
     traceback:        0 # enable traceback prints
     timeout:          3 # timeout for station databases
-    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    processes:        15 # if > 0 use processes, number of worker processes TODO
     min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
     max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
     max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
@@ -157,7 +160,7 @@ scripts:
     debug:            0
     traceback:        1 # enable traceback prints
     timeout:          3 # timeout for station databases
-    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    processes:        15 # if > 0 use processes, number of worker processes TODO
     min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
     max_files:        5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
@@ -176,7 +179,7 @@ scripts:
     debug:            0
     traceback:        1 # enable traceback prints
     timeout:          3 # timeout for station databases
-    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    processes:        15 # if > 0 use processes, number of worker processes TODO
     min_ram:          2048 # minimum amount of RAM the script leaves free, if value reached: restart
     max_files:        0 #5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
@@ -201,7 +204,7 @@ scripts:
     debug:            0
     traceback:        1 # enable traceback prints
     timeout:          3 # timeout for station databases
-    multiprocessing:  15 # if > 0 use multiprocessing, number of worker processes TODO
+    processes:        15 # if > 0 use processes, number of worker processes TODO
     min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
     max_files:        5046 # zero means no maximum #15: 5395
     max_retries:      1200 # max retries when writing into databases 
@@ -270,7 +273,7 @@ scripts:
     mode:             dev
     output:           /home/juri/data/stations
     clusters:         germany
-    multiprocessing:  15 #4
+    processes:        15 #4
 
   audit_obs.py:  #TODO data quality check (idea: each obs parameter gets a range in units table)
     conda_env:        obs
@@ -284,7 +287,7 @@ scripts:
     traceback:        0
     mode:             dev
     output:           /home/juri/data/stations
-    multiprocessing:  15
+    processes:        15
     clusters:         germany
 
   derive_obs.py:
@@ -294,7 +297,7 @@ scripts:
     traceback:        0
     mode:             dev
     output:           /home/juri/data/stations
-    multiprocessing:  15
+    processes:        15
     clusters:         germany
     replacements:
       DIR_10m_syn:    DIR_5m_syn
@@ -321,7 +324,7 @@ scripts:
     traceback:        1 # traceback prints
     mode:             dev
     output:           /home/juri/data/stations
-    multiprocessing:  15
+    processes:        15
     clusters:         germany # TODO should take setting from sources instead
     params:
       FFavg_10m_10min_syn:      [10min, ~]
@@ -354,7 +357,7 @@ scripts:
     debug:            0
     mode:             dev
     output:           /home/juri/data/stations
-    multiprocessing:  15
+    processes:        15
     clusters:         germany
 
 

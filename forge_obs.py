@@ -11,10 +11,10 @@ from datetime import datetime as dt
 #   copy all remaining elements from raw to forge databases [datetime,duration,element,value]
 # -in forge databases do:
 # 2 audit_obs.py        -> check each obs, delete bad data like NaN, unknown value or out-of-range
-#   OR instead(?): move bad data to seperate databases in "/[dev/oper]/bad" directory
+#   OR instead(?): move bad data to seperate databases, e.g. in "/dev/oper/bad" directory (dev mode)
 # 3 derive_obs.py       -> compute derived elements like RH+T=TD; cloud levels; reduced pressure...
-# 4 aggregate_obs.py    -> aggregate over time periods (1,3,6,12,24h) and create new elements
-# 5 conclude_obs.py/finalize_obs.py
+# 4 aggregate_obs.py    -> aggregate over time periods (1,3,6,12,24h) (and create new elements???)
+# 5 conclude_obs.py (alias/symlink finalize_obs.py or some other better fitting name???)
 #   copy all relevant obs elements (main database element_table) from forge to dev or oper database,
 #   depending on operation mode; if this action is complete, maybe do some last checks? afterwards:
 #   clear all forge databases (they are just temporary and will be rebuilt in every chain cycle)
@@ -106,7 +106,6 @@ if __name__ == "__main__":
 
     if export: scripts.append("export")
 
-    #TODO
     cmd_args = [
             args.source, "-l", log_level, "-v", verbose, "-C", args.config, "-m", max_retries,
             "-M", mode, "-o", timeout, "-O", output, "-d", debug, "-t", traceback, "-e", export,
@@ -128,8 +127,7 @@ if __name__ == "__main__":
     stop_time = dt.utcnow()
     finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)
 
-    if verbose:
-        print(finished_str)
+    if verbose: print(finished_str)
 
     time_taken = stop_time - start_time
     print(f"{time_taken.seconds}.{time_taken.microseconds} s")

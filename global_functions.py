@@ -14,7 +14,7 @@ import sqlite3
 to_datetime         = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"], DT["minute"])
 to_datetime_hour    = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"])
 
-#TODO maybe we need a LoggerClass???
+#TODO maybe we need a LoggerClass??? what could be the benefits???
 def get_logger(script_name, log_level="NOTSET", log_path="log", mode="w", formatter=""):
     """
     Parameter:
@@ -35,7 +35,7 @@ def get_logger(script_name, log_level="NOTSET", log_path="log", mode="w", format
     if not os.path.exists(log_path): os.makedirs(log_path)
     
     logger = logging.getLogger(script_name)
-    logger.setLevel(eval(f"logging.{log_level}"))
+    logger.setLevel( getattr(logging, log_level) )
     
     if formatter:
         #formatter = logging.Formatter('%(asctime)s:%(levelname)s : %(name)s : %(message)s')
@@ -206,6 +206,22 @@ def merge_list_of_dicts( list_of_dicts, add_keys=True ):
             for key in list_of_dicts[i]:
                 if key in list_of_dicts[i-1]: out_dict[key] = list_of_dicts[i][key]
         return out_dict
+
+
+# inspired by: https://stackoverflow.com/questions/17694261/how-can-i-perform-set-operations-on-python-dictionaries
+def dict_ops(d1, d2, setop, keep_vals=1):
+    """
+    Apply set operation `setop` to dictionaries d1 and d2
+
+    Notes:
+    ------
+    In cases where values are present in both d1 and d2, the value from
+    d1 will be used - unless keep_vals is set == 2
+    """
+    if keep_vals == 2:
+        d1, d2, = d2, d1
+    return { k : d1.get( k, k in d1 or d2[k] ) for k in setop( set(d1), set(d2) ) }
+
 
 def fname():
     """
