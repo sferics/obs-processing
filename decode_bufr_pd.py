@@ -311,7 +311,6 @@ if __name__ == "__main__":
     parser.add_argument("-s","--sort_files", action='store_true', help="sort files alpha-numeric before parsing")
     parser.add_argument("-o","--timeout", help="timeout in seconds for station databases")
     parser.add_argument("-d","--debug", action='store_true', help="enable or disable debugging")
-    parser.add_argument("-e","--extra", default="extra", help="source name when parsing single file (default: extra)")
     parser.add_argument("-r","--redo", action='store_true', help="decode bufr again even if already processed")
     parser.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
     parser.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")

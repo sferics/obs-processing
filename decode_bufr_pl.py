@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
-import argparse, sys, os, psutil, plbufr
+import sys, os, psutil, plbufr
 #import numpy as np
 from glob import glob 
 import eccodes as ec        # bufr decoder by ECMWF
@@ -9,9 +9,9 @@ import pandas as pd
 import polars as pl
 #from collections import defaultdict
 from datetime import datetime as dt, timedelta as td
-from database import DatabaseClass
-from bufr import BufrClass
-from obs import ObsClass
+from database import DatabaseClass as dc
+from bufr import BufrClass as bc
+from obs import ObsClass as oc
 import global_functions as gf
 import global_variables as gv
 import warnings
@@ -46,23 +46,26 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
     -------
     None
     """
+    PID             = os.getpid()
+    status_locked   = f"locked_{PID}"
+
     if source:
         config_source   = config_sources[source]
         if "bufr" in config_source:
-             config_list = [ config["bufr"], config_script, config_general, config_source["bufr"] ]
+             config_list = [ config["Bufr"], config_script, config_general, config_source["bufr"] ]
         else: return
         
         # previous dict entries will get overwritten by next list item during merge (right before left)
         config_bufr = gf.merge_list_of_dicts( config_list )
 
-        bf = BufrClass(config_bufr, script=script_name[-5:-3])
+        bf = bc(config_bufr, script=script_name[-5:-3])
 
         bufr_dir = bf.dir + "/"
 
-        try:    clusters = set(config_source["clusters"].split(","))
+        try:    clusters = frozenset(config_source["clusters"])
         except: clusters = None
 
-        db = DatabaseClass(config=config_database)
+        db = dc(config=config_database)
 
         for i in range(max_retries):
             try:    known_stations = db.get_stations( clusters )
@@ -106,8 +109,7 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
             
             ID = db.get_file_id(FILE, file_path)
             if not ID:
-                status = f"locked_{pid}"
-                ID = db.register_file(FILE, file_path, source, status, file_date, verbose=verbose)
+                ID = db.register_file(FILE, file_path, source, status_locked, file_date, verbose=verbose)
             
             file_IDs[FILE] = ID
         
@@ -117,9 +119,7 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
         #see https://superfastpython.com/restart-a-process-in-python/
 
     elif file:
-        
         #start_time = dt.utcnow()
-
         FILE            = file.split("/")[-1]
         #TODO file argument could be comma-seperated list of files as well
         files_to_parse  = (FILE,)
@@ -130,7 +130,7 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
         if not args.source: source = "extra"
         else:               source = args.source
 
-        db = DatabaseClass(config=config_database)
+        db = dc(config=config_database)
         known_stations  = db.get_stations()
 
         ID = db.get_file_id(FILE, file_path)
@@ -141,8 +141,8 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
 
         file_IDs = {FILE:ID}
         
-        config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
-        bf          = BufrClass(config_bufr, script=script_name[-5:-3])
+        config_bufr = gf.merge_list_of_dicts( [config["Bufr"], config_script] )
+        bf          = bc(config_bufr, script=script_name[-5:-3])
 
     #TODO use defaultdic instead
     obs_bufr, file_statuses = {}, set()
@@ -150,8 +150,8 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
 
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
-    config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
-    obs         = ObsClass( config_obs, source, mode=config_script["mode"] )
+    config_obs  = gf.merge_list_of_dicts([config["Obs"], config_script], add_keys=False)
+    obs         = oc( config_obs, source, mode=config_script["mode"] )
 
     for FILE in files_to_parse:
         
@@ -162,8 +162,8 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
         
         PATH = bufr_dir + FILE
         if verbose: print(PATH)
+        #TODO from here on we could outsource into another function and would probably just need 1 decode_bufr.py
 
-        #TODO from here on we could outsource into another function and would probably just need one decode_bufr.py
         #https://pdbufr.readthedocs.io/en/latest/read_bufr.html#filters-section   
         #TODO for some reason my nice NaN removal filter doesnt work; fix or let it be...
         #df = plbufr.read_bufr(PATH, filters=filters, columns="all", flat=True, required_columns=required_keys)
@@ -211,70 +211,42 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
         #typical_datetime = "typical_datetime"
         time_period = ""
         cor         = 0
-
         cols        = df.columns
         cols_needed = [ i for i in df.columns if i not in bf.ignore_keys ]
-        #cols_noneed = frozenset( set(df.columns) - set(cols_needed) )
-        #cols_noneed = frozenset({ cols.index(i) for i in cols_noneed })
 
         if debug: print("COLS NEEDED", cols_needed) 
 
-        for row in df.iter_rows(named=True, buffer_size=16384):#buffer_size=4096):
-        #for row in df.rows(named=True):
-            #row = list(row)
+        for row in df.iter_rows(named=True, buffer_size=16384):
             if debug: print("ROW", row)
-            #keys_not_na = bufr_obs_keys.intersection(row.index)
-            # in future versions of pandas we will need this next line:
-            #keys_not_na = list(bufr_obs_keys.intersection(row.index))
-
-            #if row.loc[keys_not_na].isna().all(): continue
-
-            #keys_not_na = bufr_obs_keys.intersection(row.index)
-            #if not row.loc[bufr_obs_keys].notna().any(): continue
- 
             #TODO possibly BUG in plbufr? timePeriod=0 never exists; write bug report in github!
             try:
-                #tp_index = cols.index(bf.tp)
-                #if row[tp_index] is not None:
                 if row[bf.tp] is not None:
                     time_period = row[bf.tp]
-                    #time_period = row[tp_index]
             except: pass
 
             try:
-                #if time_period == -1 and row[cols.index(bf.replication)] == 10 and ( row[cols.index(bf.ww)] is not None or row[cols.index(bf.rr)] is not None ):
                 repl_10 = row[bf.replication] == 10 or row[bf.ext_replication] == 10
                 if time_period == -1 and repl_10 and (row[bf.ww] is not None or row[bf.rr] is not None):
                     continue
             except: pass
             
-            #location = str(row[cols.index(bf.wmo)]) + "0"
             location = str(row[bf.wmo]) + "0"
             if location not in known_stations: continue
             
-            #datetime = row[cols.index(bf.dt)]
             datetime = row[bf.dt]
             if datetime is None:
                 if verbose: print("NO DATETIME:", FILE)
                 continue
             
-            #for i in (bf.replication, bf.tp, bf.wmo, bf.dt):
-            #    try:    del row[cols.index(i)]
-            #    except: continue
-
             if location not in obs_bufr[ID]:            obs_bufr[ID][location]           = {}
             if datetime not in obs_bufr[ID][location]:  obs_bufr[ID][location][datetime] = {}
 
             modifier_list = []
             for key in (bf.obs_sequence, bf.sensor_height, bf.sensor_depth, bf.vertical_signf):
                 try:
-                    #key_index = cols.index(key)
-                    #if row[key_index] is not None:
-                    #    modifier_list.append((key, row[key_index]))
                     if row[key] is not None:
                         modifier_list.append((key, row[key]))
                 except: continue
-                #else:   del row[cols.index(key)]
 
             obs_list = []
 
@@ -305,7 +277,7 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= bf.min_ram:
             
-            db = DatabaseClass(config=config_database)
+            db = dc(config=config_database)
             db.set_file_statuses(file_statuses, retries=bf.max_retries, timeout=bf.timeout)
             db.close()
 
@@ -328,7 +300,7 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
             os.execl(exe, exe, * sys.argv, "-R", pid); sys.exit()
 
 
-    db = DatabaseClass(config=config_database)
+    db = dc(config=config_database)
     db.set_file_statuses(file_statuses, retries=bf.max_retries, timeout=bf.timeout)
     db.close(commit=True)
     
@@ -348,9 +320,11 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
 
 if __name__ == "__main__":
     
-    msg    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
-    msg   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
-    psr = argparse.ArgumentParser(description=msg)
+    import argparse
+
+    info    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
+    info   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
+    psr     = argparse.ArgumentParser(description=info)
  
     # add arguments to the parser
     psr.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set log level")
@@ -367,9 +341,8 @@ if __name__ == "__main__":
     psr.add_argument("-s","--sort_files", action='store_true', help="sort files alpha-numeric before parsing")
     psr.add_argument("-o","--timeout", help="timeout in seconds for station databases")
     psr.add_argument("-d","--debug", action='store_true', help="enable or disable debugging")
-    psr.add_argument("-e","--extra", default="extra", help="source name when parsing single file (default: extra)")
     psr.add_argument("-r","--redo", action='store_true', help="decode bufr again even if already processed")
-    psr.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
+    psr.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{PID}'")
     psr.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
     #TODO add shelve option to save some RAM
 
@@ -386,8 +359,6 @@ if __name__ == "__main__":
     
     # save the general part of the configuration in a variable for easier acces
     config_general = config["general"]
-
-    pid = str(os.getpid())
 
     if args.max_files is not None:  config_script["max_files"]  = args.max_files
     if args.sort_files: config_script["sort_files"] = args.sort_files
@@ -430,14 +401,14 @@ if __name__ == "__main__":
 
     if args.mode:                   config_script["mode"] = args.mode
 
-    if args.clusters: config_source["clusters"] = set(args.clusters.split(",")) 
+    if args.clusters:               config_source["clusters"] = frozenset(args.clusters) 
 
     # get configuration for the initialization of the database class
-    config_database = config["database"]
+    config_database = config["Database"]
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
-    db = DatabaseClass(config=config_database)
+    db = dc(config=config_database)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
 

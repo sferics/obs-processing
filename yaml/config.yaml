@@ -1,6 +1,6 @@
 general:
   mode:         dev # oper, test, ???
-  output_path:  /home/juri/data/stations
+  output:       /home/juri/data/stations
   verbose:      0
   debug:        0
   traceback:    0
@@ -9,7 +9,7 @@ general:
 #TODO add indentation and adjust all affected scripts to the change
 #classes:
 Database:
-  db_file:    main.test.db
+  db_file:    main.db
   verbose:    0
   log_level:  ERROR
   traceback:  1
@@ -61,7 +61,7 @@ Obs:
   log_level:        WARNING
   traceback:
   mode:             dev
-  output_path:      /home/juri/data/stations
+  output:           /home/juri/data/stations
   max_retries:      1200
   timeout:          3
   commit:           True
@@ -99,10 +99,10 @@ scripts:
     max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
     max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    stations:         wmo
-    clusters:         germany
+    stations:         [wmo]
+    clusters:         [germany]
     mode:             dev
-    output_path:      /home/juri/data/stations_pd
+    output:           /home/juri/data/stations_pd
     bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags           # code flag table conversions
 
@@ -120,10 +120,10 @@ scripts:
     max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
     max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    stations:         wmo
-    clusters:         germany
+    stations:         [wmo]
+    clusters:         [germany]
     mode:             dev
-    output_path:      /home/juri/data/stations_pl_test
+    output:           /home/juri/data/stations_pl_test
     bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags           # code flag table conversions
 
@@ -141,10 +141,10 @@ scripts:
     max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
     max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    stations:         wmo
-    clusters:         germany
+    stations:         [wmo]
+    clusters:         [germany]
     mode:             dev
-    output_path:      /home/juri/data/stations_gt
+    output:           /home/juri/data/stations_gt
     bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags           # code flag table conversions
 
@@ -163,7 +163,7 @@ scripts:
     max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     mode:             dev
-    output_path:      /home/juri/data/stations_mv
+    output:           /home/juri/data/stations_mv
     bufr_translation: bufr_translation_mv # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags_mv #TODO not used at the moment, for cloud levels it could be useful though
 
@@ -185,12 +185,12 @@ scripts:
     skip_computed:    0
     skip_duplicates:  0
     mode:             dev
-    output_path:      /home/juri/data/stations_ex
+    output:           /home/juri/data/stations_ex
     bufr_translation: bufr_translation_us # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
     bufr_sequences:   bufr_sequences
     stations:         [wmo,dwd]
-    clusters:         germany
+    clusters:         [germany]
 
   decode_bufr_us.py:
     conda_env:        obs
@@ -207,7 +207,7 @@ scripts:
     max_retries:      1200 # max retries when writing into databases 
     sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     mode:             dev
-    output_path:      /home/juri/data/stations_us
+    output:           /home/juri/data/stations_us
     bufr_translation: bufr_translation_us # TODO might be useful in future to define this by source?
     bufr_flags:       bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
     extract_subsets:  0
@@ -215,7 +215,7 @@ scripts:
     skip_computed:    0
     skip_duplicates:  0
     stations:         [wmo,dwd]
-    clusters:         germany
+    clusters:         [germany]
 
   decode_synop.py:    #TODO
     conda_env:        obs
@@ -230,7 +230,7 @@ scripts:
   get_obs.py:         # replacement for getALL.sh and get*.sh scripts; calls get*.py as well TODO
     conda_env:        obs
     pid_file:         0 # create and use pid file
-    dev_mode:         1 # True : download all data in given timespan - False : download only daily data
+    mode:             dev  
     max_retries:      3
   get_ogimet.py:      #TODO rewrite bash script in python
   get_swiss.py:       https://opendata.swiss/de/dataset/automatische-wetterstationen-aktuelle-messwerte
@@ -242,40 +242,48 @@ scripts:
   get_knmi.py:        # dutch weather service API download script
   get_imgw.py:
     conda_env:        obs
-    dev_mode:         1
+    mode:             dev
     log_level:        ERROR
     verbose:          1
     max_retries:      10
     timeout:          3
-    output_path:      /home/juri/data/stations_imgw
+    output:           /home/juri/data/stations_imgw
     
   forge_obs.py:
     conda_env:        obs
     pid_file:         0 # create and use pid file
-    output_path:      /home/juri/data/stations
+    verbose:          0 # verbose output
+    traceback:        0 # traceback prints
+    debug:            0
+    mode:             dev
+    output:           /home/juri/data/stations
+    legacy_output:    /home/juri/data/stations_legacy
+    export:           0
+    timeout:          5
+    max_retries:      100
 
   reduce_obs.py:
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     traceback:        0 # traceback prints
     debug:            0
-    dev_mode:         1
-    output_path:      /home/juri/data/stations
+    mode:             dev
+    output:           /home/juri/data/stations
     clusters:         germany
     multiprocessing:  15 #4
 
   audit_obs.py:  #TODO data quality check (idea: each obs parameter gets a range in units table)
     conda_env:        obs
     pid_file:         0 # create and use pid file
-    output_path:      /home/juri/data/stations
+    output:           /home/juri/data/stations
 
   delete_duplicate_obs.py:
     conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          1
     traceback:        0
-    dev_mode:         1
-    output_path:      /home/juri/data/stations
+    mode:             dev
+    output:           /home/juri/data/stations
     multiprocessing:  15
     clusters:         germany
 
@@ -284,8 +292,8 @@ scripts:
     pid_file:         0 # create and use pid file
     verbose:          1
     traceback:        0
-    dev_mode:         1
-    output_path:      /home/juri/data/stations
+    mode:             dev
+    output:           /home/juri/data/stations
     multiprocessing:  15
     clusters:         germany
     replacements:
@@ -311,8 +319,8 @@ scripts:
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
     traceback:        1 # traceback prints
-    dev_mode:         1 # 1 : aggregate all obs data, 0 : only aggregate current obs data (livesystem)
-    output_path:      /home/juri/data/stations
+    mode:             dev
+    output:           /home/juri/data/stations
     multiprocessing:  15
     clusters:         germany # TODO should take setting from sources instead
     params:
@@ -344,8 +352,8 @@ scripts:
     verbose:          1
     traceback:        0
     debug:            0
-    dev_mode:         1
-    output_path:      /home/juri/data/stations
+    mode:             dev
+    output:           /home/juri/data/stations
     multiprocessing:  15
     clusters:         germany
 

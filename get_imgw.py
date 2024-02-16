@@ -1,7 +1,7 @@
 #!python
 import os, sys, time, requests, argparse
 import global_functions as gf
-from obs import obs_class
+from obs import ObsClass
 from datetime import datetime as dt
 import logging as log
 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         log.error(error_message)
         sys.exit(error_message)
 
-    obs         = obs_class("raw", config["obs"], "imgw")
+    obs         = ObsClass("raw", config["obs"], "imgw")
 
     timeout_db  = config["database"]["timeout"]
     db_file     = config["database"]["db_file"]

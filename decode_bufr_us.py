@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 # decodes BUFRs for availabe or given sources and saves obs to database
 
-import argparse, sys, os, psutil#, shelve
+import sys, os, psutil#, shelve
 import numpy as np
 from glob import glob 
 import eccodes as ec        # bufr decoder by ECMWF
 from datetime import datetime as dt, timedelta as td
 import global_functions as gf
 import global_variables as gv
-from database import DatabaseClass
-from bufr import BufrClass
-from obs import ObsClass
+from database import DatabaseClass as dc
+from bufr import BufrClass as bc
+from obs import ObsClass as oc
 
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
 #TODO raises error "API not implemented in CFFI porting"
@@ -38,41 +38,45 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
     -------
     None
     """
-    start, end, subset_extract, subset_interval, subset_list = (None for _ in range(5))
-    if args.extract_subsets:
-        try:    subset_extract = int(args.extract_subsets) - 1
-        except:
-            if "-" in args.extract_subsets:
-                subset_interval = args.extract_subsets.split("-")
-                start, end = subset_interval[0], subset_interval[1]
-                try:                start = int(start)
-                except ValueError:  assert( start == "" )
-                try:                end = int(end)
-                except ValueError:  assert( end == "" )
-                # start of interval can not be larger than its end
-                if type(start) == type(end) == int: assert( 0 <= start <= end )
-            elif "," in args.extract_subsets:
-                subset_list = args.extract_subsets.split(",")
-                for i in range(len(subset_list)): subset_list[i] -= 1
-                subset_list = set(subset_list)
+    if file:
+        FILE            = file.split("/")[-1]
+        files_to_parse  = (FILE,)
+        file_path       = gf.get_file_path(args.file)
+        file_date       = gf.get_file_date(args.file)
+        bufr_dir        = "/".join(file.split("/")[:-1]) + "/"
+        source          = args.extra # default: extra
 
-    if source:
+        db = dc(config=config_database)
+        known_stations  = db.get_stations()
+
+        ID = db.get_file_id(FILE, file_path)
+        if ID:  db.set_file_status(ID,"locked")
+        else:   ID = db.register_file(FILE,file_path,source,status="locked",date=file_date,verbose=verbose)
+
+        db.close(commit=True)
+
+        file_IDs = {FILE:ID}
+
+        config_bufr = gf.merge_list_of_dicts( [config["Bufr"], config_script] )
+        bf          = bc(config_bufr, script=script_name[-5:-3])
+
+    elif source:
         config_source   = config_sources[source]
         if "bufr" in config_source:
-             config_list = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
+             config_list = [config["Bufr"], config_script, config_source["general"], config_source["bufr"]]
         else: return
 
         # previous dict entries will get overwritten by next list item during merge (right before left)
         config_bufr = gf.merge_list_of_dicts( config_list )
 
-        bf = BufrClass(config_bufr, script=script_name[-5:-3])
+        bf = bc(config_bufr, script=script_name[-5:-3])
 
         bufr_dir = bf.dir + "/"
 
-        try:    clusters = set(config_source["clusters"].split(","))
+        try:    clusters = frozenset(config_source["clusters"])
         except: clusters = None
 
-        db = DatabaseClass(config=config_database)
+        db = dc(config=config_database)
 
         for i in range(max_retries):
             try:    known_stations = db.get_stations( clusters )
@@ -126,37 +130,14 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
         #TODO if multiprocessing: split file_to_parse by number of processes (eg 8) and parse files simultaneously
         #see https://superfastpython.com/restart-a-process-in-python/
 
-    elif file:
-
-        FILE            = file.split("/")[-1]
-        files_to_parse  = (FILE,)
-        file_path       = gf.get_file_path(args.file)
-        file_date       = gf.get_file_date(args.file)
-        bufr_dir        = "/".join(file.split("/")[:-1]) + "/"
-        source          = args.extra # default: extra
-
-        db = DatabaseClass(config=config_database)
-        known_stations  = db.get_stations()
-
-        ID = db.get_file_id(FILE, file_path)
-        if ID:  db.set_file_status(ID,"locked")
-        else:   ID = db.register_file(FILE,file_path,source,status="locked",date=file_date,verbose=verbose)
-
-        db.close(commit=True)
-
-        file_IDs = {FILE:ID}
-
-        config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
-        bf          = BufrClass(config_bufr, script=script_name[-5:-3])
-
     #TODO use defaultdic instead
     obs_bufr, file_statuses = {}, set()
     new_obs = 0
 
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
-    config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
-    obs         = ObsClass(config_obs, source, mode=config_script["mode"])
+    config_obs  = gf.merge_list_of_dicts([config["Obs"], config_script], add_keys=False)
+    obs         = oc(config_obs, source, mode=config_script["mode"])
 
     for FILE in files_to_parse:
         if debug: print(bufr_dir + FILE) 
@@ -166,28 +147,19 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                 # if for whatever reason no ID (database lock?) or filestatus means skip: continue with next file
                 if not ID: continue
                 #bufr = ec.codes_bufr_new_from_file(f)
-                bufr = ec.codes_new_from_file(f, ec.CODES_PRODUCT_BUFR)
-                if bufr is None:
+                msg = ec.codes_new_from_file(f, ec.CODES_PRODUCT_BUFR)
+                if msg is None:
                     file_statuses.add( ("empty", ID) )
                     if verbose: print(f"EMPTY:  '{FILE}'")
                     continue
                 # skip extra attributes like units and scale to decode 25% faster (we can get them via key->code)
                 # https://confluence.ecmwf.int/display/UDOC/Performance+improvement+by+skipping+some+keys+-+ecCodes+BUFR+FAQ)
-                ec.codes_set(bufr, 'skipExtraKeyAttributes', 1)
-                ec.codes_set(bufr, "unpack", 1)
-                if args.extract_subsets:
-                    subsets = ec.codes_get_long( bufr, "numberOfSubsets" )
-                    if subsets > 1:
-                        if subset_extract is not None:
-                            ec.codes_set(bufr, "extractSubset", subset_extract)
-                        elif subset_interval is not None:
-                            if not start:  start  = 1
-                            if not end:    end    = subsets
-                            ec.codes_set(bufr, "extractSubsetIntervalStart", start-1);
-                            ec.codes_set(bufr, "extractSubsetIntervalEnd", end-1)
-                        elif subset_list is not None:
-                            ec.codes_set(bufr, "extractSubsetList", subset_list)
-                ec.codes_set(bufr, "doExtractSubsets", 1)
+                ec.codes_set(msg, 'skipExtraKeyAttributes', 1)
+                ec.codes_set(msg, "unpack", 1)
+                # extract all subsets
+                ec.codes_set(msg, "extractSubsetIntervalStart", 1)
+                ec.codes_set(msg, "extractSubsetIntervalEnd", ec.codes_get_long(msg, "numberOfSubsets"))
+                ec.codes_set(msg, "doExtractSubsets", 1)
             except Exception as e:
                 log_str = f"ERROR:  '{FILE}' ({e})"; log.error(log_str)
                 if verbose: print(log_str)                
@@ -196,7 +168,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                 continue
             else: obs_bufr[ID] = {} #shelve.open(f"shelves/{ID}", writeback=True)
             
-            iterid = ec.codes_bufr_keys_iterator_new(bufr)
+            iterid = ec.codes_bufr_keys_iterator_new(msg)
             
             if config_script["skip_computed"]:      ec.codes_skip_computed(iterid)
             if config_script["skip_function"]:      ec.codes_skip_function(iterid)
@@ -236,7 +208,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                         obs_bufr[ID][location] = {}
 
                     if clear_key in bf.obs_time_keys:
-                        try: value = ec.codes_get( bufr, key )
+                        try: value = ec.codes_get( msg, key )
                         except Exception as e:
                             if verbose: print(FILE, key, e)
                             if traceback: gf.print_trace(e)
@@ -245,14 +217,14 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                             continue
 
                         # skip 1min ww and RR which are reported 10 times; 10min resolution is sufficient for us
-                        if clear_key == "delayedDescriptorReplicationFactor":
+                        if clear_key in {bf.replication, bf.ext_replication}:
                             if value == 10: skip_next = 10
                             continue
 
                         if value not in bf.null_vals:
                             
                             # get the BUFR code number which gives us all necessary unit and scale info
-                            code        = ec.codes_get_long( bufr, key + "->code" )
+                            code        = ec.codes_get_long( msg, key + "->code" )
                             obs_data    = ( code, value )
                             
                             #TODO use a defaultdict instead
@@ -264,25 +236,27 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                             """
                             try:    obs_bufr[ID][location][datetime].append(obs_data)
                             except: obs_bufr[ID][location][datetime] = [obs_data]
+                            """
                             # avoid duplicate modifier keys (like timePeriod or depthBelowLandSurface) 
                             if clear_key in bf.modifier_keys:
                                 try:
                                     if clear_key == obs_bufr[ID][location][datetime][-2][0]:
                                         del obs_bufr[ID][location][datetime][-2]
                                 except: pass
+                            """
                             new_obs += 1
 
                 else:
                     if not subset and key in bf.typical_keys:
-                        typical[key]    = ec.codes_get( bufr, key )
+                        typical[key]    = ec.codes_get( msg, key )
                         if typical[key] in bf.null_vals: del typical[key]
                         last_key        = "typical"
                         continue
                     
                     if location is None and clear_key in bf.station_keys:
-                        #meta[clear_key] = ec.codes_get(bufr, key)
-                        try: meta[clear_key] = ec.codes_get(bufr, key)
-                        except: meta[clear_key] = ec.codes_get_array(bufr, key)[0]
+                        #meta[clear_key] = ec.codes_get(msg, key)
+                        try: meta[clear_key] = ec.codes_get(msg, key)
+                        except: meta[clear_key] = ec.codes_get_array(msg, key)[0]
                         #TODO some OGIMET-BUFRs seem to contain multiple station numbers in one key (arrays)
                         
                         if meta[clear_key] in bf.null_vals:
@@ -295,22 +269,24 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                             
                         # check if all essential station information keys for a WMO station are present
                         elif { "stationNumber", "blockNumber" }.issubset( set(meta) ):
-                            location = str(meta["stationNumber"] + meta["blockNumber"]*1000).rjust(5,"0") + "0"
+                            location = bc.to_wmo(meta["blockNumber"], meta["stationNumber"])
                             station_type = "wmo"
                             if "skip1" in config_bufr: skip_next = config_bufr["skip1"]
+                            #TODO put in config
                             elif source in {"DWD","COD","NOAA"}: skip_next = 2
-                        
+
                         if location and location not in known_stations:
                             meta = {}; location = None; skip_obs = True
                             if station_type == "dwd": skip_next = 13
                             elif "skip2" in config_bufr: skip_next = config_bufr["skip2"]
+                            #TODO put in config
                             elif source in {"DWD","COD","KNMI","RMI","NOAA"}:
                                 if station_type == "wmo":   skip_next = 11
  
                     elif location:
                         
                         if clear_key in bf.set_time_keys: # {year, month, day, hour, minute}
-                            meta[clear_key] = ec.codes_get_long(bufr, key)
+                            meta[clear_key] = ec.codes_get_long(msg, key)
                             if meta[clear_key] in bf.null_vals: del meta[clear_key]
                         
                             if clear_key == "minute":
@@ -320,6 +296,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
                                     datetime = gf.to_datetime(meta)
                                     if debug: print(meta)
                                     if "skip3" in config_bufr: skip_next = config_bufr["skip3"]
+                                    #TODO put in config
                                     elif source in {"DWD","COD","NOAA"}: skip_next = 4
                                     continue
                                 
@@ -351,8 +328,8 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
 
                                     if ("hour" not in meta or "minute" not in meta) and "typicalTime" in typical:
                                         typical_time    = typical["typicalTime"]
-                                        if "hour" not in meta: meta["hour"] = int(typical_time[:2])
-                                        if "minute" not in meta: meta["minute"] = int(typical_time[2:4])
+                                        if "hour" not in meta:      meta["hour"]    = int(typical_time[:2])
+                                        if "minute" not in meta:    meta["minute"]  = int(typical_time[2:4])
                                     else: skip_obs = True; continue
                                 
                                 else: skip_obs = True
@@ -362,7 +339,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
             ec.codes_keys_iterator_delete(iterid)
 
         # end of with clause (closes file handle)
-        ec.codes_release(bufr)
+        ec.codes_release(msg)
 
         if new_obs:
             file_statuses.add( ("parsed", ID) )
@@ -376,7 +353,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
         # if less than x MB free memory: commit, close db connection and restart program
         if memory_free <= config_script["min_ram"]:
             
-            db = DatabaseClass(config=config_database)
+            db = dc(config=config_database)
             db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
             db.close()
 
@@ -388,7 +365,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
             exe = sys.executable # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
     
-    db = DatabaseClass(config=config_database)
+    db = dc(config=config_database)
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=bf.timeout)
     db.close()
 
@@ -409,9 +386,11 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
 
 if __name__ == "__main__":
     
-    msg    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
-    msg   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
-    parser = argparse.ArgumentParser(description=msg)
+    import argparse
+
+    info    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
+    info   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
+    parser  = argparse.ArgumentParser(description=info)
  
     # add arguments to the parser
     log_levels = { "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG" }
@@ -424,15 +403,12 @@ if __name__ == "__main__":
     parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
     parser.add_argument("-C","--config", default="config", help="set name of config file")
     parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
-    parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
     parser.add_argument("-n","--max_files", type=int, help="maximum number of files to parse (per source)")
     parser.add_argument("-s","--sort_files", action='store_true', help="sort files alpha-numeric before parsing")
     parser.add_argument("-o","--timeout", help="timeout in seconds for station databases")
-    parser.add_argument("-b","--debug", action='store_true', help="enable or disable debugging")
-    parser.add_argument("-x","--extract_subsets", help="extract specific subsets only ('N', 'x,y,z' or 'start-end')")
+    parser.add_argument("-d","--debug", action='store_true', help="enable or disable debugging")
     parser.add_argument("-k","--skip", default="", help="skip [c]omputed, [f]unction and/or [d]uplicate keys")
-    parser.add_argument("-e","--extra", default="extra", help="source name when parsing single file (default: extra)")
     parser.add_argument("-r","--redo", action='store_true', help="decode bufr again even if already processed")
     parser.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
     parser.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
@@ -499,14 +475,14 @@ if __name__ == "__main__":
 
     output_path = config_script["output_path"]
 
-    if args.clusters: config_source["clusters"] = set(args.clusters.split(","))
+    if args.clusters: config_source["clusters"] = set(args.clusters)
 
     # get configuration for the initialization of the database class
-    config_database = config["database"]
+    config_database = config["Database"]
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
-    db = DatabaseClass(config=config_database)
+    db = dc(config=config_database)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
 

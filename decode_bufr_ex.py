@@ -150,7 +150,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         
         if "bufr" in config_source:
             # list of all configs in reverse order of significance (right has priority over left)
-            config_list = [ config["bufr"], config_script, config_general, config_source["bufr"] ]
+            config_list = [ config["Bufr"], config_script, config_general, config_source["bufr"] ]
         else: return
 
         # previous dict entries will get overwritten by next item during merge (right before left)
@@ -171,7 +171,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             #eccodes_path = ecmwflibs.find("eccodes")
             
         # get cluster information from config which is source-specific; therefore happens here
-        try:    clusters = set(config_source["clusters"].split(","))
+        try:    clusters = frozenset(config_source["clusters"])
         # if clusters setting is not present or in case of any errors, process all clusters
         except: clusters = None
         
@@ -298,7 +298,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         file_IDs = { FILE : ID }
         
         # for just 2 configuration dicts we can use the easier, more pythonic syntax with **
-        config_bufr = { **config["bufr"], **config_script }
+        config_bufr = { **config["Bufr"], **config_script }
         #config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
         bf          = bc(config_bufr, script=script_name[-5:-3])
 
@@ -307,7 +307,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
-    config_obs  = gf.merge_list_of_dicts( [config["obs"], config_script], add_keys=False )
+    config_obs  = gf.merge_list_of_dicts( [config["Obs"], config_script], add_keys=False )
     # create obs object which will be used to save observation into the database
     obs         = oc(config_obs, source, mode, "raw")
     
@@ -349,210 +349,6 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
                 continue
             # if all went down smoothly create an empty dictionary to store the data in it
             else: obs_bufr[ID] = {} #shelve.open(f"shelves/{ID}", writeback=True)
-
-            iterid = ec.codes_bufr_keys_iterator_new(msg)
-            
-            if config_script["skip_computed"]:      ec.codes_skip_computed(iterid)
-            if config_script["skip_function"]:      ec.codes_skip_function(iterid)
-            if config_script["skip_duplicates"]:    ec.codes_skip_duplicates(iterid)
-            
-            meta, typical   = {}, {}
-            valid_obs       = False
-            location        = None
-            subset, new_obs = 0, 0
-            skip_obs        = False
-            last_key        = None
-
-            #if debug: pdb.set_trace()
-
-            # initial skipping of unwanted keys (default is 10)
-            if "skip0" in config_bufr:
-                skip_next = config_bufr["skip0"]
-            else: skip_next = 10
-            
-            radiation_codes = range(14000,14074)
-
-            while ec.codes_bufr_keys_iterator_next(iterid):
-
-                if skip_next:
-                    skip_next -= 1
-                    continue
-
-                key = ec.codes_bufr_keys_iterator_get_name(iterid)
-
-                if last_key == "typical" and last_key not in key:
-                    last_key = None
-                    skip_next = 3
-                    continue
-
-                if key == "subsetNumber":
-                    if subset > 0:
-                        meta = {}; location = None; valid_obs = False; skip_obs = False
-                    subset += 1
-                    continue
-                elif skip_obs: continue
-
-                clear_key = bf.clear(key)
-
-                if clear_key not in bf.relevant_keys: continue
-                #if debug: print(key)
-
-                if valid_obs:
-                    if location not in obs_bufr[ID]:
-                        obs_bufr[ID][location] = {}
-
-                    if clear_key in bf.obs_time_keys:
-                        try: value = ec.codes_get(msg, key)
-                        except Exception as e:
-                            log_str = f"ERROR:  '{FILE}' ({key}, {e})"
-                            log.error(log_str)
-                            if verbose:     print(log_str)
-                            if traceback:   gf.print_trace(e)
-                            continue
-
-                        # skip 1min ww and RR which are reported 10 times
-                        # 10min resolution is sufficient for us
-                        if clear_key == bf.replication: # delayedDescriptorReplicationFactor
-                            if value == 10: skip_next = 10
-                            continue
-
-                        if value not in bf.null_vals:
-
-                            # get BUFR code number which gives us all necessary unit and scale info
-                            code        = ec.codes_get_long(msg, key+"->code")
-                            # skip 1 min timePeriod since we do not use it
-                            if code == 4025 and value == -1: continue
-                            if code in radiation_codes:
-                                print(code, value)
-                            obs_data    = ( code, value )
-
-                            #TODO use a defaultdict instead?
-                            #TODO find out which is faster (try/except, if or defaultdict)
-                            """
-                            if datetime not in stations[location]:
-                                stations[location][datetime] = []
-                            stations[location][datetime].append( obs_data )
-                            """
-                            try:    obs_bufr[ID][location][datetime].append( obs_data )
-                            except: obs_bufr[ID][location][datetime] = [ obs_data ]
-                            
-                            """
-                            # avoid duplicate modifier codes (like timePeriod/depthBelowLandSurface)
-                            if code in bf.modifier_codes:
-                                try:
-                                    if code == obs_bufr[ID][location][datetime][-2][0] or code in bf.tp_range and obs_bufr[ID][location][datetime][-2][0] in bf.tp_range:
-                                        del obs_bufr[ID][location][datetime][-2]
-                                except Exception as e:
-                                    if debug: print(e)
-                            """
-                            new_obs += 1
-
-                        else: print(clear_key, value)
-
-                else:
-                    if not subset and key in bf.typical_keys:
-                        typical[key] = ec.codes_get(msg, key)
-                        if typical[key] in bf.null_vals:
-                            del typical[key]
-                        last_key = "typical"
-                        continue
-
-                    if location is None and clear_key in bf.station_keys:
-                        meta[clear_key] = ec.codes_get(msg, key)
-
-                        #TODO some OGIMET-BUFRs seem to contain multiple station numbers in one key
-                        #try:    meta[clear_key] = ec.codes_get(msg, key)
-                        #except: meta[clear_key] = ec.codes_get_array(msg, key)[0]
-
-                        if meta[clear_key] in bf.null_vals:
-                            del meta[clear_key]
-                            continue
-
-                        # check for identifier of DWD stations (in German "nebenamtliche Stationen")
-                        if "dwd" in config_bufr["stations"] and "shortStationName" in meta:
-                            location        = meta["shortStationName"]
-                            station_type    = "dwd"
-                            skip_next       = 4
-
-                        # check if all essential station information for WMO station is present
-                        elif "wmo" in config_bufr["stations"] and bf.WMO.issubset( set(meta) ):
-                            location        = bc.to_wmo(meta["blockNumber"], meta["stationNumber"])
-                            station_type    = "wmo"
-                            if "skip1" in config_bufr:
-                                skip_next = config_bufr["skip1"]
-
-                        """
-                        if location and location not in known_stations:
-                            meta = {}; location = None; skip_obs = True
-                            if station_type == "dwd":
-                                skip_next = 13
-                            elif "skip2" in config_bufr:
-                                skip_next = config_bufr["skip2"]
-                        """
-
-                    elif location:
-
-                        if clear_key in bf.set_time_keys: # {year, month, day, hour, minute}
-                            meta[clear_key] = ec.codes_get_long(msg, key)
-                            if meta[clear_key] in bf.null_vals:
-                                del meta[clear_key]
-
-                            if clear_key == "minute":
-                                # check if all essential time keys are now present
-                                valid_obs = bf.set_time_keys.issubset(meta)
-                                if valid_obs:
-                                    datetime = gf.to_datetime(meta)
-                                    #if debug: print(meta)
-                                    if "skip3" in config_bufr:
-                                        skip_next = config_bufr["skip3"]
-                                    continue
-
-                                elif bf.set_time_keys_hour.issubset(meta):
-                                    # if only minute is missing, assume that minute == 0
-                                    meta["minute"]  = 0
-                                    valid_obs       = True
-                                    datetime        = gf.to_datetime(meta)
-                                    #if debug: print("minute0:", meta)
-                                    continue
-
-                                # if we are still missing time keys: use the typical information
-                                elif typical:
-                                    # use the typical values we gathered earlier keys are missing
-                                    for i, j in zip( bf.time_keys, bf.typical_keys ):
-                                        try:    meta[i] = int( typical[j] )
-                                        except: pass
-
-                                    # again, if only minute is missing, assume that minute == 0
-                                    if bf.set_time_keys_hour.issubset(meta):
-                                        meta["minute"]  = 0
-                                        valid_obs       = True
-                                        continue
-
-                                    # no luck yet? there could be typicalDate or typicalTime present
-                                    if not bf.YMD.issubset(set(meta)) and "typicalDate" in typical:
-                                        typical_date    = typical["typicalDate"]
-                                        meta["year"]    = int(typical_date[:4])
-                                        meta["month"]   = int(typical_date[4:6])
-                                        meta["day"]     = int(typical_date[-2:])
-                                    else:
-                                        skip_obs = True
-                                        continue
-
-                                    if ("hour" not in meta or "minute" not in meta) and "typicalTime" in typical:
-                                        typical_time = typical["typicalTime"]
-                                        if "hour" not in meta:
-                                            meta["hour"]    = int(typical_time[:2])
-                                        if "minute" not in meta:
-                                            meta["minute"]  = int(typical_time[2:4])
-                                    else:
-                                        skip_obs = True
-                                        continue
-
-                                else: skip_obs = True
-
-
-            # end of while loop
-            ec.codes_keys_iterator_delete(iterid)
 
             # get descriptor data (unexpanded descriptors plus their values)
             vals    = ec.codes_get_double_array(msg, "numericValues")
@@ -935,36 +731,34 @@ if __name__ == "__main__":
     # define program info message (--help, -h) and parser arguments with explanations on them (help)
     info    = "Decode one or more BUFR files and insert relevant observation data into station databases. "
     info   += "NOTE: Setting a command line flag or option always overwrites the setting from the config file!"
-    #
-    parser = argparse.ArgumentParser(description=info)
+    # create argument parser object which lets us define command line arguments and parse them
+    psr = argparse.ArgumentParser(description=info)
     
     # add all needed command line arguments to the program's interface
-    parser.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set logging level")
-    parser.add_argument("-i","--pid_file", action='store_true', help="create a pid file to easily check if script is running")
-    parser.add_argument("-f","--file", help="parse single file bufr file, will be handled as source=extra by default")
-    parser.add_argument("-v","--verbose", action='store_true', help="show more detailed output")
-    parser.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)")
+    psr.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set logging level")
+    psr.add_argument("-i","--pid_file", action='store_true', help="create a pid file to easily check if script is running")
+    psr.add_argument("-f","--file", help="parse single file bufr file, will be handled as source=extra by default")
+    psr.add_argument("-v","--verbose", action='store_true', help="show more detailed output")
+    psr.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)")
     #TODO replace profiler by number of processes (prcs) when real multiprocessing (using module) is implemented
-    parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
-    parser.add_argument("-C","--config", default="config", help="set custom name of config file")
-    parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
-    parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
-    parser.add_argument("-M","--mode", help="set operation mode; options available: {oper, dev, test}")
-    parser.add_argument("-n","--max_files", type=int, help="maximum number of files to parse (per source)")
-    parser.add_argument("-s","--sort_files", action='store_true', help="sort files alpha-numeric before parsing")
-    parser.add_argument("-o","--timeout", help="timeout in seconds for station databases")
-    parser.add_argument("-b","--debug", action='store_true', help="enable or disable debugging")
-    parser.add_argument("-k","--skip", default="", help="skip [c]omputed, [f]unction and/or [d]uplicate keys")
-    parser.add_argument("-e","--extract_values", help="extract additional values (needed for DWD Germany BUFRs)")
-    parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
-    parser.add_argument("-T","--tables", help="(absolute) path to ECCODES BUFR tables directory")
-    parser.add_argument("-r","--redo", action='store_true', help="decode bufr again even if already processed")
-    parser.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
-    parser.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
+    psr.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
+    psr.add_argument("-C","--config", default="config", help="set custom name of config file")
+    psr.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
+    psr.add_argument("-M","--mode", help="set operation mode; options available: {oper, dev, test}")
+    psr.add_argument("-n","--max_files", type=int, help="maximum number of files to parse (per source)")
+    psr.add_argument("-s","--sort_files", action='store_true', help="sort files alpha-numeric before parsing")
+    psr.add_argument("-o","--timeout", help="timeout in seconds for station databases")
+    psr.add_argument("-d","--debug", action='store_true', help="enable or disable debugging")
+    psr.add_argument("-k","--skip", default="", help="skip [c]omputed, [f]unction and/or [d]uplicate keys")
+    psr.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
+    psr.add_argument("-T","--tables", help="(absolute) path to ECCODES BUFR tables directory")
+    psr.add_argument("-r","--redo", action='store_true', help="decode bufr again even if already processed")
+    psr.add_argument("-R","--restart", help=r"only parse all files with status 'locked_{pid}'")
+    psr.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
     #TODO add shelve option to save some RAM
     
     # parse all command line arguments and make them accessible via the args variable
-    args = parser.parse_args()
+    args = psr.parse_args()
 
     # read configuration file into a dictionary
     config          = gf.read_yaml( args.config )
@@ -982,7 +776,7 @@ if __name__ == "__main__":
     # save the general part of the configuration in a variable for easier acces
     config_general = config["general"]
     # do the same with the default bufr tables settings
-    tables_default = config["bufr"]["tables"]
+    tables_default = config["Bufr"]["tables"]
     
     # if there is a max_files setting present in command line options or config: use it preferring the cli value
     if args.max_files is not None:  config_script["max_files"]  = args.max_files
@@ -1054,22 +848,19 @@ if __name__ == "__main__":
     # how many times do we want to try accessing the database?
     else:                           max_retries = config_script["max_retries"]
     
-    # also for the dev_mode setting we wll prefer whatever the command line arguments say
-    if args.dev_mode: config_script["mode"] = "dev"
-    
     # shorthand for the execution mode {dev, oper, test}
-    mode        = config_script["mode"]
+    mode    = config_script["mode"]
     # the general output path can differ from the one defined in scripts (or even per-source)
-    output_path = config["general"]["output_path"]
+    output  = config["general"]["output"]
 
-    # output_path in script config has priority over general config
-    if "output_path" in config_script: output_path = config_script["output_path"]
+    # 'output' defined in script config has priority over general config
+    if "output" in config_script: output = config_script["output"]
     
     # clusters also prefer the command line argument setting
-    if args.clusters: config_source["clusters"] = frozenset(args.clusters.split(","))
+    if args.clusters: config_source["clusters"] = frozenset(args.clusters)
 
     # get configuration for the initialization of the database class
-    config_database = config["database"]
+    config_database = config["Database"]
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there

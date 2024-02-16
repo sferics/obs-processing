@@ -60,7 +60,7 @@ class DatabaseClass:
             settings = config["settings"]
             for i in settings:
                 # if setting i is set: change to new value
-                if settings[i]: exec( f"self.{i}('{settings[i]}')" )
+                if settings[i]: setattr(self, i, settings[i])
                 # elif verbose: print current setting
                 elif self.verbose: print( i, setting )
     

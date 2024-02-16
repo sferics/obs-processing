@@ -2,7 +2,7 @@ import re, sys
 from copy import copy
 import global_functions as gf
 from datetime import datetime as dt, timedelta as td, timezone as tz
-
+from database import DatabaseClass
 
 to_datetime = lambda meta : dt(meta["year"],meta["month"],meta["day"],meta["hour"],meta["minute"])
 clear       = lambda keyname : str( re.sub( r"#[0-9]+#", '', keyname ) )
@@ -594,7 +594,7 @@ def decode_bufr_se_flat( source=None, file=None, known_stations=None, pid_file=N
         ext             = config_bufr["ext"]
         try:    clusters = set(config_source["clusters"].split(","))
         except: clusters = None
-        db = database_class(db_file, timeout=timeout_db, traceback=traceback)
+        db = DatabaseClass(db_file, timeout=timeout_db, traceback=traceback)
         for i in range(max_retries):
             try:    known_stations = db.get_stations( clusters )
             except: time.sleep(timeout_station)
@@ -625,7 +625,7 @@ def decode_bufr_se_flat( source=None, file=None, known_stations=None, pid_file=N
         file_path       = gf.get_file_path(args.file); file_date       = gf.get_file_date(args.file)
         bufr_dir        = "/".join(file.split("/")[:-1]) + "/"
         source          = args.extra # default: extra
-        db = database_class(db_file, timeout=timeout_db, traceback=traceback)
+        db = DatabaseClass(db_file, timeout=timeout_db, traceback=traceback)
         known_stations  = db.get_stations()
         ID = db.get_file_id(FILE, file_path)
         if ID:  db.set_file_status(ID,"locked")
@@ -747,7 +747,7 @@ def decode_bufr_se_flat( source=None, file=None, known_stations=None, pid_file=N
         else:       file_statuses.add( ("empty", ID) );     log.info(f"EMPTY:  '{FILE}'")
         memory_free = psutil.virtual_memory()[1] // 1024**2
         if memory_free <= config_script["min_ram"]:
-            db = database_class(db_file, timeout=timeout_db, traceback=traceback)
+            db = DatabaseClass(db_file, timeout=timeout_db, traceback=traceback)
             db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db)
             db.close()
             print("Too much RAM used, RESTARTING...")
@@ -756,7 +756,7 @@ def decode_bufr_se_flat( source=None, file=None, known_stations=None, pid_file=N
             if pid_file: os.remove( pid_file )
             exe = sys.executable # restart program with same arguments
             os.execl(exe, exe, * sys.argv); sys.exit()
-    db = database_class(db_file, timeout=timeout_db, traceback=traceback)
+    db = DatabaseClass(db_file, timeout=timeout_db, traceback=traceback)
     db.set_file_statuses(file_statuses, retries=max_retries, timeout=timeout_db); db.close()
     obs_db = convert_keys_se_flat(obs, source, modifier_keys, height_depth_keys, bufr_translation, bufr_flags, verbose=verbose)
 

@@ -10,7 +10,7 @@ import sqlite3              # python sqlite connector for error handling (databa
 import re, sys, os, psutil  # regular expressions, system, operating system, process handling
 from pathlib import Path    # path operation
 from datetime import datetime as dt, timedelta as td
-from database import database_class
+from database import DatabaseClass
 import global_functions as gf
 #import global_variables as gv
 
@@ -66,7 +66,7 @@ def add_new_station( meta ):
 
     if verbose: print("Adding", meta["stationOrSiteName"], "to database...")
 
-    db = database_class(db_file, timeout=timeout_db)
+    db = DatabaseClass(db_file, timeout=timeout_db)
     db.add_station( station_data, verbose=False )
     db.close(commit=True)
 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
 
     max_retries     = config_script["max_retries"]
 
-    db = database_class(db_file, timeout=timeout_db)
+    db = DatabaseClass(db_file, timeout=timeout_db)
 
     retries = copy(max_retries)
     while retries > 0:

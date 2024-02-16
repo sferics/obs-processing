@@ -84,13 +84,11 @@ class BufrClass:
         
         # parse all keys and values of config dict into namespace, a bit like in database.py
         for i in config:
-            exec( f'self.{i} = "{config[i]}"' )
-            try:    exec( f'self.{i} = int(self.{i})' )
-            except: pass
+            setattr(self, i, config[i])
             if self.verbose: print( i, "=", config[i] )
 
         # check for mandatory class attributes
-        mandatory = ("bufr_translation", "bufr_flags", "mode", "output_path")
+        mandatory = ("bufr_translation", "bufr_flags", "mode", "output")
         for attr in mandatory:
             print(attr)
             assert( hasattr(self, attr) )

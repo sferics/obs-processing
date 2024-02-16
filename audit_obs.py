@@ -2,7 +2,7 @@
 import os
 import sys
 from datetime import datetime as dt, timedelta as td
-from database import database_class
+from database import DatabaseClass
 import global_functions as gf
 
 
@@ -24,7 +24,7 @@ def audit_obs(stations):
     # 1 take data from forge databases
     for loc in stations:
         db_file = f"{output_path}/forge/{loc[0]}/{loc}.db"
-        try: db_loc = database_class( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
+        try: db_loc = DatabaseClass( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         mode = config_script["mode"]
 
     cluster         = set( config_script["clusters"].split(",") )
-    db              = database_class( config=config["database"], ro=1 )
+    db              = DatabaseClass( config=config["database"], ro=1 )
     stations        = db.get_stations( cluster ); db.close(commit=False)
     
     elements        = tuple(f'{element}' for element in db.get_elements())
