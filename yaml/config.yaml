@@ -88,7 +88,7 @@ scripts:
     mandatory_keys:   [stationOrSiteName, latitude, longitude]
     additional_keys:  [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
 
-decode_bufr.py: # can use any approach below TODO
+  decode_bufr.py: # can use any approach below TODO
     conda_env:        obs
     pid_file:         0 # create and use pid file
     verbose:          0 # verbose output
