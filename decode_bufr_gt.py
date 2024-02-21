@@ -387,7 +387,6 @@ if __name__ == "__main__":
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
     #TODO why is this taking longer than in _pl version???
-    start_time3 = dt.utcnow()
     db = dc(config=config_database)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
@@ -423,8 +422,6 @@ if __name__ == "__main__":
    
     else: config_sources = config["sources"]
     
-    stop_time3 = dt.utcnow()
-
     if config_sources:
         for SOURCE in config_sources:
             if verbose: print(f"Parsing source {SOURCE}...")
@@ -433,18 +430,15 @@ if __name__ == "__main__":
     stop_time = dt.utcnow()
     finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)
     time_taken = stop_time - start_time;                    log.info(time_taken)
-    time_taken2 = stop_time2 - start_time2
-    time_taken3 = stop_time3 - start_time3
 
     if verbose:
         print(finished_str)
         #time_taken = stop_time - start_time
     
-    print("FUNCTION")
-    print(f"{time_taken2.seconds}.{time_taken2.microseconds} s")
-
-    print("AROUND FUNCTION")
-    print(f"{time_taken3.seconds}.{time_taken3.microseconds} s")
+    if args.file:
+        time_taken2 = stop_time2 - start_time2
+        print("FUNCTION")
+        print(f"{time_taken2.seconds}.{time_taken2.microseconds} s")
 
     print("TOTAL")
     print(f"{time_taken.seconds}.{time_taken.microseconds} s")

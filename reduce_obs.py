@@ -5,6 +5,7 @@ from datetime import datetime as dt, timedelta as td
 from database import DatabaseClass
 from obs import ObsClass
 import global_functions as gf
+import global_variables as gv
 
 #TODO implement source/dataset priority order OR use scale column! for now, just stick with dataset test
 #dataset = "test"
@@ -24,7 +25,7 @@ def reduce_obs(stations):
     # for st in stations:
     # get only data rows with highest file ID and copy the remaining data to forge databases
     for loc in stations:
-        db_file = f"{output_path}/{mode}/{loc[0]}/{loc}.db"
+        db_file = f"{output}/raw/{loc[0]}/{loc}.db"
         try: db_loc = DatabaseClass( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
@@ -32,17 +33,31 @@ def reduce_obs(stations):
             if debug:       pdb.set_trace()
             continue
 
-        obs.create_station_tables(loc)
+        # create tation table in the forge databases directory
+        #obs.create_station_tables(loc)
+        #sql = [f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge"]
 
         match mode:
             case "dev":
-                sql = ["INSERT INTO obs_forge SELECT DISTINCT dataset,file,datetime,duration,element,value FROM obs_raw WHERE reduced=0"]
-                sql.append("UPDATE obs_raw SET reduced=1")
-                
-            case "oper":
-                sql = ["INSERT INTO obs_forge f SELECT DISTINCT dataset,file,datetime,duration,element,value FROM obs_raw r WHERE reduced=0 AND cor = ( SELECT MAX(cor) FROM obs_raw r WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration AND file = ( SELECT MAX(file) FROM obs_raw  WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration"]
-                sql.append("UPDATE obs_raw SET reduced = 1")
+                sql = [f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge"]
+                #sql = ["INSERT INTO forge.obs SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs WHERE reduced=0"]
+                #sql.append("UPDATE main.obs SET reduced=1")
+                # in dev mode we do not perform this forging stage (happens during inserting to database to save time)
+                # instead, we only select all distinct values and create the obs tables in all forge databases
+                sql.append("CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs")
+                sql.append("DETACH forge")
 
+            case "oper":
+                obs.create_station_tables(loc)
+                sql = ["INSERT INTO forge.obs f SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs r WHERE reduced=0 AND cor = ( SELECT MAX(cor) FROM obs_raw r WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration AND file = ( SELECT MAX(file) FROM main.obs WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration"]
+                # delete all but latest COR
+                #sql.append("DELETE FROM main.obs a WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
+                #sql.append("UPDATE main.obs SET reduced = 1")
+                # keep all CORs
+                sql.append("UPDATE main.obs a set reduced=1 WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
+                
+                #sql.append("CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration ) AND file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
+                
             case "test":
                 raise NotImplementedError("TODO")
 
@@ -54,8 +69,9 @@ def reduce_obs(stations):
         #TODO the CREATE TABLE command below already creates the table; is there another solution?
         # problem: we might want/need the actual table structure from station_tables_forge
         
-        #sql = [f"ATTACH DATABASE '{output_path}/{mode}/{loc[0]}/{loc}.db' AS {mode}"]
-        
+        #sql = [f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge"]
+        #sql.append("CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration ) AND file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
+
         #https://stackoverflow.com/questions/57134793/how-to-save-query-results-to-a-new-sqlite
         #oper mode when we want to keep all CORs
         #sql.append("CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration ) AND file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
@@ -115,7 +131,7 @@ if __name__ == "__main__":
     script_name     = gf.get_script_name(__file__)
     config          = gf.read_yaml( "config" )
     config_script   = config["scripts"][script_name]
-    output_path     = config_script["output_path"]
+    output          = config_script["output"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
     debug           = config_script["debug"]
@@ -123,11 +139,15 @@ if __name__ == "__main__":
     
     if "mode" in config_script:
         mode = config_script["mode"]
+    else: mode = "dev"
 
-    obs             = ObsClass( typ="forge", mode=mode, config=config_script, source="test" )
-    cluster         = set( config_script["clusters"].split(",") )
-    db              = DatabaseClass( config=config["database"], ro=1 )
-    stations        = db.get_stations( cluster ); db.close(commit=False)
+    output += "/" + mode
+
+    obs             = ObsClass( config, source, mode=mode, stage="forge" )
+    cluster         = frozenset( config_script["clusters"] )
+    db              = DatabaseClass( config=config["Database"], ro=1 )
+    stations        = db.get_stations( cluster )
+    db.close(commit=False)
 
     if config_script["processes"]:
         # number of processes

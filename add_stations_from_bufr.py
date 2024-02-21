@@ -16,16 +16,16 @@ import global_functions as gf
 
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
 
-clear = lambda keyname : str( re.sub( r"#[0-9]+#", '', keyname ) )
-number          = lambda keyname : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
-to_key          = lambda key,num : "#{num}#{key}"
+clear   = lambda keyname : str( re.sub( r"#[0-9]+#", '', keyname ) )
+number  = lambda keyname : int( re.sub( r"#[A-Za-z0-9]+", "", keyname[1:]) )
+to_key  = lambda key,num : "#{num}#{key}"
 
 
 def get_bufr( bufr, key, number=None ):
     if type(key) == tuple:
         return ec.codes_get( bufr, f"#{key[0]}#{key[1]}" )
-    elif number: return ec.codes_get( bufr, f"#{number}#{key}" )
-    else:       return ec.codes_get( bufr, key )
+    elif number:    return ec.codes_get( bufr, f"#{number}#{key}" )
+    else:           return ec.codes_get( bufr, key )
 
 station_keys    = { "stationNumber", "blockNumber", "shortStationName" }
 mandatory_keys  = { "stationOrSiteName", "latitude", "longitude" }
@@ -66,7 +66,7 @@ def add_new_station( meta ):
 
     if verbose: print("Adding", meta["stationOrSiteName"], "to database...")
 
-    db = DatabaseClass(db_file, timeout=timeout_db)
+    db = DatabaseClass(db_file)
     db.add_station( station_data, verbose=False )
     db.close(commit=True)
 
@@ -91,19 +91,21 @@ def scan_all_BUFRs_for_stations( source, known_stations, pid_file=None ):
     -------
     None
     """ 
-    config_source  = config_sources[source]
-    config_bufr    = config_source["bufr"]
-    bufr_dir       = config_bufr["dir"] + "/"
-    ext            = config_bufr["ext"]
+    config_source   = config_sources[source]
+    config_general  = config_source["general"]
+    config_bufr     = config_source["bufr"]
+    bufr_dir        = config_bufr["dir"] + "/"
+    ext             = config_bufr["ext"]
 
     if "glob" in config_bufr and config_bufr["glob"]:   ext = f"{config_bufr['glob']}.{ext}"
     else:                                               ext = f"*.{ext}" #TODO add multiple extensions (list)
     
-    files_to_parse  = set((os.path.basename(i) for i in glob( bufr_dir + ext )))
+    files_to_parse  = frozenset((os.path.basename(i) for i in glob( bufr_dir + ext )))
 
     gf.create_dir( bufr_dir )
 
-    station_types = set(config_source["stations"].split(","))
+    station_types = frozenset(config_general["stations"])
+    if verbose: stations = set()
 
     for FILE in files_to_parse:
 
@@ -147,7 +149,7 @@ def scan_all_BUFRs_for_stations( source, known_stations, pid_file=None ):
 
                 if keyname == "subsetNumber":
                     if subset > 0:
-                        if meta: add_new_station(meta)
+                        if meta and "stationOrSiteName" in meta: add_new_station(meta)
                         meta = {}; location = None; valid_loc = False
                     subset += 1
                     continue
@@ -166,6 +168,7 @@ def scan_all_BUFRs_for_stations( source, known_stations, pid_file=None ):
                     # check if all essential station information keys for a WMO station are present
                     elif { "stationNumber", "blockNumber" }.issubset( set(meta) ):
                         location = str(meta["stationNumber"] + meta["blockNumber"] * 1000).rjust(5,"0") + "0"
+                        if verbose: stations.add(location)
                         meta["location"] = location
                         station_type = "wmo"
                     else: continue
@@ -187,11 +190,14 @@ def scan_all_BUFRs_for_stations( source, known_stations, pid_file=None ):
                         continue
             
             # end of while loop
-            if meta: add_new_station(meta)
+            if meta and "stationOrSiteName" in meta: add_new_station(meta)
             ec.codes_keys_iterator_delete(iterid)
        
         # end of with clause (closes file handle)
         ec.codes_release(bufr) # frees some memory TODO still there is a little leak somewhere...
+
+    if verbose:
+        for station in sorted(stations): print(station)
 
     # remove file containing the pid, so the script can be started again
     if pid_file: os.remove( pid_file )
@@ -216,14 +222,14 @@ if __name__ == "__main__":
     null_vals = { ec.CODES_MISSING_LONG, ec.CODES_MISSING_DOUBLE } # (2147483647, -1e+100)
     for i in config_script["null_vals"]: null_vals.add( i )
 
-    #station_keys    = set(config_script["station_keys"])
+    #station_keys    = frozenset(config_script["station_keys"])
     traceback       = config_script["traceback"]
-    timeout_db      = config["database"]["timeout"]
-    db_file         = config["database"]["db_file"]
+    timeout_db      = config["Database"]["timeout"]
+    db_file         = config["Database"]["db_file"]
 
     max_retries     = config_script["max_retries"]
 
-    db = DatabaseClass(db_file, timeout=timeout_db)
+    db = DatabaseClass(db_file)
 
     retries = copy(max_retries)
     while retries > 0:
@@ -232,14 +238,16 @@ if __name__ == "__main__":
         else: break
     
     db.close()
-    if retries == 0: sys.exit(f"Cannot access main database, tried {max_retries} times... Is it locked?")
+    if retries == 0:
+        sys.exit(f"Cannot access main database, tried {max_retries} times... Is it locked?")
 
     #parse command line arguments
     if len(sys.argv) >= 2:
         source = config["sources"][sys.argv[1]]
 
         if "," in source:
-            sources = source.split(","); config_sources = {}
+            sources = source.split(",")
+            config_sources = {}
             for s in sources: config_sources[s] = config["sources"][s]
 
         else: config_sources = { sys.argv[1] : config["sources"][sys.argv[1]] }

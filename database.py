@@ -71,6 +71,7 @@ class DatabaseClass:
     fetch   = lambda self         : self.cur.fetchall()
     exe     = lambda self, *param : self.cur.execute(*param)
     exemany = lambda self, *param : self.cur.executemany(*param)
+    exescr  = lambda self, *param : self.cur.executescript(*param)
     attach  = lambda self, DB, AS : self.exe( f"ATTACH DATABASE '{DB}' as '{AS}'" )
     detach  = lambda self, DB     : self.exe( f"DETACH DATABASE '{DB}'" )
 

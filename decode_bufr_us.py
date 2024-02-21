@@ -469,13 +469,9 @@ if __name__ == "__main__":
     if args.max_retries:            config_script["max_retries"] = max_retries = args.max_retries
     else:                           max_retries = config_script["max_retries"]
 
-    #if args.dev_mode:               config_script["dev_mode"] = True
-    #if config_script["dev_mode"]:   output_path = config_script["output_dev"]
-    #else:                           output_path = config_script["output_oper"]
+    output = config_script["output"]
 
-    output_path = config_script["output_path"]
-
-    if args.clusters: config_source["clusters"] = set(args.clusters)
+    if args.clusters: config_source["clusters"] = frozenset(args.clusters)
 
     # get configuration for the initialization of the database class
     config_database = config["Database"]

@@ -6,6 +6,7 @@ import subprocess
 import global_variables as gv
 import global_functions as gf
 from datetime import datetime as dt
+from subprocess import Popen, PIPE
 
 # 1 reduce_obs.py (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
 #   copy all remaining elements from raw to forge databases [datetime,duration,element,value]
@@ -22,6 +23,10 @@ from datetime import datetime as dt
 
 if __name__ == "__main__":
     
+    from config import ConfigClass as cc
+
+    #cf = cc()
+
     import argparse
 
     # define program info message (--help, -h) and parser arguments with explanations on them (help)
@@ -87,9 +92,9 @@ if __name__ == "__main__":
         case "oper":
             scripts = ["reduce", "audit", "derive", "aggregate", "conclude"]
         case "dev":
-            scripts = ["audit", "derive", "aggregate", "conclude"]
+            scripts = ["reduce", "derive", "aggregate", "conclude"]
         case "test":
-            raise NotImplementedError("TODO")
+            raise NotImplementedError("TODO: TEST MODE")
         case _:
             raise ValueError("UNSUPPORTED MODE")
 
@@ -105,24 +110,38 @@ if __name__ == "__main__":
     legacy_output = config_script["legacy_output"]
 
     if export: scripts.append("export")
+    
+    # get all provided command line arguments as a list
+    cli_args    = sys.argv
 
-    cmd_args = [
-            args.source, "-l", log_level, "-v", verbose, "-C", args.config, "-m", max_retries,
-            "-M", mode, "-o", timeout, "-O", output, "-d", debug, "-t", traceback, "-e", export,
-    ]
+    # returns "-L" or "--legacy_output" if either of them are found in the cli arguments; else None
+    arg_L       = gf.values_in_list(("-L", "--legacy_output"), cli_args)
+
+    # if legacy output: remove temporarly from argument list
+    # we will only add it later to the export_obs script
+    if arg_L:
+        pos_L = cli_args.index(arg_L)
+        del cli_args[pos_L:pos_L+1]
 
     # https://stackoverflow.com/questions/8953119/waiting-for-external-launched-process-finish
 
     for script in scripts:
-        if script == "export" and legacy_output:
-            cmd_args += ["-L", legacy_output]
+        # if export is set True we set the -L flag only for the export_obs script
+        if script == "export" and export and legacy_output:
+            cli_args += ["-L", legacy_output]
         if args.dry:
-            print(script+"_obs.py", *cmd_args)
+            print("python", script+"_obs.py", *cli_args)
         else:
             try:
-                os.execv( "python", script+"_obs.py", *cmd_args )
-            except:
-                sys.exit( f"Failed to run {script}_obs.py; stopping chain..." )
+                #os.execl( "python", script+"_obs.py", *cli_args )
+                print(["python", script+"_obs.py"] + cli_args)
+                process = Popen(["python", script+"_obs.py"] + cli_args, stdout=PIPE, stderr=PIPE)
+                process.wait()
+                stdout, stderr = process.communicate()
+                print(stdout)
+            except Exception as e:
+                gf.print_trace(e)
+                sys.exit( f"FAILED TO RUN '{script}_obs.py'! STOPPING CHAIN..." )
 
     stop_time = dt.utcnow()
     finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)

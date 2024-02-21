@@ -4,57 +4,7 @@ import sys
 from datetime import datetime as dt, timedelta as td
 from database import DatabaseClass as dc
 import global_functions as gf
-
-
-def get_distinct_months(year):
-    """
-    Parameter:
-    ----------
-
-    Notes:
-    ------
-
-    Return:
-    -------
-
-    """
-    db_loc.exe((f"SELECT DISTINCT strftime('%m', datetime) FROM obs WHERE element = '{p_old}' "
-                    f"AND strftime('%Y', datetime) = '{year}'"))
-    return db_loc.fetch()
-
-
-def get_distinct_days(year, monrh):
-    """
-    Parameter:
-    ----------
-
-    Notes:
-    ------
-
-    Return:
-    -------
-
-    """
-    db_loc.exe((f"SELECT DISTINCT strftime('%d', datetime) FROM obs WHERE element='{p_old}' AND "
-                    f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{month}'"))
-    return db_loc.fetch()
-
-
-def get_distinct_hours(year, month, day):
-    """
-    Parameter:
-    ----------
-
-    Notes:
-    ------
-
-    Return:
-    -------
-
-    """
-    db_loc.exe((f"SELECT DISTINCT strftime('%H', datetime) FROM obs WHERE element='{p_old}' AND strftime('%Y', "
-        f"datetime) = '{year}' AND strftime('%m', datetime) = '{month}' AND strftime('%d', datetime) = '{day}'"))
-    return db_loc.fetch()
+import global_variables as gv
 
 
 def aggregate_obs(stations):
@@ -69,7 +19,57 @@ def aggregate_obs(stations):
     -------
 
     """
-    
+    def get_distinct_months(year):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        db_loc.exe((f"SELECT DISTINCT strftime('%m', datetime) FROM obs WHERE element = '{p_old}' "
+                        f"AND strftime('%Y', datetime) = '{year}'"))
+        return db_loc.fetch()
+
+
+    def get_distinct_days(year, monrh):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        db_loc.exe((f"SELECT DISTINCT strftime('%d', datetime) FROM obs WHERE element='{p_old}' AND "
+                        f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{month}'"))
+        return db_loc.fetch()
+
+
+    def get_distinct_hours(year, month, day):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        db_loc.exe((f"SELECT DISTINCT strftime('%H', datetime) FROM obs WHERE element='{p_old}' AND strftime('%Y', "
+            f"datetime) = '{year}' AND strftime('%m', datetime) = '{month}' AND strftime('%d', datetime) = '{day}'"))
+        return db_loc.fetch()
+
+
     #TODO this function should make sure that in the forge stage we only have 30 min data resolution
     # that means if there are missing 0min or 30min values, we should replace them with the closest values, e.g.
     # 10min/50min for 0min and 20min/40min for 30min; TODO which of those should we prefer and why? average them?
@@ -78,7 +78,7 @@ def aggregate_obs(stations):
         
         sql_values = set()
         
-        db_file = f"{output_path}/forge/{loc[0]}/{loc}.db"
+        db_file = f"{output}/forge/{loc[0]}/{loc}.db"
         try: db_loc = dc( db_file, {"verbose":verbose, "traceback":traceback} )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
@@ -295,7 +295,7 @@ if __name__ == "__main__":
     psr.add_argument("-O","--output", help="define output directory where the station databases will be saved")
     psr.add_argument("-d","--debug", action='store_true', help="enable or disable debugging")
     psr.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
-    psr.add_argument("-e","--export", action="store_tru", help="export data to legacy CSV format")
+    psr.add_argument("-e","--export", action="store_true", help="export data to legacy CSV format")
     psr.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
 
     # parse all command line arguments and make them accessible via the args variable
@@ -310,26 +310,29 @@ if __name__ == "__main__":
     script_name     = gf.get_script_name(__file__)
     config          = gf.read_yaml( "config" )
     config_script   = config["scripts"][script_name]
-    output_path     = config_script["output_path"]
+    output          = config_script["output"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
     mode            = config["general"]["mode"]
 
     if "mode" in config_script:
         mode = config_script["mode"]
+    else: mode = "dev"
 
-    db              = dc( config=config["database"] )
+    output += "/" + mode
 
-    clusters        = set(config_script["clusters"].split(","))
+    db              = dc( config=config["Database"] )
+
+    clusters        = frozenset(config_script["clusters"])
     stations        = db.get_stations( clusters ); db.close(commit=False)
     params          = config_script["params"]
 
     #TODO remove
     aggreg_elements = tuple(params.keys())
 
-    if config_script["multiprocessing"]:
+    if config_script["processes"]:
         # number of processes
-        npcs = config_script["multiprocessing"]
+        npcs = config_script["processes"]
         import multiprocessing as mp
         from random import shuffle
         import numpy as np

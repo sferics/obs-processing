@@ -1,5 +1,6 @@
 import copy
 import pandas as pd
+import polars as pl
 import numpy as np
 from collections import namedtuple
 from datetime import datetime, date, time
@@ -23,33 +24,41 @@ def named_row(cursor, row):
     return cls._make(row)
 
 # return as pandas DataFrame
-pandas_row      = lambda cursor, row : pd.DataFrame(row)
+pandas_row          = lambda cursor, row : pd.DataFrame(row)
+
+# return as polars DataFrame
+polars_df_row       = lambda cursor, row : pl.DataFrame(row)
+
+# return as polars LazyFrame
+polars_lf_row       = lambda cursor, row : pl.LazyFrame(row)
 
 # return as numpy array
-numpy_row       = lambda cursor, row : np.asarray(row)
+numpy_row           = lambda cursor, row : np.asarray(row)
 
 # return as set
-set_row         = lambda cursor, row : {value for value in row} # or just set(row) ?
+set_row             = lambda cursor, row : {value for value in row} # or just set(row) ?
 
 # return as list
-list_row        = lambda cursor, row : [value for value in row] # or just list(row) ?
+list_row            = lambda cursor, row : [value for value in row] # or just list(row) ?
 
-# for all above factories: return as list only if len > 1; else return single element
-dict_len1_row   = lambda cursor, row : row[0] if len(row)==1 else dict_row(cursor, row)
-named_len1_row  = lambda cursor, row : row[0] if len(row)==1 else named_row(cursor, row)
-pandas_len1_row = lambda cursor, row : row[0] if len(row)==1 else pandas_row(cursor, row)
-numpy_len1_row  = lambda cursor, row : row[0] if len(row)==1 else numpy_row(cursor, row)
-set_len1_row    = lambda cursor, row : row[0] if len(row)==1 else set_row(cursor, row)
-list_len1_row   = lambda cursor, row : row[0] if len(row)==1 else list_row(cursor, row)
-tuple_len1_row  = lambda cursor, row : row[0] if len(row)==1 else row
+# for all above factories: return a list / array / df only if len > 1; else return single element
+dict_len1_row       = lambda cursor, row : row[0] if len(row)==1 else dict_row(cursor, row)
+named_len1_row      = lambda cursor, row : row[0] if len(row)==1 else named_row(cursor, row)
+pandas_len1_row     = lambda cursor, row : row[0] if len(row)==1 else pandas_row(cursor, row)
+polars_df_len1_row  = lambda cursor, row : row[0] if len(row)==1 else polars_df_row(cursor, row)
+polars_lf_len1_row  = lambda cursor, row : row[0] if len(row)==1 else polars_lf_row(cursor, row)
+numpy_len1_row      = lambda cursor, row : row[0] if len(row)==1 else numpy_row(cursor, row)
+set_len1_row        = lambda cursor, row : row[0] if len(row)==1 else set_row(cursor, row)
+list_len1_row       = lambda cursor, row : row[0] if len(row)==1 else list_row(cursor, row)
+tuple_len1_row      = lambda cursor, row : row[0] if len(row)==1 else row
 
 # sqlite3 default (if you ever want to reset your connection to default)
-default_row     = lambda cursor, row : row # datatype will be tuple (implicit here)
+default_row         = lambda cursor, row : row # datatype will be tuple (implicit here)
 
 
 ### TEXT FACTORIES
 
-# convert all pandas timestamp objects to python datetime
+# convert all pandas Timestamp objects to python datetime
 def pd2datetime_text(value):
     """
     """
@@ -57,14 +66,31 @@ def pd2datetime_text(value):
         return value.to_pydatetime()
     else: return value
 
-# convert all pandas timestamp objects to integer timestmps (seconds since UNIX)
+# convert all pandas Timestamp objects to integer timestmps (seconds since UNIX)
 def pd2timestamp_text(value):
     """
     """
     if type(value) == pd.Timestamp:
-        pydatetime = value.to_pydatetime()
         return int(pydatetime.timestamp())
     else: return value
+
+# convert all polars Datetime objects to python datetime
+#TODO make functional, test
+def pl2datetime_text(value):
+    """
+    """
+    if type(value) == pl.Datetime:
+        return value.dt.datetime()
+    else: return value
+
+# convert all polars Datetime objects to integer timestmps (seconds since UNIX)
+#TODO make functional, test
+def pl2timestamp_text(value):
+    """
+    """
+    if type(value) == pl.Datetime:
+        return int(value.dt.timestamp("ms"))
+    else: return valu
 
 # convert all datetime objects to integer timestamps (seconds since UNIX)
 def datetime2timestamp_text(value):
@@ -78,7 +104,6 @@ def datetime2timestamp_text(value):
             today = datetime.today()
             value = datetime(today.year, today.day, time.hour, time.minute)
         return int(value.timestamp())
-    
     else: return value
 
 # enforce UTF8 decoding (default besides the errors='ignore'; python default is 'strict')

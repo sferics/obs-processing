@@ -27,10 +27,12 @@ def conclude_obs(stations):
 
         #OBS = obs(loc, {"output_path":output_path, "typ":"forge", "verbose":verbose})
         #OBS.create_station_tables( loc, verbose=verbose )
-        gf.create_dir( f"{output_path}/dev/{loc[0]}" )
+        gf.create_dir( f"{output_path}/final/{loc[0]}" )
 
-        sql = [f"ATTACH DATABASE '{output_path}/dev/{loc[0]}/{loc}.db' AS dev"]
-        sql.append(f"CREATE TABLE dev.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs WHERE element IN{elements} AND strftime('%M', datetime) IN ('00','30')")
+        sql = [f"ATTACH DATABASE '{output_path}/final/{loc[0]}/{loc}.db' AS final"]
+        #sql.append(f"CREATE TABLE final.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs WHERE element IN{elements} AND strftime('%M', datetime) IN ('00','30')")
+        # convert datetime to timestamp (seconds after UNIX), inspired by: https://stackoverflow.com/questions/27545543/how-can-i-convert-a-datetime-string-to-a-unix-timestamp-in-sqlite3
+        sql.append(f"CREATE TABLE final.obs AS SELECT DISTINCT CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime), 'unixepoch') AS datetime), duration, element, value FROM main.obs WHERE element IN{elements} AND strftime('%M', datetime) IN ('00','30')")
         #sql.append("CREATE UNIQUE INDEX unique_obs ON dev.obs(datetime,duration,element)") 
         sql.append("DETACH dev")
         

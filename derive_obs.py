@@ -42,7 +42,7 @@ def derive_obs(stations):
 
         sql_values = set()
         
-        db_file = f"{output_path}/forge/{loc[0]}/{loc}.db"
+        db_file = f"{output}/forge/{loc[0]}/{loc}.db"
         try: db_loc = DatabaseClass( db_file, row_factory=sf.list_row )
         except Exception as e:
             gf.print_trace(e)
@@ -50,7 +50,8 @@ def derive_obs(stations):
             if traceback:   gf.print_trace(e)
             continue
         
-        if source in {"test","DWD"}:
+        if source in {"test", "DWD", "dwd_germany"}:
+            # in DWD data we need to replace the duration for 9z Tmin/Tmax obs
             sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('Tmax_2m_syn','Tmax_5cm_syn','Tmin_2m_syn','Tmin_5cm_syn') AND strftime('%H', datetime) = '09'"
             #sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element LIKE 'CB%_syn'"
             #sql = "UPDATE OR IGNORE obs SET element='TCC_1C_syn' WHERE element='TCC_ceiling_syn'"
@@ -111,7 +112,8 @@ def derive_obs(stations):
                 if len(CL[k]) == 1:
                     CL[k] += "///"
                 sql_values.add( (k, f"CL{i}_syn", CL[k]) )
-
+        
+        # duration is always 1s for cloud observations
         sql = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,?,?,'1s') ON CONFLICT DO UPDATE SET value=excluded.value" #NOTHING"
         try:    db_loc.exemany(sql, sql_values)
         except: continue
@@ -132,7 +134,7 @@ if __name__ == "__main__":
 
     # define program info message (--help, -h) and parser arguments with explanations on them (help)
     info    = "Run the complete obs post-processing chain"
-    psr = argparse.ArgumentParser(description=info)
+    psr     = argparse.ArgumentParser(description=info)
 
     # add all needed command line arguments to the program's interface
     psr.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set logging level")
@@ -144,7 +146,7 @@ if __name__ == "__main__":
     psr.add_argument("-O","--output", help="define output directory where the station databases will be saved")
     psr.add_argument("-d","--debug", action='store_true', help="enable or disable debugging")
     psr.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
-    psr.add_argument("-e","--export", action="store_tru", help="export data to legacy CSV format")
+    psr.add_argument("-e","--export", action="store_true", help="export data to legacy CSV format")
     psr.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
 
     # parse all command line arguments and make them accessible via the args variable
@@ -157,28 +159,31 @@ if __name__ == "__main__":
     else:           source = "test"
 
     config          = gf.read_yaml( "config" )
-    db_settings     = config["database"]["settings"]
+    db_settings     = config["Database"]["settings"]
     script_name     = gf.get_script_name(__file__)
     config_script   = config["scripts"][script_name]
-    output_path     = config_script["output_path"]
+    output          = config_script["output"]
     verbose         = config_script["verbose"]
     traceback       = config_script["traceback"]
     mode            = config["general"]["mode"]
 
     if "mode" in config_script:
         mode = config_script["mode"]
+    else: mode = "dev"
 
-    db              = DatabaseClass( config=config["database"], ro=True )
-    clusters        = set(config_script["clusters"].split(","))
+    output += "/" + mode
+
+    db              = DatabaseClass( config=config["Database"], ro=True )
+    clusters        = frozenset(config_script["clusters"])
     stations        = db.get_stations( clusters ); db.close(commit=False)
     #stations        = ("101310","104540","103150","103850")
 
     replacements = config_script["replacements"]
     combinations = config_script["combinations"]
 
-    if config_script["multiprocessing"]:
+    if config_script["processes"]:
         # number of processes
-        npcs = config_script["multiprocessing"]
+        npcs = config_script["processes"]
         import multiprocessing as mp
         from random import shuffle
         import numpy as np
@@ -194,56 +199,56 @@ if __name__ == "__main__":
 
     else: derive_obs(stations)
 
-#TODO medium priority, nice-to-have...
+    #TODO medium priority, nice-to-have...
 
-#TODO try to calculate QFF and QNH if no reduced pressure is present in obs and we have barometer height instead
-"""
-if meta["heightOfBarometerAboveMeanSeaLevel"] not in null_vals:
-    baro_height = meta["heightOfBarometerAboveMeanSeaLevel"]
-elif meta["heightOfStationGroundAboveMeanSeaLevel"] not in null_vals:
-    baro_height = meta["heightOfStationGroundAboveMeanSeaLevel"]
-elif meta["heightOfStation"] not in null_vals:
-    baro_height = meta["heightOfStation"]
-elif meta["elevation"] not in null_vals:
-    baro_height = meta["elevation"]
-else: baro_height = None
-"""
+    #TODO try to calculate QFF and QNH if no reduced pressure is present in obs and we have barometer height instead
+    """
+    if meta["heightOfBarometerAboveMeanSeaLevel"] not in null_vals:
+        baro_height = meta["heightOfBarometerAboveMeanSeaLevel"]
+    elif meta["heightOfStationGroundAboveMeanSeaLevel"] not in null_vals:
+        baro_height = meta["heightOfStationGroundAboveMeanSeaLevel"]
+    elif meta["heightOfStation"] not in null_vals:
+        baro_height = meta["heightOfStation"]
+    elif meta["elevation"] not in null_vals:
+        baro_height = meta["elevation"]
+    else: baro_height = None
+    """
 
-#TODO derive reduced pressure (QFF or QNH?) if only station pressure was reported
-"""
-MSL = "pressureReducedToMeanSeaLevel"
-if MSL not in obs and baro_height is not None and ("pressure" in obs or "nonCoordinatePressure" in obs):
-    try: ppp = obs["pressure"][0]
-    except: ppp = obs["conCoordinatePressure"][0]
+    #TODO derive reduced pressure (QFF or QNH?) if only station pressure was reported
+    """
+    MSL = "pressureReducedToMeanSeaLevel"
+    if MSL not in obs and baro_height is not None and ("pressure" in obs or "nonCoordinatePressure" in obs):
+        try: ppp = obs["pressure"][0]
+        except: ppp = obs["conCoordinatePressure"][0]
 
-    obs_tp["MSL_ms_syn"] = gf.qff( PPP, baro_height )
-    obs_tp["MSL_ms_met"] = gf.qnh( PPP, baro_height )
-"""
+        obs_tp["MSL_ms_syn"] = gf.qff( PPP, baro_height )
+        obs_tp["MSL_ms_met"] = gf.qnh( PPP, baro_height )
+    """
 
 
-#TODO LOW priority, not really needed at the moment
+    #TODO LOW priority, not really needed at the moment
 
-#TODO calculate derivation of dewpoint temperature here, add unit conversions...
-"""
-dp = "dewpointTemperature"; dp2 = "dewpointTemperature2m"
-T = "airTemperature"; T2 = "airTemperatureAt2m"; rh = "relativeHumidity"
+    #TODO calculate derivation of dewpoint temperature here, add unit conversions...
+    """
+    dp = "dewpointTemperature"; dp2 = "dewpointTemperature2m"
+    T = "airTemperature"; T2 = "airTemperatureAt2m"; rh = "relativeHumidity"
 
-# if we already has the dewpoint temperature at 2m height, skip!
-if dp2 in obs or (dp in obs and sensor_height[0] == 2):
-    pass
-elif rh in obs and ( (T in obs and sensor_height[0] == 2) or T2 in obs ): 
-    if T in obs: T = obs[T][0]
-    else: T = obs[T2][0]
-    rh = obs[rh][0]
-    
-    obs[dp2] = ( gf.rh2dp( rh, T ), "2s" )
-"""
+    # if we already has the dewpoint temperature at 2m height, skip!
+    if dp2 in obs or (dp in obs and sensor_height[0] == 2):
+        pass
+    elif rh in obs and ( (T in obs and sensor_height[0] == 2) or T2 in obs ): 
+        if T in obs: T = obs[T][0]
+        else: T = obs[T2][0]
+        rh = obs[rh][0]
+        
+        obs[dp2] = ( gf.rh2dp( rh, T ), "2s" )
+    """
 
-# take 5m wind as 10m wind if 10m wind not present
+    #TODO take 5m wind as 10m wind if 10m wind not present
 
-# derive wind direction from U and V
+    #TODO derive wind direction from U and V
 
-# derive total sunshine duration in min from h
-# derive total sunshine duration in min from % (using astral package; see wetterturnier)
+    #TODO derive total sunshine duration in min from h
+    #TODO derive total sunshine duration in min from % (using astral package; see wetterturnier)
 
-# derive precipitation amount from duration and intensity
+    #TODO derive precipitation amount from duration and intensity

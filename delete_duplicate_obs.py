@@ -103,12 +103,12 @@ if __name__ == "__main__":
 
     db              = DatabaseClass( config=config["database"] )
 
-    clusters        = set(config_script["clusters"].split(","))
+    clusters        = frozenset(config_script["clusters"])
     stations        = db.get_stations( clusters ); db.close(commit=False)
 
-    if config_script["multiprocessing"]:
+    if config_script["processes"]:
         # number of processes
-        npcs = config_script["multiprocessing"]
+        npcs = config_script["processes"]
         import multiprocessing as mp
         from random import shuffle
         import numpy as np

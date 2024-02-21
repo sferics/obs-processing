@@ -245,9 +245,9 @@ class BufrClass:
                     self.repl_seq_range = range(131000, 132000) # repeat next sequence (999 times)
                     self.repl_info      = frozenset( tuple(self.repl_codes) + tuple(self.repl_range) + tuple(self.repl_seq_range) )
 
-            case "se" | "pd" | "pl" | "fl" | "gt":
+            case "pd" | "pl" | "fl" | "gt":
                 
-                if script != "se": self.fixed_duration_keys = set()
+                self.fixed_duration_keys = set()
 
                 for i in self.bufr_translation_keys:
                     if type(self.bufr_translation[i]) == dict:
@@ -255,18 +255,18 @@ class BufrClass:
                         try:    subkey = list(self.bufr_translation[i])[0]
                         except: continue
 
-                        if script != "se" and self.bufr_translation[i][subkey][1] is not None:
+                        if self.bufr_translation[i][subkey][1] is not None:
                             self.fixed_duration_keys.add(i)
 
                         if type(subkey) == float:
                             if subkey   < 0: self.depth_keys.add(i)
                             elif subkey > 0: self.height_keys.add(i)
 
-                    elif script != "se" and type(self.bufr_translation[i]) == list:
+                    elif type(self.bufr_translation[i]) == list:
                         if self.bufr_translation[i][1] is not None:
                             self.fixed_duration_keys.add(i)
 
-                if script != "se": self.fixed_duration_keys = frozenset(self.fixed_duration_keys)
+                self.fixed_duration_keys = frozenset(self.fixed_duration_keys)
                 
                 self.bufr_obs_keys = frozenset( set(self.bufr_translation_keys) - {"cloudBase"} )
 
@@ -282,11 +282,6 @@ class BufrClass:
                         self.ignore_keys    = frozenset( self.required_keys | self.replication_keys | {self.tp} )
                         self.obs_list_keys  = frozenset( self.relevant_keys - self.ignore_keys )
 
-                elif script == "se":
-                    self.bufr_mod_keys  = frozenset( set(self.bufr_translation_keys) | self.modifier_keys | {self.obs_sequence} )
-                    self.relevant_keys  = frozenset( self.bufr_mod_keys | self.station_keys | self.typical_keys | set(self.time_keys) )
-                    self.time_keys_set  = frozenset( self.time_keys )
-        
         # we currently don't need these seperate key groups, outcommented for future use
         #self.height_keys, self.depth_keys   = frozenset(self.height_keys), frozenset(self.depth_keys)
         # union of both will be used later

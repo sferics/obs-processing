@@ -11,8 +11,15 @@ import sqlite3
 
 
 ### lambda functions
+# https://stackoverflow.com/questions/74170251/check-whether-a-list-contains-a-value-and-if-yes-return-it
+value_in_list       = lambda lst, val : val if val in lst else None
 to_datetime         = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"], DT["minute"])
 to_datetime_hour    = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"])
+
+def values_in_list(lst, vals):
+    for val in vals:
+        if val in lst: return val
+    return None
 
 #TODO maybe we need a LoggerClass??? what could be the benefits???
 def get_logger(script_name, log_level="NOTSET", log_path="log", mode="w", formatter=""):
@@ -282,7 +289,7 @@ def read_file(file_name):
     return Path( file_name ).read_text()
 
 
-def read_yaml(file_name="config", directory="yaml", ext="yaml", typ="safe", pure=True, duplicate_keys=False, values={}, autoformat=False):
+def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pure=True, duplicate_keys=False, values={}, autoformat=False):
     """
     Parameter:
     ----------
