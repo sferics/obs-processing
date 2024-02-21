@@ -1,0 +1,43 @@
+DIR_5m_syn:           WDIR_5m_syn
+DIR_10m_syn:          WDIR_10m_syn
+FFavg_5m_syn:         WIND_5m_syn
+FFavg_10m_syn:        WIND_10m_syn
+FFmax_10m_syn:        GUST_10m_syn
+FFmax_avg_10m_syn:    WINDMAX_10m_syn  
+
+TOTSNOW_srf_syn:      SNOD_srf_syn
+NEWSNOW_srf_syn:      NEWSNOD_srf_syn
+PDUR_srf_syn:         PCPDUR_srf_syn
+MSL_ms_syn:           PRMSL_ms_syn
+GH_1000:              PRES_0m_syn
+
+TW_5cm_syn:           WBT_5cm_syn
+TW_2m_syn:            WBT_2m_syn
+TV_5cm_syn:           VT_5cm_syn
+TV_5cm_syn:           VT_2m_syn
+
+T_5cm_syn:            TMP_5cm_syn
+T_2m_syn:             TMP_2m_syn
+TD_5cm_syn:           DPT_5cm_syn
+TD_2m_syn:            DPT_2m_syn
+Tmax_5cm_syn:         TMAX_5cm_syn
+Tmax_2m_syn:          TMAX_2m_syn
+Tmin_5cm_syn:         TMIN_5cm_syn
+Tmin_2m_syn:          TMIN_2m_syn
+
+T_n5cm_syn:           TMP_n5cm_syn
+T_n10cm_syn:          TMP_n10cm_syn
+T_n20cm_syn:          TMP_n20cm_syn
+T_n50cm_syn:          TMP_n50cm_syn
+T_n1m_syn:            TMP_n1m_syn
+T_n2m_syn:            TMP_n2m_syn
+
+TCC_total_syn:        TCDC_2m_syn
+TCC_1C_syn:           LCDC_2m_syn
+TCC_1C_syn:           CDC1_2m_syn
+TCC_2C_syn:           CDC2_2m_syn
+TCC_3C_syn:           CDC3_2m_syn
+TCC_4C_syn:           CDC4_2m_syn
+TCC_LC_syn:           CDCL_2m_syn
+TCC_MC_syn:           CDCM_2m_syn
+TCC_HC_syn:           CDCH_2m_syn

@@ -1,0 +1,667 @@
+general:
+  mode:         dev # oper, test, ???
+  output:       /home/juri/data/stations
+  log_level:    INFO
+  verbose:      0
+  debug:        0
+  traceback:    0
+  timeout:      5
+  max_retries:  100
+
+#configuration of classes (key name == name of class without 'Class')
+#TODO add indentation and adjust all affected scripts to the change
+#classes:
+Database:
+  db_file:    main.db
+  verbose:    0
+  log_level:  ERROR
+  traceback:  1
+  timeout:    5 # default is 5
+  settings: 
+    analysis_limit:             
+    auto_vacuum:                
+    automatic_index:            
+    busy_timeout:               
+    cache_size:                 
+    cache_spill:                
+    case_sensitive_like:        
+    cell_size_check:            
+    defer_foreign_keys:         
+    encoding:                   
+    foreign_keys:               
+    hard_heap_limit:            
+    ignore_check_constraints:   
+    journal_mode:               
+    journal_size_limit:         
+    legacy_alter_table:         
+    locking_mode:              NORMAL
+    max_page_count:             
+    mmap_size:                  
+    page_size:                  
+    parser_trace:               
+    query_only:                 
+    read_uncommitted:           
+    recursive_triggers:         
+    reverse_unordered_selects:  
+    schema_version:             
+    secure_delete:              
+    soft_heap_limit:            
+    synchronous:                
+    temp_store:                 
+    threads:                    
+    trusted_schema:             
+    user_version:               
+    writable_schema:            
+
+Bufr:
+  verbose:          0
+  log_level:        ERROR
+  traceback:        0
+  tables:           /home/juri/miniconda3/envs/obs/share/eccodes/definitions
+
+Obs:
+  verbose:          0
+  log_level:        WARNING
+  traceback:        0
+  mode:             dev
+  output:           /home/juri/data/stations
+  max_retries:      1200
+  timeout:          3
+  commit:           True
+  settings:         {} # add SQLite PRAGMA settings analog to settings of main database here
+
+#Config:
+#Logger:
+
+#script configurations (key name == script name)
+scripts:
+  add_stations_from_bufr.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          1
+    traceback:        1
+    max_files:        0 # 0 or None (~) means no limit
+    max_retries:      100
+    processes:        15
+    station_info:     bufr_station_info
+    null_vals:        ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    mandatory_keys:   [stationOrSiteName, latitude, longitude]
+    additional_keys:  [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
+
+  decode_bufr.py: # can use any approach below TODO
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        0 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    processes:        15 # if > 0 use processes, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
+    max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    approach:         gt
+    stations:         [wmo]
+    clusters:         [germany]
+    mode:             dev
+    output:           /home/juri/data/stations_pl_test
+    bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags           # code flag table conversions
+
+  decode_bufr_pd.py: # uses pdbufr
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        0 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    processes:        15 # if > 0 use processes, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
+    max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    stations:         [wmo]
+    clusters:         [germany]
+    mode:             dev
+    output:           /home/juri/data/stations_pd
+    bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags           # code flag table conversions
+
+  decode_bufr_pl.py: # uses plbufr
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        0 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    processes:        15 # if > 0 use processes, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
+    max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    stations:         [wmo]
+    clusters:         [germany]
+    mode:             dev
+    output:           /home/juri/data/stations_pl_test
+    bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags           # code flag table conversions
+
+  decode_bufr_gt.py: # uses plbufr
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        0 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    processes:        15 # if > 0 use processes, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
+    max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    stations:         [wmo]
+    clusters:         [germany]
+    mode:             dev
+    output:           /home/juri/data/stations_gt
+    bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags           # code flag table conversions
+
+  decode_bufr_mv.py:
+    conda_env:        metview
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        1 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    processes:        15 # if > 0 use processes, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_files:        5046 # zero means no maximum #15: 5395
+    max_retries:      1200 # max retries when writing into databases 
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    mode:             dev
+    output:           /home/juri/data/stations_mv
+    bufr_translation: bufr_translation_mv # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags_mv #TODO not used at the moment, for cloud levels it could be useful though
+
+  decode_bufr_ex.py:
+    conda_env:        obs #eccodes #cforge #obs # uses system eccodes instead of conda-forge version
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        1 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    processes:        15 # if > 0 use processes, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script leaves free, if value reached: restart
+    max_files:        0 #5046 # zero means no maximum #15: 5395
+    max_retries:      1200 # max retries when writing into databases 
+    sort_files:       1 # sort files alpha-numerically TODO sort by timestamp, recognize CCA/RRA COR
+    skip_function:    0
+    skip_computed:    0
+    skip_duplicates:  0
+    mode:             dev
+    output:           /home/juri/data/stations_ex
+    bufr_translation: bufr_translation_us # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
+    bufr_sequences:   bufr_sequences
+    stations:         [wmo,dwd]
+    clusters:         [germany]
+
+  decode_bufr_us.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    profiler:         0 # use profiler  TODO
+    log_level:        INFO
+    debug:            0
+    traceback:        1 # enable traceback prints
+    timeout:          3 # timeout for station databases
+    processes:        15 # if > 0 use processes, number of worker processes TODO
+    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_files:        5046 # zero means no maximum #15: 5395
+    max_retries:      1200 # max retries when writing into databases 
+    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    mode:             dev
+    output:           /home/juri/data/stations_us
+    bufr_translation: bufr_translation_us # TODO might be useful in future to define this by source?
+    bufr_flags:       bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
+    extract_subsets:  0
+    skip_function:    0
+    skip_computed:    0
+    skip_duplicates:  0
+    stations:         [wmo,dwd]
+    clusters:         [germany]
+
+  decode_synop.py:    #TODO
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+  decode_metar.py:    #TODO
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+  decode_netcdf.py:   #TODO
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+  
+  get_obs.py:         # replacement for getALL.sh and get*.sh scripts; calls get*.py as well TODO
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    mode:             dev  
+    max_retries:      3
+  get_ogimet.py:      #TODO rewrite bash script in python
+  get_swiss.py:       https://opendata.swiss/de/dataset/automatische-wetterstationen-aktuelle-messwerte
+  get_smhi.py:        https://opendata.smhi.se/apidocs/metobs/data.html
+  get_mira.py:        # Dahlem additional obs from MIRA FTP TODO
+  get_geosphere.py:
+    params:           https://dataset.api.hub.zamg.ac.at/v1/station/current/tawes-v1-10min/metadata?parameters
+    documentation:    https://dataset.api.hub.zamg.ac.at/v1/openapi-docs#/current
+  get_knmi.py:        # dutch weather service API download script
+  get_imgw.py:
+    conda_env:        obs
+    mode:             dev
+    log_level:        ERROR
+    verbose:          1
+    max_retries:      10
+    timeout:          3
+    output:           /home/juri/data/stations_imgw
+    
+  forge_obs.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    traceback:        0 # traceback prints
+    debug:            0
+    mode:             dev
+    output:           /home/juri/data/stations
+    legacy_output:    /home/juri/data/stations_legacy
+    export:           0
+    timeout:          5
+    max_retries:      100
+
+  reduce_obs.py:
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    traceback:        0 # traceback prints
+    debug:            0
+    mode:             dev
+    output:           /home/juri/data/stations
+    clusters:         [germany]
+    processes:        15 #4
+
+  audit_obs.py:  #TODO data quality check (idea: each obs parameter gets a range in units table)
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    output:           /home/juri/data/stations
+
+  delete_duplicate_obs.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          1
+    traceback:        0
+    mode:             dev
+    output:           /home/juri/data/stations
+    processes:        15
+    clusters:         [germany]
+
+  derive_obs.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          1
+    traceback:        0
+    mode:             dev
+    output:           /home/juri/data/stations
+    processes:        15
+    clusters:         [germany]
+    replacements:
+      DIR_10m_syn:    DIR_5m_syn
+      FFavg_10m_syn:  FFavg_5m_syn
+        #TCC_LC_syn:     TCC_1C_syn #, TCC_ceiling_syn
+        #TCC_MC_syn:     TCC_2C_syn
+        #TCC_HC_syn:     TCC_3C_syn
+      TCC_1C_syn:     TCC_LC_syn
+      TCC_2C_syn:     TCC_MC_syn
+      TCC_3C_syn:     TCC_HC_syn
+        #VIS_syn:        MOR_syn,VIS_min_syn,MOR_min_syn,VIS_pre_syn,VIS_run_syn,VIS_sea_syn,MOR_max_syn
+    combinations:
+      #CL[1-4]_syn:    [TCC_%dC_syn, round(CB%d_syn)]
+      CL1_syn:        [TCC_1C_syn, round(CB1_syn)]
+      CL2_syn:        [TCC_2C_syn, round(CB2_syn)]
+      CL3_syn:        [TCC_3C_syn, round(CB3_syn)]
+      CL4_syn:        [TCC_4C_syn, round(CB4_syn)]
+        #CLCMCH_syn:     [TCC_LC_syn, TCC_MC_syn, TCC_HC_syn]
+
+  aggregate_obs.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          0 # verbose output
+    traceback:        1 # traceback prints
+    mode:             dev
+    output:           /home/juri/data/stations
+    processes:        15
+    clusters:         [germany] # TODO should take setting from sources instead
+    params:
+      FFavg_10m_10min_syn:      [10min, ~]
+      FFmax_10m_10min_syn:      [10min, ~]
+      FFavg_10m_1h_syn:         [1h,    avg]
+      FFmax_10m_1h_syn:         [1h,    max]
+      FFmax_avg_10m_1h_syn:     [1h,    max]
+      PRATE_srf_1h_syn:         [1h,    sum]
+      PRATE_srf_24h_syn:        [24h,   sum,  6]
+      GLRAD_srf_1h_syn:         [1h,    sum]
+      LONGRAD_srf_1h_syn:       [1h,    sum]
+      DIFFRAD_srf_1h_syn:       [1h,    sum]
+      Tmin_5cm_24h_syn:         [24h,   min,  0]
+      Tmin_2m_24h_syn:          [24h,   min,  0]
+      Tmax_5cm_24h_syn:         [24h,   max,  0]
+      Tmax_2m_24h_syn:          [24h,   max,  0]
+      Tmin_5cm_12h_syn:         [12h,   min,  18]
+      Tmin_2m_12h_syn:          [12h,   min,  18]
+      Tmax_5cm_12h_syn:         [12h,   max,  6]
+      Tmax_2m_12h_syn:          [12h,   max,  6]
+      SUNDUR_srf_1h_syn:        [1h,    sum]
+      SUNDUR_srf_24h_syn:       [24h,   sum,  0]
+      PDUR_srf_1h_syn:          [1h,    sum]
+
+  conclude_obs.py:
+    conda_env:        obs
+    pid_file:         0 # create and use pid file
+    verbose:          1
+    traceback:        0
+    debug:            0
+    mode:             dev
+    output:           /home/juri/data/stations
+    processes:        15
+    clusters:         [germany]
+
+
+clusters:
+  germany:
+      block:      10
+      identifier: 616
+      stations:   [wmo]
+  germany_dwd:
+      block:      ~
+      identifier: 616
+      stations:   [dwd]
+
+
+sources:
+  test: # for testing purposes only; dir contains BUFRs from German station [2022-03 -> 2023-03]
+    bufr:
+      ext:    bin
+      glob:   "*" #"*_bda01,synop_bufr_GER_999999_999999__MW_???" # only german BUFR messages
+      prio:   0
+      #dir:   /historical/home/mswr/incoming/opendata.dwd.de/weather/weather_reports/synoptic/germany # m23
+      #dir:   /home/dev/obs-processing/DWD # em24 dev
+      dir:    /home/juri/data/historical/dwd/bufr # em24 juri
+      #tables: /home/juri/amalthea/main/dwd_tables
+      tables: /home/juri/miniconda3/envs/obs/share/eccodes/definitions/bufr/tables
+      skip1:  2 
+      skip2:  11
+      skip3:  4
+      #filter: [WMO_station_id, data_datetime, airTemperature, heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform]
+    general:
+      stations: [wmo, dwd]
+      clusters: [germany]
+ 
+  dwd_germany:
+    bufr:
+      ext:    bin
+      url:    https://opendata.dwd.de/weather/weather_reports/synoptic/germany/
+      dir:    /home/juri/data/live/dwd/bufr/germany
+    general:
+      stations: [wmo]
+      clusters: [germany]
+
+  cod:
+    bufr:
+      ext:    bufr
+      url:    https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
+      dir:    /home/juri/data/live/cod/bufr
+    general:
+      stations: [wmo]
+      clusters: [germany]
+
+  DWD: # German weather service
+    bufr:
+      ext:    bin
+      prio:   0
+      dir:    /home/dev/obs-processing/DWD # em24 dev
+    general:
+      stations: [wmo, dwd]
+      clusters: [germany, europe, usa]
+  
+  KNMI: # Dutch weather service
+    bufr:
+      ext:  bufr
+      glob: "SYNOP_BUFR_*"
+      prio: 0
+      dir:  /home/dev/obs-processing/KNMI
+    netcdf:
+      ext:  nc
+      url:  https://dataplatform.knmi.nl/dataset/access/actuele10mindataknmistations-2
+  
+  COD: # College of DuPage
+    bufr:
+      ext:  bufr
+      url:  https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
+      wget: "-e robots=off -nc -nd -np -r"
+      prio: 0
+      dir:  /home/dev/obs-processing/COD
+    synop:
+      ext:  syn
+      url:  https://weather.cod.edu/digatmos/syn/
+      wget: "-e robots=off -nc -nd -np -r"
+      prio: 2
+    metar:
+      ext:  sao
+      url:  https://weather.cod.edu/digatmos/sao/
+      wget: "-e robots=off -nc -nd -np -r"
+      prio: 3
+    general:
+      stations: [wmo]
+
+  MeteoFrance:
+    url:    https://donneespubliques.meteofrance.fr/?fond=rubrique&id_rubrique=32
+
+  RMI: # Belgian meteorological service
+    bufr:
+      ext:  bufr
+      url:  https://opendata.meteo.be/ftp/observations/synop/
+      wget: "-nc -nd -np -r"
+      prio: 0
+      dir:  /home/dev/obs-processing/RMI
+
+  MeteoLUX:
+    data: https://data.public.lu/en/datasets/?organization=56f54cc20d6ceb552e37f07c
+    obs:  https://data.public.lu/en/datasets/present-weather-condition-at-luxembourg-airport-ellx-decoded-from-metar-message/
+ 
+  SWISS: #TODO import from wetterturnier
+    ext:  csv
+    url:  https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA98.csv
+    prio: 0
+  
+  ZAMG: #TODO only historical data (not newer than yesterday...) API: https://data.hub.zamg.ac.at/
+    ext:  csv
+    url:  https://dataset.api.hub.zamg.ac.at/app/frontend/station/historical/klima-v1-10min?anonymous=true
+    prio: 0
+  
+  MIRA: #TODO import from wetterturnier
+    ext:  csv
+    url:  TODO ftp mira
+    prio: -1
+  
+  SMHI: #TODO swedish meteorological service
+    ext:  json
+    url:  https://opendata.smhi.se/apidocs/metobs/data.html
+    prio: 1
+
+  DMI: # danish weather service
+    ext:  zip
+    bulk:  https://confluence.govcloud.dk/pages/viewpage.action?pageId=30016125
+    info: https://confluence.govcloud.dk/pages/viewpage.action?pageId=41717088#Request&ResponseExamples(metObs)-IntroductiontoRequests
+    package: "pip install dmi-open-data"
+
+  FMI: # weather service of Finland
+    url:  https://en.ilmatieteenlaitos.fi/open-data
+    python: https://github.com/pnuu/fmiopendata
+
+  #NMI
+  FROST: # norwegian weather service
+    url:  https://frost.met.no/howto.html
+
+  IMGW: # Polish meteo+hydrological service
+    url:    https://danepubliczne.imgw.pl/api/data/synop
+    #historical data 2017-
+    #https://danepubliczne.imgw.pl/data/arch/ost_meteo/
+    #historical data 1951-
+    #https://danepubliczne.imgw.pl/data/dane_pomiarowo_obserwacyjne/dane_meteorologiczne/
+  
+  CHMI: # Czech hydrometeorological service TODO request/find open data
+    url:    https://www.chmi.cz/historicka-data/pocasi/zakladni-informace?l=en
+
+  SMHU: # Slovakian meteo+hydrological service
+    url:    http://meteo.shmu.sk/customer/home/opendata/
+
+  DHMZ: # Croatian weather service TODO find/request open data
+    url:    https://meteo.hr/proizvodi_e.php?section=proizvodi_usluge&param=services
+
+  Hidmet: # Serbia
+    url1:   https://www.hidmet.gov.rs/eng/osmotreni/index.php
+    url2:   https://www.hidmet.gov.rs/eng/osmotreni/automatske.php
+
+  DM: # Albania TODO
+    url:    https://www.geo.edu.al/Departments/Department_of_Meteorology_DM/
+
+  fhmzbih: # Bosnia and Herzegovina (Bosnian part) TODO
+    url:    https://www.fhmzbih.gov.ba/latinica/index.php
+
+  rhmzrs: # Bosnia and Herzegovina (Serbian part) TODO
+    url:    https://rhmzrs.com/
+
+  MeteoRomania: # Romania
+    url:    https://inspire.meteoromania.ro/geonetwork/srv/api/records/b7e35875-272e-416e-bf85-8f3789c48198
+  
+  WeatherBG: # Bulgaria TODO request/find open data
+    url:    https://weather.bg/0index.php?koiFail=RM14mes1&lng=1
+
+  OMSZ: # Hungary TODO
+    url:    http://www.met.hu/
+
+  ILM: # Estonia
+    url:    https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php
+
+  MeteoLT: # Lithunia TODO
+    url:    http://www.meteo.lt/
+
+  MeteoLV: # Latvia TODO
+    url:    http://www.meteo.lv/
+
+  HNMS: # Greece TODO
+    url:    http://www.hnms.gr/
+
+  VEDUR: # Iceland TODO
+    url:    http://www.vedur.is/
+
+  Meteor: # Turkey TODO
+    url:    http://www.meteor.gov.tr/
+
+  IMS: # Israel TODO
+    url:    http://www.ims.gov.il/
+
+  IPMA: # Portugal
+    url:    https://www.ipma.pt/en/otempo/obs.superficie/table-top-stations-all.jsp
+
+  MeteoAD: # Andorra
+    url:    http://meteo.ad/en/climatology
+
+  AEMET: # Spain
+    url:    https://opendata.aemet.es/centrodedescargas/inicio
+
+  MeteoCat: # Catalonia TODO request/find open data
+    url1:   https://www.nowcast.de/en/portfolio-item/meteocat-meteorological-service-of-catalonia/
+    url2:   https://catalegs.ide.cat/geonetwork/srv/api/records/estacio-meteo-automatica-v1r0-20211229
+
+  MeteoGalicia: # Galicia, MeteoSIX API
+    url:    https://www.meteogalicia.gal/web/proxectos/meteosix.action?request_locale=gl
+
+  italy: # TODO
+    urls:
+      - https://www.meteoam.it/it/home
+      - http://www.meteo.it/
+      - http://www.meteo.fvg.it/
+
+  OpenWeatherMap: # free API service TODO check whether it offers WMO stations
+    url:    https://openweathermap.org/stations
+
+  ESWD:
+    url:    https://eswd.eu/
+
+  UKMO: # UK MetOffice, data costs 500-2000€ per year and bulletin
+    url:    https://data.gov.ie/dataset/latest-observations
+    wmos:   https://www.metoffice.gov.uk/binaries/content/assets/metofficegovuk/pdf/data/uk_synop_station_list.pdf
+    cdls:   https://www.metoffice.gov.uk/binaries/content/assets/metofficegovuk/pdf/data/uk_synop_station_list_-_cdl_%28climate_data_logger%29_numbered_stations.pdf
+
+  MetEireann:
+    url:    https://data.gov.ie/dataset/latest-observations
+
+  NWS:  # US weather forecasting service
+    url:    https://www.weather.gov/documentation/services-web-api  
+  
+  NOAA: # USA weather, climate and ocean service
+    bufr:
+      ext:  bin
+      url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.bf/DC.intl/
+      wget: "-N -nd -np -r -l 1"
+      prio: 0
+      dir:  /home/dev/obs-processing/NOAA
+    spynop:
+      ext:  txt
+      url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.synop/
+      wget: "-N -nd -np -r -l 1"
+      prio: 2
+    metar:
+      ext:  txt
+      url:  ["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/", "https://tgftp.nws.noaa.gov/data/observations/metar/stations/", "http://tgftp.nws.noaa.gov/data/observations/metar/cycles/"]
+      wget: "-N -nd -np -r -l 1"
+      prio: 3
+    general:
+      stations: [wmo]
+
+  #NCEP
+  NCAR: # only 6-hourly data available, with delay of a few hours
+    bufr: #TODO strange format - adapt BUFR decoder to it or leave this source out
+      ext:  bufr
+      set:  https://rda.ucar.edu/datasets/ds461.0/
+      url:  https://data.rda.ucar.edu/ds461.0/bufr/{YYYY}/gdas.adpsfc.t{ZZ}z.{YYYY}{MM}{DD}.bufr
+      tar:  True
+      prio: 0
+      dir:  NCAR #/home/dev/obs-processing/NCAR
+    general:
+      stations: [wmo]
+
+  NCDC:
+    isd:  ~ 
+
+  OGIMET: #TODO
+    bufr:
+      ext:  bufr
+      url:  http://www.ogimet.com/getbufr.php?res=list&beg=201701290600&end=201701290600
+      wget: ""
+      prio: 1
+      dir:  /home/dev/obs-processing/OGIMET
+
+  NASA:
+    sunspots: #TODO
+    xray:     
+    proton:   
+    magnetic: 

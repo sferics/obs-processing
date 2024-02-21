@@ -1,0 +1,29 @@
+model:
+  FP:       integer
+  datetime: datetime
+  element:  text
+  model:    text
+  value:    real
+  UNIQUE:   (datetime, element, model, value)
+obs:
+  dataset:  text NOT NULL # raw tables only!
+  file:     int DEFAULT 0 # file ID from file_table (main database)
+  datetime: datetime NOT NULL
+  duration: text
+  element:  text NOT NULL
+  value:    text NOT NULL
+  cor:      integer DEFAULT 0 #TODO number of corrections (COR/CCA)
+  scale:    real DEFAULT NULL 
+  reduced:  integer DEFAULT 0 #TODO will be set to 1 after handled by "reduce_obs.py"
+  #UNIQUE:   (datetime, dataset, file, duration, element, value, scale, cor, reduced)
+  UNIQUE:   (dataset, datetime, duration, element) #file, cor
+stats:
+  RMSE:     real
+  average:  real
+  cases:    integer
+  el:       text
+  location: text
+  maximum:  real
+  minimum:  real
+  valid:    text
+  UNIQUE:   (el, location, valid)
