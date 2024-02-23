@@ -25,68 +25,26 @@ if __name__ == "__main__":
     
     from config import ConfigClass as cc
 
-    #cf = cc()
-
-    import argparse
-
-    # define program info message (--help, -h) and parser arguments with explanations on them (help)
-    info    = "Run the complete obs post-processing chain"
-    psr     = argparse.ArgumentParser(description=info)
-
-    # add all needed command line arguments to the program's interface
-    psr.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set logging level")
-    psr.add_argument("-v","--verbose", action="store_true", help="show more detailed output")
-    psr.add_argument("-C","--config", default="config", help="set custom name of config file")
-    psr.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
-    psr.add_argument("-M","--mode", choices={"oper", "dev", "test"}, help="set operation mode")
-    psr.add_argument("-o","--timeout", help="timeout in seconds for station databases")
-    psr.add_argument("-O","--output", help="define output directory where the station databases will be saved")
-    psr.add_argument("-L","--legacy_output", help="define output directory for old system's CSV format")
-    psr.add_argument("-d","--debug", action="store_true", help="enable or disable debugging")
-    psr.add_argument("-D","--dry", action="store_true", help="do not actually run scripts, only print commands")
-    psr.add_argument("-t","--traceback", action="store_true", help="enable or disable traceback")
-    psr.add_argument("-e","--export", action="store_true", help="export data to legacy CSV format")
-    psr.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
-
-    # parse all command line arguments and make them accessible via the args variable
-    args = psr.parse_args()
-
-    # read configuration file into dictionary
-    config          = gf.read_yaml( args.config )
-
-    # get the right script name
-    script_name     = gf.get_script_name(__file__)
-    config_script   = config["scripts"][script_name]
-
-    if args.log_level: config_script["log_level"] = args.log_level
-    log_level = config_script["log_level"]
-    log = gf.get_logger(script_name)
-
+    info        = "Run the complete obs post-processing chain"
+    script_name = gf.get_script_name(__file__)
+    flags       = ("l","v","C","m","M","o","O","L","d","D","t","e")
+    cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    log_level   = cf.script["log_level"]
+    log         = gf.get_logger(script_name, log_level=log_level)
     start_time  = dt.utcnow()
     started_str = f"STARTED {script_name} @ {start_time}"
+    
     log.info(started_str)
-
-    if args.verbose is not None:
-        config_script["verbose"] = args.verbose
-
-    verbose = int(config_script["verbose"])
-    if verbose: print(started_str)
-
-    if args.debug:                  config_script["debug"]          = 1
-    if config_script["debug"]:      import pdb; debug = 1
-    else:                           debug = 0
-
-    if args.traceback:              config_script["traceback"]      = 1
-    traceback = config_script["timeout"]
-
-    if args.timeout:                config_script["timeout"]        = int(args.timeout)
-    timeout = config_script["timeout"]
-
-    if args.max_retries:            config_script["max_retries"]    = int(args.max_retries)
-    max_retries = config_script["max_retries"]
-
-    if args.mode:                   config_script["mode"]           = args.mode
-    mode = config_script["mode"]
+    
+    verbose         = cf.script["verbose"]
+    debug           = cf.script["debug"]
+    traceback       = cf.script["traceback"]
+    timeout         = cf.script["timeout"]
+    max_retries     = cf.script["max_retries"]
+    output          = cf.script["output"]
+    legacy_output   = cf.script["legacy_output"]
+    export          = cf.script["export"] 
+    mode            = cf.script["mode"]
 
     match mode:
         case "oper":
@@ -98,17 +56,6 @@ if __name__ == "__main__":
         case _:
             raise ValueError("UNSUPPORTED MODE")
 
-    if args.output:                 config_script["output"]         = args.output
-    output = config_script["output"]
-
-    if args.export:                 config_script["export"]         = int(args.export)
-    export = config_script["export"]
-
-    if args.legacy_output:
-        config_script["legacy_output"]  = args.legacy_output
-        export                          = 1
-    legacy_output = config_script["legacy_output"]
-
     if export: scripts.append("export")
     
     # get all provided command line arguments as a list
@@ -117,19 +64,25 @@ if __name__ == "__main__":
     # returns "-L" or "--legacy_output" if either of them are found in the cli arguments; else None
     arg_L       = gf.values_in_list(("-L", "--legacy_output"), cli_args)
 
-    # if legacy output: remove temporarly from argument list
+    # if legacy_output: remove temporarly from argument list
     # we will only add it later to the export_obs script
     if arg_L:
         pos_L = cli_args.index(arg_L)
         del cli_args[pos_L:pos_L+1]
+    
+    # also temporarily delete the -e / --export flag if present
+    for flag in ("-e","--export"):
+        try:    cli_args.remove(flag)
+        except: pass
+        else:   break
 
     # https://stackoverflow.com/questions/8953119/waiting-for-external-launched-process-finish
 
     for script in scripts:
-        # if export is set True we set the -L flag only for the export_obs script
+        # if export is set True we set the -L and -e flags only for the export_obs script
         if script == "export" and export and legacy_output:
-            cli_args += ["-L", legacy_output]
-        if args.dry:
+            cli_args += ["-L", legacy_output, "-e"]
+        if cf.args.dry:
             print("python", script+"_obs.py", *cli_args)
         else:
             try:

@@ -39,22 +39,22 @@ def reduce_obs(stations):
 
         match mode:
             case "dev":
-                sql = [f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge"]
+                sql = f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge;\n"
                 #sql = ["INSERT INTO forge.obs SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs WHERE reduced=0"]
                 #sql.append("UPDATE main.obs SET reduced=1")
                 # in dev mode we do not perform this forging stage (happens during inserting to database to save time)
                 # instead, we only select all distinct values and create the obs tables in all forge databases
-                sql.append("CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs")
-                sql.append("DETACH forge")
+                sql += "CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs;\n"
+                sql += "DETACH forge;"
 
             case "oper":
                 obs.create_station_tables(loc)
-                sql = ["INSERT INTO forge.obs f SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs r WHERE reduced=0 AND cor = ( SELECT MAX(cor) FROM obs_raw r WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration AND file = ( SELECT MAX(file) FROM main.obs WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration"]
+                sql = "INSERT INTO forge.obs f SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs r WHERE reduced=0 AND cor = ( SELECT MAX(cor) FROM obs_raw r WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration AND file = ( SELECT MAX(file) FROM main.obs WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration;"
                 # delete all but latest COR
                 #sql.append("DELETE FROM main.obs a WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
                 #sql.append("UPDATE main.obs SET reduced = 1")
                 # keep all CORs
-                sql.append("UPDATE main.obs a set reduced=1 WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
+                sql += "UPDATE main.obs a set reduced=1 WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration );"
                 
                 #sql.append("CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration ) AND file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
                 
@@ -82,14 +82,20 @@ def reduce_obs(stations):
        
         #"DELETE FROM main.obs a WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )"
         #"UPDATE main.obs a set reduced=1 WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )"
-
+        
+        """
         for sql in sql:
             if verbose: print(sql)
             try: db_loc.exe(sql)
             except Exception as e:
                 if verbose: print(e)
-        
-        db_loc.close()
+        """
+
+        try: db_loc.exescr(sql)
+        except Exception as e:
+            if verbose:     print(e)
+            if traceback:   gf.print_trace(e)
+        else: db_loc.close()
 
     return
 

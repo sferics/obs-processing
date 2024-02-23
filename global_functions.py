@@ -391,10 +391,56 @@ def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pur
 
         """
         return list(flatten_sequence(node))
-
+    
+    #TODO can only flatten lists containing ints so far; see above 'flatten_sequence'
     yaml.add_constructor("!flatten", construct_flat_list)
     # borrowed end
+        
+    def construct_bool(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.ScalarNode):
+            return bool(node.value)
+        else: raise TypeError("node.value needs to be a scalar")
+    
+    def yield_sequence(sequence, call = None):
+        for el in sequence.value:
+            if call:    yield call(el.value)
+            else:       yield el.value
 
+    def construct_frozenset(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.SequenceNode):
+            return frozenset(yield_sequence(node))
+        else: raise TypeError("node.value needs to be a sequence")
+
+    def construct_set(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.SequenceNode):
+            return set(yield_sequence(node))
+        else: raise TypeError("node.value needs to be a sequence")
+
+    def construct_tuple(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.SequenceNode):
+            return tuple(yield_sequence(node))
+        else: raise TypeError("node.value needs to be a sequence")
+
+    def construct_list(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.SequenceNode):
+            return list(yield_sequence(node))
+        else: raise TypeError("node.value needs to be a sequence")
+
+    def construct_iter(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.SequenceNode):
+            yield yield_sequence(node)
+        else: raise TypeError("node.value needs to be a sequence")
+    
+    def construct_range(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.SequenceNode):
+            elements = tuple(yield_sequence(node, call=int))
+            if 1 <= len(elements) <= 3:
+                return range(*elements)
+            else: raise TypeError("node.value needs to be a sequence (of length 1-3)")
+        else: raise TypeError("node.value needs to be a sequence")
+
+    for datatype in ("bool", "frozenset", "set", "tuple", "list", "iter", "range"):
+        yaml.add_constructor(u'tag:yaml.org,2002:'+datatype, eval(f"construct_{datatype}"))
 
     if values:
         # another "borrowing" - I promise to give it back ASAP! https://stackoverflow.com/a/53043084
