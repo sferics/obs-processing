@@ -8,7 +8,6 @@ from psutil import pid_exists, Process
 import subprocess, sys
 from copy import copy
 import sqlite3
-from database import DatabaseClass
 import global_variables as gv
 
 
@@ -529,6 +528,7 @@ def get_input_files_dict( input_files, source, config_database, known_stations={
     Return:
     -------
     """
+    from database import DatabaseClass
     db = DatabaseClass(config=config_database)
 
     if not known_stations: known_stations = db.get_stations()
