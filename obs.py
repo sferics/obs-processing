@@ -25,7 +25,7 @@ class ObsClass:
         self.mode   = mode
         self.stage  = stage
       
-        for key, val in config:
+        for key, val in config.items():
             if verbose: print(key, val)
             setattr(self, key, val)
         
@@ -33,7 +33,7 @@ class ObsClass:
 
 
     #TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
-    def to_station_databases(self, obs_db, source=None, scale=False, mode=None, stage=None, output_path=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings={}):
+    def to_station_databases(self, obs_db, source=None, scale=False, mode=None, stage=None, output=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings={}):
         #TODO
         """
         Parameter:
@@ -48,7 +48,7 @@ class ObsClass:
         """
         #TODO implement stage match case for SQL and try/except/else: if verbose part
         if source is None:      source      = self.source
-        if output_path is None: output_path = self.output_path
+        if output is None:      output      = self.output
         if mode is None:        mode        = self.mode
         if stage is None:       stage       = self.stage
         if max_retries is None: max_retries = self.max_retries
@@ -78,10 +78,10 @@ class ObsClass:
                         f"ON CONFLICT DO UPDATE SET value=excluded.value" )
 
         for loc in obs_db:
-            created = self.create_station_tables(loc, output_path, mode, stage, max_retries, 1, 1, verbose=verbose)
+            created = self.create_station_tables(loc, output, mode, stage, max_retries, 1, 1, verbose=verbose)
             
             if not created: continue
-            station_path = output_path + "/" + mode + "/" + stage
+            station_path = output + "/" + mode + "/" + stage
 
             retries = copy(max_retries)
             config_dict = {"timeout":timeout, "traceback":traceback, "settings":settings, "verbose":verbose}
@@ -115,12 +115,12 @@ class ObsClass:
                 db_loc.close(commit=True)
 
 
-    def create_station_tables( self, loc, output_path=None, mode=None, stage=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings={} ):
+    def create_station_tables( self, loc, output=None, mode=None, stage=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings={} ):
         """
         Parameter:
         ----------
         loc : station location, usually WMO ID
-        output_path : where the station databases are saved
+        output: where the station databases are saved
         commit : commit to database afterwards
         verbose : print exceptions that are being raised
 
@@ -132,7 +132,7 @@ class ObsClass:
         -------
         True if succesful, False if not, None if tables already exists and completely setup (ready == 1)
         """
-        if output_path is None: output_path = self.output_path
+        if output is None:      output      = self.output
         if mode is None:        mode        = self.mode
         if stage is None:       stage       = self.stage
         if max_retries is None: max_retries = self.max_retries
@@ -142,7 +142,7 @@ class ObsClass:
         if verbose is None:     verbose     = self.verbose
         if settings is {}:      settings    = self.settings
 
-        station_path = f'{output_path}/{mode}/{stage}/{loc[0]}'
+        station_path = f'{output}/{mode}/{stage}/{loc[0]}'
         gf.create_dir( station_path )
         db_path = f'{station_path}/{loc}.db'
 

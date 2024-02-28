@@ -571,7 +571,7 @@ class BufrClass:
 
 
     # version with units and scale (uses codes instead of keys) + expanded keys + values
-    def convert_keys_us( self, obs, dataset, verbose=False):
+    def convert_keys_us( self, obs, dataset, shift_datetime=True, verbose=False):
         """
         Parameter:
         ----------
@@ -594,8 +594,10 @@ class BufrClass:
                 if location not in obs_db: obs_db[location] = set()
 
                 for datetime in obs[file][location]:
-                    if datetime.minute in {0,30}:   datetime_db = datetime - td(minutes=10)
-                    else:                           datetime_db = copy(datetime)
+                    if shift_datetime:
+                        if datetime.minute in {0,30}:   datetime_db = datetime - td(minutes=10)
+                        else:                           datetime_db = copy(datetime)
+                    else: datetime_db = copy(datetime)
 
                     cor             = 0
                     duration        = ""

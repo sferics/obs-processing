@@ -150,7 +150,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         
         if "bufr" in config_source:
             # list of all configs in reverse order of significance (right has priority over left)
-            config_list = [ config["Bufr"], config_script, config_general, config_source["bufr"] ]
+            config_list = [ config["bufr"], config_script, config_general, config_source["bufr"] ]
         else: return
 
         # previous dict entries will get overwritten by next item during merge (right before left)
@@ -297,8 +297,8 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
         # the dictionary of file_IDs to process has now only one key/element
         file_IDs = { FILE : ID }
         
-        # for just 2 configuration dicts we can use the easier, more pythonic syntax with **
-        config_bufr = { **config["Bufr"], **config_script }
+        # for just 2 configuration dicts we can use the easier, more pythonic syntax
+        config_bufr = config["bufr"] | config_script
         #config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
         bf          = bc(config_bufr, script=script_name[-5:-3])
 
@@ -307,7 +307,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
 
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
-    config_obs  = gf.merge_list_of_dicts( [config["Obs"], config_script], add_keys=False )
+    config_obs  = gf.merge_list_of_dicts( [config["obs"], config_script], add_keys=False )
     # create obs object which will be used to save observation into the database
     obs         = oc(config_obs, source, mode, "raw")
     
@@ -693,7 +693,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             print("TOO MUCH RAM USED, RESTARTING...")
             # before restarting the script we need to convert the keys to the database format (if data present)
             if obs_bufr:
-                obs_db = bf.convert_keys_us( obs_bufr, source )
+                obs_db = bf.convert_keys_us( obs_bufr, source, shift_datetime=False )
                 # and if we received a dictionary back: insert its information the station databases
                 if obs_db: obs.to_station_databases( obs_db, scale=True )
             
@@ -716,7 +716,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
     # if any observation data have been recorded
     if obs_bufr:
         # convert the keys to the database format
-        obs_db = bf.convert_keys_us( obs_bufr, source )
+        obs_db = bf.convert_keys_us( obs_bufr, source, shift_datetime=False )
         #for ID in obs: obs_bufr[ID].close()
         
         # if dictionary is not empty save its content to the station databases
@@ -742,7 +742,7 @@ if __name__ == "__main__":
     psr.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)")
     #TODO replace profiler by number of processes (prcs) when real multiprocessing (using module) is implemented
     psr.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
-    psr.add_argument("-C","--config", default="config", help="set custom name of config file")
+    psr.add_argument("-C","--config", default="obs", help="set custom name of config file")
     psr.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
     psr.add_argument("-M","--mode", help="set operation mode; options available: {oper, dev, test}")
     psr.add_argument("-n","--max_files", type=int, help="maximum number of files to parse (per source)")
@@ -776,7 +776,7 @@ if __name__ == "__main__":
     # save the general part of the configuration in a variable for easier acces
     config_general = config["general"]
     # do the same with the default bufr tables settings
-    tables_default = config["Bufr"]["tables"]
+    tables_default = config["bufr"]["tables"]
     
     # if there is a max_files setting present in command line options or config: use it preferring the cli value
     if args.max_files is not None:  config_script["max_files"]  = args.max_files
@@ -785,6 +785,7 @@ if __name__ == "__main__":
     
     # also for the PID file setting prefer the one from the command line arguments if present
     if args.pid_file: config_script["pid_file"] = True
+
     # if a PID file is used: check whether there is already a script with the same name running
     if config_script["pid_file"]:
         # get the pid of the currently running process
@@ -860,7 +861,7 @@ if __name__ == "__main__":
     if args.clusters: config_source["clusters"] = args.clusters
 
     # get configuration for the initialization of the database class
-    config_database = config["Database"]
+    config_database = config["database"]
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there

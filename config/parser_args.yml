@@ -20,6 +20,7 @@ flags:
   L:      [legacy_output, ~,                                          ~,          ~,          ~,        str,        "define output directory for old system's CSV format"                 ]
   m:      [max_retries,   ~,                                          ~,          ~,          ~,        int,        "maximum attemps when communicating with station databases"           ]
   n:      [max_files,     ~,                                          ~,          ~,          ~,        int,        "maximum number of files to parse (per source)"                       ]
+  N:      [save_null,     ~,                                          ~,          store_true, ~,        ~,          "save non-existing / empty observations as NULL values in databases"  ]
   M:      [mode,          [oper,dev,test],                            ~,          ~,          dev,      str,        "set custom name of config file"                                      ]
   o:      [timeout,       ~,                                          ~,          ~,          ~,        int,        "timeout in seconds when communicating with station databases"        ]
   O:      [output,        ~,                                          ~,          ~,          ~,        str,        "define output directory where the station databases will be saved"   ]

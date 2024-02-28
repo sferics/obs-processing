@@ -303,7 +303,7 @@ if __name__ == "__main__":
     parser.add_argument("-v","--verbose", action='store_true', help="show detailed output")
     parser.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)") #TODO -> prcs
     parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
-    parser.add_argument("-C","--config", default="config", help="set name of config file")
+    parser.add_argument("-C","--config", default="obs", help="set name of config file")
     parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
     parser.add_argument("-M","--mode", default=None, help="set mode of operation (default: None)")

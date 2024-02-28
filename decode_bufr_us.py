@@ -57,13 +57,13 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
 
         file_IDs = {FILE:ID}
 
-        config_bufr = gf.merge_list_of_dicts( [config["Bufr"], config_script] )
+        config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
         bf          = bc(config_bufr, script=script_name[-5:-3])
 
     elif source:
         config_source   = config_sources[source]
         if "bufr" in config_source:
-             config_list = [config["Bufr"], config_script, config_source["general"], config_source["bufr"]]
+             config_list = [config["bufr"], config_script, config_source["general"], config_source["bufr"]]
         else: return
 
         # previous dict entries will get overwritten by next list item during merge (right before left)
@@ -136,7 +136,7 @@ def decode_bufr_us( source=None, file=None, known_stations=None, pid_file=None )
 
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
-    config_obs  = gf.merge_list_of_dicts([config["Obs"], config_script], add_keys=False)
+    config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
     obs         = oc(config_obs, source, mode=config_script["mode"])
 
     for FILE in files_to_parse:
@@ -401,7 +401,7 @@ if __name__ == "__main__":
     parser.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)")
     #TODO replace profiler by number of processes (prcs) when real multiprocessing (using module) is implemented
     parser.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
-    parser.add_argument("-C","--config", default="config", help="set name of config file")
+    parser.add_argument("-C","--config", default="obs", help="set name of config file")
     parser.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
     parser.add_argument("-n","--max_files", type=int, help="maximum number of files to parse (per source)")
@@ -474,7 +474,7 @@ if __name__ == "__main__":
     if args.clusters: config_source["clusters"] = args.clusters
 
     # get configuration for the initialization of the database class
-    config_database = config["Database"]
+    config_database = config["database"]
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there

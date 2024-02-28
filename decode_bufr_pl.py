@@ -52,7 +52,7 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
     if source:
         config_source   = config_sources[source]
         if "bufr" in config_source:
-             config_list = [ config["Bufr"], config_script, config_general, config_source["bufr"] ]
+             config_list = [ config["bufr"], config_script, config_general, config_source["bufr"] ]
         else: return
         
         # previous dict entries will get overwritten by next list item during merge (right before left)
@@ -141,7 +141,7 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
 
         file_IDs = {FILE:ID}
         
-        config_bufr = gf.merge_list_of_dicts( [config["Bufr"], config_script] )
+        config_bufr = gf.merge_list_of_dicts( [config["bufr"], config_script] )
         bf          = bc(config_bufr, script=script_name[-5:-3])
 
     #TODO use defaultdic instead
@@ -150,7 +150,7 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
 
     # initialize obs class (used for saving obs into station databases)
     # in this merge we are adding only already present keys; while again overwriting them
-    config_obs  = gf.merge_list_of_dicts([config["Obs"], config_script], add_keys=False)
+    config_obs  = gf.merge_list_of_dicts([config["obs"], config_script], add_keys=False)
     obs         = oc( config_obs, source, mode=config_script["mode"] )
 
     for FILE in files_to_parse:
@@ -333,7 +333,7 @@ if __name__ == "__main__":
     psr.add_argument("-v","--verbose", action='store_true', help="show detailed output")
     psr.add_argument("-p","--profiler", help="enable profiler of your choice (default: None)") #TODO -> prcs
     psr.add_argument("-c","--clusters", help="station clusters to consider, comma seperated")
-    psr.add_argument("-C","--config", default="config", help="set name of config file")
+    psr.add_argument("-C","--config", default="obs", help="set name of config file")
     psr.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
     psr.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
     psr.add_argument("-M","--mode", default=None, help="set mode of operation (default: None)")
@@ -404,7 +404,7 @@ if __name__ == "__main__":
     if args.clusters:               config_source["clusters"] = args.clusters
 
     # get configuration for the initialization of the database class
-    config_database = config["Database"]
+    config_database = config["database"]
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there

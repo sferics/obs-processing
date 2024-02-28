@@ -8,6 +8,8 @@ from psutil import pid_exists, Process
 import subprocess, sys
 from copy import copy
 import sqlite3
+from database import DatabaseClass
+import global_variables as gv
 
 
 ### lambda functions
@@ -289,7 +291,8 @@ def read_file(file_name):
     return Path( file_name ).read_text()
 
 
-def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pure=True, duplicate_keys=False, values={}, autoformat=False):
+def read_yaml(file_name="obs", directory="config", ext="yml", typ="safe", pure=True,
+        duplicate_keys=False, values={}, autoformat=False):
     """
     Parameter:
     ----------
@@ -317,36 +320,39 @@ def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pur
     
     loader = yaml.YAML(typ=typ, pure=pure)
 
-    if typ == "rt": # use roundtrip and features from pypyr (https://pypyr.io/docs/context-parsers/yamlfile/)
-        from pypyr.context import Context
-        from pypyr.dsl import Jsonify, PyString, SicString
-        
-        for representer in (Jsonify, PyString, SicString): loader.register_class(representer)
+    match typ:
+        case "rt" | "safe": pass # use rountrip or safe loader; nothing else to do here
+        case "pypyr":
+            # use pypyr features (see documentation https://pypyr.io/docs/context-parsers/yamlfile)
+            from pypyr.context import Context
+            from pypyr.dsl import Jsonify, PyString, SicString
+            
+            for representer in (Jsonify, PyString, SicString): loader.register_class(representer)
 
-        # Context is a dict data structure, so can just use a dict representer
-        represent_dict = loader.representer.represent_dict
-        loader.Representer.add_representer( Context, represent_dict )
+            # Context is a dict data structure, so can just use a dict representer
+            represent_dict = loader.representer.represent_dict
+            loader.Representer.add_representer( Context, represent_dict )
+        case "jinja2":
+            # add this nice constructor if jinja is used: https://stackoverflow.com/a/62979185
+            from jinja2 import Template, Undefined
+            from ruamel.yaml.resolver import BaseResolver
 
-    elif typ == "jinja2":
-        # add this nice constructor if jinja is used: https://stackoverflow.com/a/62979185
-        from jinja2 import Template, Undefined
-        from ruamel.yaml.resolver import BaseResolver
+            class NullUndefined(Undefined):
+               def __getattr__(self, key):
+                 return ''
 
-        class NullUndefined(Undefined):
-           def __getattr__(self, key):
-             return ''
+            def resolve_in_dict( loader: loader, node: yaml.Node ):
+                assert isinstance( node, yaml.MappingNode )
+                values = loader.construct_mapping( node, deep=True )
+                for key, value in values.items():
+                    if isinstance(value, str):
+                        t = Template( value, undefined=NullUndefined )
+                        values[key] = t.render(values)
+                return values
 
-        def resolve_in_dict( loader: loader, node: yaml.Node ):
-            assert isinstance( node, yaml.MappingNode )
-            values = loader.construct_mapping( node, deep=True )
-            for key, value in values.items():
-                if isinstance(value, str):
-                    t = Template( value, undefined=NullUndefined )
-                    values[key] = t.render(values)
-            return values
-
-        yaml.add_constructor( BaseResolver.DEFAULT_MAPPING_TAG, resolve_in_dict )
-
+            yaml.add_constructor( BaseResolver.DEFAULT_MAPPING_TAG, resolve_in_dict )
+        case _: raise NotImplementedError(f"Unknown typ: '{typ}'")
+    
 
     # the following code was borrowed from here: https://stackoverflow.com/a/65516240
     def flatten_sequence(sequence: yaml.Node):
@@ -398,7 +404,7 @@ def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pur
         
     def construct_bool(loader: loader, node: yaml.Node):
         if isinstance(node, yaml.ScalarNode):
-            return bool(node.value)
+            return bool(int(node.value))
         else: raise TypeError("node.value needs to be a scalar")
 
     def construct_eval(loader: loader, node: yaml.Node):
@@ -447,7 +453,8 @@ def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pur
         else: raise TypeError("node.value needs to be a sequence")
 
     for tag in ("bool", "eval", "frozenset", "set", "tuple", "list", "iter", "range"):
-        yaml.add_constructor(u'tag:yaml.org,2002:'+tag, eval(f"construct_{datatype}"))
+        construct_function = locals()[f"construct_{tag}"]
+        yaml.add_constructor(u'tag:yaml.org,2002:'+tag, construct_function)
 
     if values:
         # another "borrowing" - I promise to give it back ASAP! https://stackoverflow.com/a/53043084
@@ -461,16 +468,16 @@ def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pur
 
 
     # this is the important part; load the file read-only with the chosen method and return it as dict
-    with open( directory + "/" + file_name + "." + ext, "rt" ) as f:
+    with open( directory + "/" + file_name + "." + ext, "rt" ) as file_handle:
         
-        # if using rountrip loader: use the features from pypyr as well and return a dict
-        if typ == "rt":
-            res = loader.load(f)
+        # if typ == pypyr: use the features from pypyr package and return dictitems a dictionary
+        if typ == "pypyr":
+            res = loader.load(file_handle)
             yml = yaml.YAML()
             return dict( yml.load(yaml.dump(res)) )["dictitems"]
 
         # else just use the ruamel.yaml loader
-        else: return yaml.load(f)
+        else: return yaml.load(file_handle)
 
 
 def get_file_path( FILE, string=True ):
@@ -509,6 +516,45 @@ def get_file_date( file_path, datetime=True ):
     if datetime:
         return ts2dt( date )
     return date
+
+
+def get_input_files_dict( input_files, source, config_database, known_stations={}, redo=False ):
+    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+    """
+    db = DatabaseClass(config=config_database)
+
+    if not known_stations: known_stations = db.get_stations()
+
+    files_dict = {}
+
+    for file_path in input_files:
+        file_name   = file_path.split("/")[-1]
+        file_date   = get_file_date(file_path)
+        file_dir    = "/".join(file_path.split("/")[:-1]) + "/"
+        ID          = db.get_file_id(file_name, file_path)
+
+        if ID:
+            if not redo and db.get_file_status(ID) in gv.skip_status:
+                continue
+            db.set_file_status(ID, status_locked)
+        else:
+            ID = db.register_file(file_name, file_path, source, status_locked, file_date, False, False)
+            if not ID:
+                log.error(f"REGISTERING FILE '{file_path}' FAILED!")
+                continue
+
+        files_dict[ID] = { "name":file_name, "dir":file_dir, "date":file_date }
+
+    db.close(commit=True)
+    return files_dict
 
 
 def dt2str( datetime, fmt ):
