@@ -5,6 +5,7 @@ import os, sys
 import subprocess
 import global_variables as gv
 import global_functions as gf
+from config import ConfigClass
 from datetime import datetime as dt
 from subprocess import Popen, PIPE
 
@@ -23,12 +24,11 @@ from subprocess import Popen, PIPE
 
 if __name__ == "__main__":
     
-    from config import ConfigClass as cc
-
+    # define program info message (--help, -h)
     info        = "Run the complete obs post-processing chain"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","L","d","D","t","e")
-    cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
     start_time  = dt.utcnow()
@@ -36,12 +36,8 @@ if __name__ == "__main__":
     
     log.info(started_str)
     
+    # define some shorthands from script config
     verbose         = cf.script["verbose"]
-    debug           = cf.script["debug"]
-    traceback       = cf.script["traceback"]
-    timeout         = cf.script["timeout"]
-    max_retries     = cf.script["max_retries"]
-    output          = cf.script["output"]
     legacy_output   = cf.script["legacy_output"]
     export          = cf.script["export"] 
     mode            = cf.script["mode"]
@@ -60,28 +56,29 @@ if __name__ == "__main__":
     
     # get all provided command line arguments as a list
     cli_args    = sys.argv
-
-    # returns "-L" or "--legacy_output" if either of them are found in the cli arguments; else None
-    arg_L       = gf.values_in_list(("-L", "--legacy_output"), cli_args)
-
-    # if legacy_output: remove temporarly from argument list
-    # we will only add it later to the export_obs script
-    if arg_L:
-        pos_L = cli_args.index(arg_L)
-        del cli_args[pos_L:pos_L+1]
     
-    # also temporarily delete the -e / --export flag if present
-    for flag in ("-e","--export"):
-        try:    cli_args.remove(flag)
-        except: pass
-        else:   break
+    if export and legacy_output:
+        # returns "-L" or "--legacy_output" if either of them are found in cli arguments; else None
+        arg_L       = gf.values_in_list(("-L", "--legacy_output"), cli_args)
+
+        # if legacy_output: remove temporarly from argument list
+        # we will only add it later to the export_obs script
+        if arg_L:
+            pos_L = cli_args.index(arg_L)
+            del cli_args[pos_L:pos_L+1]
+        
+        # also temporarily delete the -e / --export flag if present
+        for flag in ("-e","--export"):
+            try:    cli_args.remove(flag)
+            except: pass
+            else:   break
 
     # https://stackoverflow.com/questions/8953119/waiting-for-external-launched-process-finish
 
     for script in scripts:
-        # if export is set True we set the -L and -e flags only for the export_obs script
+        # if export is set True we define the -L flag only for the export_obs script
         if script == "export" and export and legacy_output:
-            cli_args += ["-L", legacy_output, "-e"]
+            cli_args += ["-L", legacy_output]
         if cf.args.dry:
             print("python", script+"_obs.py", *cli_args)
         else:

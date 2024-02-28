@@ -3,6 +3,8 @@ import os
 import sys
 from datetime import datetime as dt, timedelta as td
 from database import DatabaseClass
+from config import ConfigClass
+from obs import ObsClass
 import global_functions as gf
 
 
@@ -65,40 +67,51 @@ def audit_obs(stations):
 
 
 if __name__ == "__main__":
-
-    script_name     = gf.get_script_name(__file__)
-    config          = gf.read_yaml( "config" )
-    config_script   = config["scripts"][script_name]
-    output_path     = config_script["output_path"]
-    verbose         = config_script["verbose"]
-    traceback       = config_script["traceback"]
-    debug           = config_script["debug"]
-    mode            = config["general"]["mode"]
-
-    if "mode" in config_script:
-        mode = config_script["mode"]
-
-    cluster         = set( config_script["clusters"].split(",") )
-    db              = DatabaseClass( config=config["database"], ro=1 )
-    stations        = db.get_stations( cluster ); db.close(commit=False)
     
-    elements        = tuple(f'{element}' for element in db.get_elements())
-    element_ranges  = gf.read_yaml("element_ranges")
+    # define program info message (--help, -h)
+    info        = "Reduce the number of observations according to operation mode"
+    script_name = gf.get_script_name(__file__)
+    flags       = ("l","v","C","m","M","o","O","d","t","P")
+    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    log_level   = cf.script["log_level"]
+    log         = gf.get_logger(script_name, log_level=log_level)
+    start_time  = dt.utcnow()
+    started_str = f"STARTED {script_name} @ {start_time}"
 
-    if config_script["multiprocessing"]:
-        # number of processes
-        npcs = config_script["multiprocessing"]
+    log.info(started_str)
+
+    # define some shorthands from script config
+    verbose         = cf.script["verbose"]
+    debug           = cf.script["debug"]
+    traceback       = cf.script["traceback"]
+    timeout         = cf.script["timeout"]
+    max_retries     = cf.script["max_retries"]
+    mode            = cf.script["mode"]
+    output          = cf.script["output"] + "/" + mode
+    clusters        = cf.script["clusters"]
+    stations        = cf.script["stations"]
+    processes       = cf.script["processes"]
+
+    obs             = ObsClass( config=cf.obs, source=source, mode=mode, stage="forge" )
+    db              = DatabaseClass( config=cf.database, ro=1 )
+    stations        = db.get_stations( clusters )
+    db.close(commit=False)
+
+    elements        = tuple(f'{element}' for element in db.get_elements())
+    element_ranges  = gf.read_yaml(cf.script["element_ranges"])
+
+    if processes: # number of processes
         import multiprocessing as mp
         from random import shuffle
         import numpy as np
 
         stations = list(stations)
         shuffle(stations)
-        #stations_groups = gf.chunks(stations, npcs)
-        station_groups = np.array_split(stations, npcs)
+        stations_groups = gf.chunks(stations, processes)
+        station_groups = np.array_split(stations, processes)
 
         for station_group in station_groups:
-            p = mp.Process(target=reduce_obs, args=(station_group,))
+            p = mp.Process(target=audit_obs, args=(station_group,))
             p.start()
 
     else: audit_obs(stations)

@@ -171,7 +171,7 @@ def decode_bufr_ex( source=None, file=None, known_stations=None, pid_file=None )
             #eccodes_path = ecmwflibs.find("eccodes")
             
         # get cluster information from config which is source-specific; therefore happens here
-        try:    clusters = frozenset(config_source["clusters"])
+        try:    clusters = config_source["clusters"]
         # if clusters setting is not present or in case of any errors, process all clusters
         except: clusters = None
         
@@ -857,7 +857,7 @@ if __name__ == "__main__":
     if "output" in config_script: output = config_script["output"]
     
     # clusters also prefer the command line argument setting
-    if args.clusters: config_source["clusters"] = frozenset(args.clusters)
+    if args.clusters: config_source["clusters"] = args.clusters
 
     # get configuration for the initialization of the database class
     config_database = config["Database"]

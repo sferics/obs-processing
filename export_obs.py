@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #exporter for MSwr old MOS system
 from global_variables import null_vals
+from database import DatabaseClass
+from config import ConfigClass
 
 #TODO write converter from database to MSwr/metwatch format
 
@@ -561,40 +563,36 @@ def export_obs( data, output, fmt="csv" ):
 
 
 if __name__ == "__main__":
+    
+    # define program info message (--help, -h)
+    info        = "Export observations to legacy output format (metwatch csv)"
+    script_name = gf.get_script_name(__file__)
+    flags       = ("l","v","C","m","M","o","O","L","e","d","t","P")
+    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    log_level   = cf.script["log_level"]
+    log         = gf.get_logger(script_name, log_level=log_level)
+    start_time  = dt.utcnow()
+    started_str = f"STARTED {script_name} @ {start_time}"
 
-    from datetime import datetime as dt
-    import json
-    import argparse
+    log.info(started_str)
 
-    # define program info message (--help, -h) and parser arguments with explanations on them (help)
-    info    = "Run the complete obs post-processing chain"
-    psr     = argparse.ArgumentParser(description=info)
+    # define some shorthands from script config
+    verbose         = cf.script["verbose"]
+    debug           = cf.script["debug"]
+    traceback       = cf.script["traceback"]
+    timeout         = cf.script["timeout"]
+    max_retries     = cf.script["max_retries"]
+    mode            = cf.script["mode"]
+    output          = cf.script["output"] + "/" + mode
+    legacy_output   = cf.script["legacy_output"]
+    clusters        = cf.script["clusters"]
+    stations        = cf.script["stations"]
+    processes       = cf.script["processes"]
 
-    # add all needed command line arguments to the program's interface
-    psr.add_argument("-l","--log_level", choices=gv.log_levels, default="NOTSET", help="set logging level")
-    psr.add_argument("-v","--verbose", action='store_true', help="show more detailed output")
-    psr.add_argument("-C","--config", default="config", help="set custom name of config file")
-    psr.add_argument("-m","--max_retries", help="maximum attemps when communicating with station databases")
-    psr.add_argument("-M","--mode", help="set operation mode; options available: {oper, dev, test}")
-    psr.add_argument("-o","--timeout", help="timeout in seconds for station databases")
-    psr.add_argument("-L","--legacy_output", help="define output directory for old system's CSV format")
-    psr.add_argument("-O","--output", help="output directory for station databases (not used in this script)")
-    psr.add_argument("-d","--debug", action='store_true', help="enable or disable debugging")
-    psr.add_argument("-t","--traceback", action='store_true', help="enable or disable traceback")
-    psr.add_argument("-e","--export", action="store_tru", help="export data to legacy CSV format")
-    psr.add_argument("source", default="", nargs="?", help="parse source / list of sources (comma seperated)")
-
-    # parse all command line arguments and make them accessible via the args variable
-    args = psr.parse_args()
-
-    # if source argument is provided set source info accordingly
-    if args.source: source = args.source
-    # default source name is test
-    #TODO if no source is provided it should instead iterate over all sources, like in decode_bufr.py
-    else:           source = "test"
-
-    date = dt.utcnow()
-    print( "export_files.py started @", date.strftime("%Y/%m/%d %H:%M") )
+    obs             = ObsClass( config=cf.obs, source=source, mode=mode, stage="forge" )
+    db              = DatabaseClass( config=cf.database, ro=1 )
+    stations        = db.get_stations( clusters )
+    db.close(commit=False)
 
     with open("output.json") as f:
         INPUT = json.load( f )

@@ -62,7 +62,7 @@ def decode_bufr_pl( source=None, file=None, known_stations=None, pid_file=None )
 
         bufr_dir = bf.dir + "/"
 
-        try:    clusters = frozenset(config_source["clusters"])
+        try:    clusters = config_source["clusters"]
         except: clusters = None
 
         db = dc(config=config_database)
@@ -401,7 +401,7 @@ if __name__ == "__main__":
 
     if args.mode:                   config_script["mode"] = args.mode
 
-    if args.clusters:               config_source["clusters"] = frozenset(args.clusters) 
+    if args.clusters:               config_source["clusters"] = args.clusters
 
     # get configuration for the initialization of the database class
     config_database = config["Database"]

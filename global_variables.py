@@ -37,4 +37,4 @@ null_vars = { np.nan, np.inf, np.NINF, "", None, }
 not_types = ( None, 0, False, "", {}, [], (), set(), frozenset() )
 
 # all array-like python types; you can check "X in array_types"
-array_types = { list, tuple, set, frozenset }
+array_types = frozenset( { list, tuple, set, frozenset } )

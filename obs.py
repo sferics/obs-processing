@@ -6,7 +6,8 @@ import global_variables as gv
 
 
 class ObsClass:
-    def __init__(self, config: dict={}, source: str="test", mode: str="dev", stage: str="raw"):
+    def __init__(self, config: dict={}, source: str="test", mode: str="dev", stage: str="raw",
+            verbose: bool = False):
         """
         Parameter:
         ----------
@@ -18,38 +19,16 @@ class ObsClass:
         -------
         
         """
-        print(mode, stage)
         assert( mode in {"dev","oper","test"} and stage in {"raw","forge","final"} )
 
         self.source = source
         self.mode   = mode
         self.stage  = stage
-       
-        try:    self.output_path    = str(config["output_path"])
-        except: self.output_path    = "/home/juri/data/stations"
-
-        try:    self.max_retries    = int(config["max_retries"])
-        except: self.max_retries    = 100
+      
+        for key, val in config:
+            if verbose: print(key, val)
+            setattr(self, key, val)
         
-        try:    self.commit         = bool(config["commit"])
-        except: self.commit         = True
-        
-        try:    self.timeout        = float(config["timeout"])
-        except: self.timeout        = 5
-        
-        try:    self.traceback      = bool(config["traceback"])
-        except: self.traceback      = False
-        
-        try:    self.verbose        = bool(config["verbose"])
-        except: self.verbose        = False
-        
-        try:    self.settings       = dict(config["settings"])
-        except: self.settings       = {}
-        
-        if "log_level" in config and config["log_level"] in gv.log_levels:
-            self.log_level = config["log_level"]
-        else: self.log_level = "NOTSET"
-
         self.log = gf.get_logger( self.__class__.__name__, self.log_level )
 
 

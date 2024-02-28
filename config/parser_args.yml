@@ -1,13 +1,13 @@
 positional:
   # name  nargs           default       help         
-  source: ["*",           ~,            "parse source / list of sources (comma seperated)" ]
-  #source: ["*",           ~,            iter,   "parse source / list of sources (comma seperated)" ]
+  source: ["*",           ~,            "parse source / list of sources (space seperated)" ]
+  #source: ["*",           ~,            iter,   "parse source / list of sources (space seperated)" ]
 
 flags:
   # short flag            choices                                     nargs       action      default   type        help
   a:      [approach,      [us, ex, pd, pl, gt],                       ~,          ~,          gt,       str,        "choose method of decoding"                                           ]
   c:      [clusters,      ~,                                          ~,          ~,          ~,        split_set,  "station clusters to consider, comma seperated"                       ]
-#  c:      [clusters,      ~,                                          ~,          split_args, ~,        frozenset,  "station clusters to consider, comma seperated"                       ]
+#  c:      [clusters,      ~,                                          ~,          split_args, ~,        set,        "station clusters to consider, comma seperated"                       ]
   C:      [config_file,   ~,                                          ~,          ~,          ~,        str,        "set custom name of config file"                                      ]
   e:      [export,        ~,                                          ~,          store_true, ~,        ~,          "export data to legacy CSV format"                                    ]
   d:      [debug,         ~,                                          ~,          store_true, ~,        ~,          "enable debugging (using pdb and debug prints)"                       ]

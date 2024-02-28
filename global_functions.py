@@ -360,7 +360,7 @@ def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pur
 
         Return:
         -------
-
+        generator which yields list of integers
         """
         if isinstance(sequence, yaml.ScalarNode):
             yield sequence.value
@@ -388,7 +388,7 @@ def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pur
 
         Return:
         -------
-
+        list of integers
         """
         return list(flatten_sequence(node))
     
@@ -400,7 +400,14 @@ def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pur
         if isinstance(node, yaml.ScalarNode):
             return bool(node.value)
         else: raise TypeError("node.value needs to be a scalar")
-    
+
+    def construct_eval(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.ScalarNode):
+            if type(node.value) == str:
+                return eval(node.value)
+            else: raise TypeError("node.value needs to be a scalar (of type str)")
+        else: raise TypeError("node.value needs to be a scalar")
+
     def yield_sequence(sequence, call = None):
         for el in sequence.value:
             if call:    yield call(el.value)
@@ -439,8 +446,8 @@ def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pur
             else: raise TypeError("node.value needs to be a sequence (of length 1-3)")
         else: raise TypeError("node.value needs to be a sequence")
 
-    for datatype in ("bool", "frozenset", "set", "tuple", "list", "iter", "range"):
-        yaml.add_constructor(u'tag:yaml.org,2002:'+datatype, eval(f"construct_{datatype}"))
+    for tag in ("bool", "eval", "frozenset", "set", "tuple", "list", "iter", "range"):
+        yaml.add_constructor(u'tag:yaml.org,2002:'+tag, eval(f"construct_{datatype}"))
 
     if values:
         # another "borrowing" - I promise to give it back ASAP! https://stackoverflow.com/a/53043084
@@ -455,7 +462,8 @@ def read_yaml(file_name="config", directory="config", ext="yml", typ="safe", pur
 
     # this is the important part; load the file read-only with the chosen method and return it as dict
     with open( directory + "/" + file_name + "." + ext, "rt" ) as f:
-         
+        
+        # if using rountrip loader: use the features from pypyr as well and return a dict
         if typ == "rt":
             res = loader.load(f)
             yml = yaml.YAML()

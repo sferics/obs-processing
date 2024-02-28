@@ -1,5 +1,6 @@
 #!/bin/bash
 # start poor-man's multi processing for the decode_bufr script.py by just starting it N times (default is 15)
+# second cli argument defines "approach" setting (-a) of decode_bufr.py script (default: gt)
 
 if [ $# -ge 1 ]
 then

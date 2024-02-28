@@ -21,7 +21,7 @@ import global_variables as gv
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
 
 
-def decode_bufr( source=None, input_files=None, known_stations=frozenset(), pid_file=None ):
+def decode_bufr( source=None, input_files=None, known_stations=set(), pid_file=None ):
     #TODO
     """
     Parameter:
@@ -91,7 +91,7 @@ def decode_bufr( source=None, input_files=None, known_stations=frozenset(), pid_
 
         bufr_dir = bf.dir + "/"
 
-        try:    clusters = frozenset(config_source["clusters"])
+        try:    clusters = config_source["clusters"]
         except: clusters = None
 
         db = dc(config=config_database)
@@ -102,14 +102,15 @@ def decode_bufr( source=None, input_files=None, known_stations=frozenset(), pid_
             else:   break
         
         if i == max_retries - 1: sys.exit(f"Can't access main database, tried {max_retries} times. Is it locked?")
-
+        
+        #TODO add possibility to use multiple extensions (set)
         if hasattr(bf, "glob") and bf.glob: ext = f"{bf.glob}.{bf.ext}"
-        else:                               ext = f"*.{bf.ext}" #TODO add possibility to use multiple extensions (set)
+        else:                               ext = f"*.{bf.ext}"
         
         if args.restart:
-            files_to_parse = frozenset(db.get_files_with_status( f"locked_{args.restart}", source ))
+            files_to_parse = db.get_files_with_status( f"locked_{args.restart}", source )
         else:
-            files_in_dir   = frozenset((os.path.basename(i) for i in glob( bufr_dir + ext )))
+            files_in_dir   = { os.path.basename(i) for i in glob( bufr_dir + ext ) }
 
             if args.redo:   skip_files  = db.get_files_with_status( r"locked_%", source )
             else:           skip_files  = db.get_files_with_status( bf.skip_status, source )
@@ -167,7 +168,10 @@ def decode_bufr( source=None, input_files=None, known_stations=frozenset(), pid_
         FILE            = FILES[ID]
         PATH            = FILE["dir"] + FILE["name"]
         if verbose: print(PATH)
-        
+    
+        #TODO
+        decoder_approach()
+
         #TODO fix memory leak or find out how restarting script works together with multiprocessing
         memory_free = psutil.virtual_memory()[1] // 1024**2
         # if less than x MB free memory: commit, close db connection and restart program
@@ -225,70 +229,16 @@ if __name__ == "__main__":
     cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=False)
 
     # get the right script name by adding approach suffix
-    config_script   = cf.scripts[f"{script_name}_{cf.script['approach']}"]
     conda_env       = os.environ['CONDA_DEFAULT_ENV']
     
-    if config_script["conda_env"] != conda_env:
+    if cf.script["conda_env"] != conda_env:
         sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
     # import the right decode_bufr_?? function according to -a/--approach setting as decode_bufr
-    decode_bufr = __import__( "decode_bufr_functions", globals(), locals(), [f"decode_bufr_{args.approach}"] )
-    print(decode_bufr)
-    sys.exit()
-
-    # save the general part of the configuration in a variable for easier acces
-    config_general = config["general"]
-
-    if args.max_files is not None:  config_script["max_files"]  = args.max_files
-    if args.sort_files:             config_script["sort_files"] = args.sort_files
-    if args.pid_file:               config_script["pid_file"] = True
-    
-    if config_script["pid_file"]:
-        pid_file = script_name + ".pid"
-        if gf.already_running( pid_file ):
-            sys.exit( f"{script_name} is already running... exiting!" )
-    else: pid_file = None
-
-    if args.profiler:
-        config_script["profiler"] = args.profiler
-    if config_script["profiler"]:
-        from importlib import import_module
-        profiler    = import_module(config_script["profiler"])
-        profile     = True
-    else: profile = False
-    
-    if args.log_level: config_script["log_level"] = args.log_level
-    log = gf.get_logger(script_name)
-
-    start_time  = dt.utcnow()
-    started_str = f"STARTED {script_name} @ {start_time}"
-    log.info(started_str)
-
-    if args.verbose is not None:
-        config_script["verbose"] = args.verbose
-    
-    verbose = config_script["verbose"]
-    if verbose: print(started_str)
-    
-    if args.debug:                  config_script["debug"]          = True
-    if config_script["debug"]:      import pdb; debug = True
-    else:                           debug = False 
-
-    if args.traceback:              config_script["traceback"]      = True
-
-    if args.timeout:                config_script["timeout"]        = args.timeout
-    
-    if args.max_retries:            config_script["max_retries"]    = max_retries = int(args.max_retries)
-    else:                           max_retries = int(config_script["max_retries"])
-
-    if args.mode:                   config_script["mode"]           = args.mode
-    if args.clusters:               config_source["clusters"]       = frozenset(args.clusters) 
-        
-    # get configuration for the initialization of the database class
-    config_database = config["Database"]
+    decoder_approach = __import__( "approaches", globals(), locals(), [f"decode_bufr_{cf.args.approach}"] )
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there
-    db = dc(config=config_database)
+    db = dc(config=cf.database)
     db.cur.execute( gf.read_file( "file_table.sql" ) )
     db.close()
     
@@ -300,35 +250,31 @@ if __name__ == "__main__":
     elif args.files:
         # input can be a semicolon-seperated list of files as well (or other seperator char defined by sep)
         #input_files = args.file.split(args.sep)
-        if args.sep in args.file:
+        if args.sep in args.files:
             import re
             input_files = re.split(args.sep, args.file)
-        else: input_files = (args.file,)
+        else: input_files = (args.files,)
         decode_bufr( source=args.source, input_files=input_files, pid_file=pid_file )
     
     elif args.source:
-        source = config["sources"][args.source]
-
-        if "," in source:
-            sources = source.split(",")
+        if len(args.source) > 1:
             config_sources = {}
             for s in sources:
-                config_sources[s] = config["sources"][s]
+                config_sources[s] = cf.sources[s]
 
-        else: config_sources = { args.source : config["sources"][args.source] }
+        else: config_sources = { args.source : cf.sources[args.source] }
    
-    else: config_sources = config["sources"]
+    else: config_sources = cf.sources
     
     if config_sources:
         for SOURCE in config_sources:
             if verbose: print(f"Parsing source {SOURCE}...")
-            decode_bufr_gt( source = SOURCE, pid_file=pid_file )
+            decode_bufr( source = SOURCE, pid_file=pid_file )
 
     stop_time = dt.utcnow()
     finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)
 
-    if verbose:
-        print(finished_str)
+    if verbose: print(finished_str)
     
     time_taken = stop_time - start_time
     print(f"{time_taken.seconds}.{time_taken.microseconds} s")

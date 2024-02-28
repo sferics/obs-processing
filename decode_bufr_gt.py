@@ -96,7 +96,7 @@ def decode_bufr_gt( source=None, input_files=None, known_stations=set(), pid_fil
 
         bufr_dir = bf.dir + "/"
 
-        try:    clusters = frozenset(config_source["clusters"])
+        try:    clusters = config_source["clusters"]
         except: clusters = None
 
         db = dc(config=config_database)
@@ -379,7 +379,7 @@ if __name__ == "__main__":
     else:                           max_retries = int(config_script["max_retries"])
 
     if args.mode:                   config_script["mode"]           = args.mode
-    if args.clusters:               config_source["clusters"]       = frozenset(args.clusters) 
+    if args.clusters:               config_source["clusters"]       = args.clusters
         
     # get configuration for the initialization of the database class
     config_database = config["Database"]

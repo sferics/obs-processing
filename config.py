@@ -6,17 +6,36 @@ class SplitArgs(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, values.split(','))
 
+class ToSet(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, set(values))
+
+class ToFrozenseet(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, frozenset(values))
+
 class ToTuple(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, tuple(values))
 
-split_set   = lambda values : frozenset(values.split(","))
-split_tuple = lambda values : tuple(values.split(","))
+class ToList(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, list(values))
+
+class ToIter(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, iter(values))
+
+split_set       = lambda values : set(values.split(","))
+split_frozenset = lambda values : frozenset(values.split(","))
+split_tuple     = lambda values : tuple(values.split(","))
+split_list      = lambda values : values.split(",")
+split_iter      = lambda values : iter(values.split(","))
 
 
 class ConfigClass:
-    def __init__(self, script_name: str, pos: iter, flags: iter, info: str, config: str = "obs",
-            parser_args: str = "parser_args", verbose: bool = False):
+    def __init__(self, script_name: str, pos: iter = [], flags: iter = [], info: str = "",
+            config_file: str = "obs", parser_args: str = "parser_args", verbose: bool = False):
         
         args_dict   = gf.read_yaml(parser_args)
         args_pos    = args_dict["positional"]
@@ -47,26 +66,25 @@ class ConfigClass:
         # if the config_file flag is present in parser_args.yml and the flag is turned on
         if hasattr(self.args, "config_file") and self.args.config_file:
             # overwrite config file name (default: obs[.yml])
-            config = self.args.config_file
+            config_file = self.args.config_file
         
-        config          = gf.read_yaml(config)
-        self.config     = config
-        # take script name as argument & combine config_general+config_script (script has priority)
-        self.script_raw = config["scripts"][script_name]
-        self.general    = config["general"]
-        self.script     = self.general | self.script_raw
-        self.classes    = { i: config[i] for i in config if i[0].isupper() }
+        self.config     = gf.read_yaml(config_file)
         
-        # classes will get there own attributes containing their dict; starting with lowercase
-        for key, dic in self.classes.items():
-            if verbose: print(key.lower(), dic)
-            setattr(self, key.lower(), dic)
+        #TODO remove this rather ugly workaround; there should be only one config for decode_bufr.py
+        if hasattr(self.args, "approach") and self.args.approach:
+            script_name = script_name.replace(".", f"_{self.args.approach}.")
+       
+        # make all keys of config dict into class attributes for easier access
+        for key, dic in self.config.items():
+            if verbose: print(key, dic)
+            setattr(self, key, dic)
 
-        self.clusters   = config["clusters"]
-        self.sources    = config["sources"]
+        # take script name as argument & combine config_general+config_script (script has priority)
+        self.script_raw = self.scripts[script_name]
+        self.script     = self.general | self.script_raw
 
         # command line arguments overwrite settings in script config OR can even add new keys
         if verbose: print("ARGS")
         for key, val in self.args.__dict__.items():
-            if verbose: print(key, val)
+            if verbose:         print(key, val)
             if val is not None: self.script[key] = val

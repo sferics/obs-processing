@@ -1,25 +1,25 @@
 ### most general (default) settings; can be overwritten by class and script configs (or command line options)
 general:
-  mode:         dev # oper, test, ???
-  output:       /home/juri/data/stations
-  log_level:    INFO
-  verbose:      0
-  debug:        0
-  traceback:    0
-  timeout:      5
-  max_retries:  100
-  stations:     [] #[wmo,dwd,noaa,zamg,tawes]
-  clusters:     []
+  mode:           !!str   dev # oper, test, ???
+  output:         !!str   /home/juri/data/stations
+  log_level:      !!str   INFO
+  verbose:        !!bool  0
+  debug:          !!bool  0
+  traceback:      !!bool  0
+  timeout:        !!int   5
+  max_retries:    !!int   100
+  stations:       !!set   [] #[wmo,dwd,noaa,zamg,tawes]
+  clusters:       !!set   []
 
 ### configuration of classes (key name == name of class without 'Class')
-### class configurations always start with capital letter
+### class configurations
 
-Database:
-  db_file:    main.db
-  verbose:    0
-  log_level:  ERROR
-  traceback:  1
-  timeout:    5 # default is 5
+database:
+  db_file:        !!str   main.db
+  verbose:        !!bool  0
+  log_level:      !!str   ERROR
+  traceback:      !!bool  1
+  timeout:        !!int   5 # default is 5
   settings: 
     analysis_limit:             
     auto_vacuum:                
@@ -56,22 +56,22 @@ Database:
     user_version:               
     writable_schema:            
 
-Bufr:
-  verbose:          0
-  log_level:        ERROR
-  traceback:        0
-  tables:           /home/juri/miniconda3/envs/obs/share/eccodes/definitions
+bufr:
+  verbose:            !!bool  0
+  log_level:          !!str   ERROR
+  traceback:          !!bool  0
+  tables:             !!str   /home/juri/miniconda3/envs/obs/share/eccodes/definitions
 
-Obs:
-  verbose:          0
-  log_level:        WARNING
-  traceback:        0
-  mode:             dev
-  output:           /home/juri/data/stations
-  max_retries:      1200
-  timeout:          3
-  commit:           True
-  settings:         {} # you may add SQLite PRAGMA settings analog to settings of main database here
+obs:
+  verbose:            !!bool  0
+  log_level:          !!str   WARNING
+  traceback:          !!bool  0
+  mode:               !!str   dev
+  output:             !!str   /home/juri/data/stations
+  max_retries:        !!int   1200
+  timeout:            !!int   3
+  commit:             !!bool  1
+  settings:                   {} # you may add SQLite PRAGMA settings analog to settings of main database here
 
 #Logger: # TODO consider if we need a seperate logger class; for now the general_functions is fine
 
@@ -79,82 +79,89 @@ Obs:
 
 ### script configurations (key name == script name)
 scripts:
+  rename_elements.py:
+    verbose:          !!bool  1
+    traceback:        !!bool  1
+    max_files:        !!int   0 # 0 or None (~) means no limit
+    max_retries:      !!int   100
+    processes:        !!int   15
+
   add_stations_from_bufr.py:
-    conda_env:        obs
-    pid_file:         0 # create and use pid file
-    verbose:          1
-    traceback:        1
-    max_files:        0 # 0 or None (~) means no limit
-    max_retries:      100
-    processes:        15
-    station_info:     bufr_station_info
-    null_vals:        ["null", "NULL", MISSING, XXXX, " ", "", ~]
-    mandatory_keys:   [stationOrSiteName, latitude, longitude]
-    additional_keys:  [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
+    conda_env:        !!str   obs
+    pid_file:         !!bool  0 # create and use pid file
+    verbose:          !!bool  1
+    traceback:        !!bool  1
+    max_files:        !!int   0 # 0 or None (~) means no limit
+    max_retries:      !!int   100
+    processes:        !!int   15
+    station_info:     !!str   bufr_station_info
+    null_vals:        !!set   ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    mandatory_keys:   !!set   [stationOrSiteName, latitude, longitude]
+    additional_keys:  !!set   [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
 
   decode_bufr.py: # can use any approach below TODO
-    conda_env:        !!str       obs
-    pid_file:         !!int       0  # create and use pid file
-    verbose:          !!int       0 # verbose output
-    profiler:         !!int       0 # use profiler  TODO
-    log_level:        !!str       INFO
-    debug:            !!bool      0
-    traceback:        !!bool      0 # enable traceback prints
-    timeout:          !!int       3 # timeout for station databases
-    processes:        !!int       15 # if > 0 use processes, number of worker processes TODO
-    min_ram:          !!int       2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_retries:      !!int       1000 # retries when using set_file_statuses (and writing to station databases)
-    max_files:        !!int       5395 #6225 #5046 # zero means no maximum #15: 5395
-    sort_files:       !!bool      1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    approach:         !!str       gt
-    stations:         !!frozenset [wmo]
-    clusters:         !!frozenset [germany]
-    mode:             !!str       dev
-    output:           !!str       /home/juri/data/stations_pl_test
-    bufr_translation: !!str       bufr_translation_pd  # TODO might be useful in future to define this by source?
-    bufr_flags:       !!str       bufr_flags           # code flag table conversions
+    conda_env:        !!str   obs
+    pid_file:         !!int   0  # create and use pid file
+    verbose:          !!int   0 # verbose output
+    profiler:         !!int   0 # use profiler  TODO
+    log_level:        !!str   INFO
+    debug:            !!bool  0
+    traceback:        !!bool  0 # enable traceback prints
+    timeout:          !!int   3 # timeout for station databases
+    processes:        !!int   15 # if > 0 use seperate processes, number of worker processes TODO
+    min_ram:          !!int   2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_retries:      !!int   1000 # retries when using set_file_statuses (and writing to station databases)
+    max_files:        !!int   5395 #6225 #5046 # zero means no maximum #15: 5395
+    sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    approach:         !!str   gt
+    stations:         !!set   [wmo]
+    clusters:         !!set   [germany]
+    mode:             !!str   dev
+    output:           !!str   /home/juri/data/stations_pl_test
+    bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
+    bufr_flags:       !!str   bufr_flags           # code flag table conversions
 
   decode_bufr_pd.py: # uses pdbufr
-    conda_env:        obs
-    pid_file:         0 # create and use pid file
-    verbose:          0 # verbose output
-    profiler:         0 # use profiler  TODO
-    log_level:        INFO
-    debug:            0
-    traceback:        0 # enable traceback prints
-    timeout:          3 # timeout for station databases
-    processes:        15 # if > 0 use processes, number of worker processes TODO
-    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
-    max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
-    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    stations:         [wmo]
-    clusters:         [germany]
-    mode:             dev
-    output:           /home/juri/data/stations_pd
-    bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags           # code flag table conversions
+    conda_env:        !!str   obs
+    pid_file:         !!bool  0 # create and use pid file
+    verbose:          !!bool  0 # verbose output
+    profiler:         !!bool  0 # use profiler  TODO
+    log_level:        !!str   INFO
+    debug:            !!bool  0
+    traceback:        !!bool  0 # enable traceback prints
+    timeout:          !!int   3 # timeout for station databases
+    processes:        !!int   15 # if > 0 use processes, number of worker processes TODO
+    min_ram:          !!int   2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_retries:      !!int   1000 # retries when using set_file_statuses (and writing to station databases)
+    max_files:        !!int   5395 #6225 #5046 # zero means no maximum #15: 5395
+    sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    stations:         !!set   [wmo]
+    clusters:         !!set   [germany]
+    mode:             !!str   dev
+    output:           !!str   /home/juri/data/stations_pd
+    bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
+    bufr_flags:       !!str   bufr_flags           # code flag table conversions
 
   decode_bufr_pl.py: # uses plbufr
-    conda_env:        obs
-    pid_file:         0 # create and use pid file
-    verbose:          0 # verbose output
-    profiler:         0 # use profiler  TODO
-    log_level:        INFO
-    debug:            0
-    traceback:        0 # enable traceback prints
-    timeout:          3 # timeout for station databases
-    processes:        15 # if > 0 use processes, number of worker processes TODO
-    min_ram:          2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_retries:      1000 # retries when using set_file_statuses (and writing to station databases)
-    max_files:        5395 #6225 #5046 # zero means no maximum #15: 5395
-    sort_files:       1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    stations:         [wmo]
-    clusters:         [germany]
-    mode:             dev
-    output:           /home/juri/data/stations_pl_test
-    bufr_translation: bufr_translation_pd  # TODO might be useful in future to define this by source?
-    bufr_flags:       bufr_flags           # code flag table conversions
+    conda_env:        !!str   obs
+    pid_file:         !!bool  0 # create and use pid file
+    verbose:          !!bool  0 # verbose output
+    profiler:         !!bool  0 # use profiler  TODO
+    log_level:        !!str   INFO
+    debug:            !!bool  0
+    traceback:        !!bool  0 # enable traceback prints
+    timeout:          !!int   3 # timeout for station databases
+    processes:        !!int   15 # if > 0 use processes, number of worker processes TODO
+    min_ram:          !!int   2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
+    max_retries:      !!int   1000 # retries when using set_file_statuses (and writing to station databases)
+    max_files:        !!int   5395 #6225 #5046 # zero means no maximum #15: 5395
+    sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    stations:         !!set   [wmo]
+    clusters:         !!set   [germany]
+    mode:             !!str   dev
+    output:           !!str   /home/juri/data/stations_pl_test
+    bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
+    bufr_flags:       !!str   bufr_flags           # code flag table conversions
 
   decode_bufr_gt.py: # uses plbufr
     conda_env:        obs
@@ -279,17 +286,17 @@ scripts:
     output:           /home/juri/data/stations_imgw
     
   forge_obs.py:
-    conda_env:        obs
-    pid_file:         0 # create and use pid file
-    verbose:          0 # verbose output
-    traceback:        0 # traceback prints
-    debug:            0
-    mode:             dev
-    output:           /home/juri/data/stations
-    legacy_output:    /home/juri/data/stations_legacy
-    export:           0
-    timeout:          5
-    max_retries:      100
+    conda_env:        !!str   obs
+    pid_file:         !!bool  0 # create and use pid file
+    verbose:          !!bool  0 # verbose output
+    traceback:        !!bool  0 # traceback prints
+    debug:            !!bool  0
+    mode:             !!str   dev
+    output:           !!str   /home/juri/data/stations
+    legacy_output:    !!str   /home/juri/data/stations_legacy
+    export:           !!bool  0
+    timeout:          !!int   5
+    max_retries:      !!int   100
 
   reduce_obs.py:
     pid_file:         0 # create and use pid file
@@ -305,6 +312,7 @@ scripts:
     conda_env:        obs
     pid_file:         0 # create and use pid file
     output:           /home/juri/data/stations
+    element_ranges:   element_ranges
 
   delete_duplicate_obs.py:
     conda_env:        obs

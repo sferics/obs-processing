@@ -10,7 +10,9 @@ import sqlite3              # python sqlite connector for error handling (databa
 import re, sys, os, psutil  # regular expressions, system, operating system, process handling
 from pathlib import Path    # path operation
 from datetime import datetime as dt, timedelta as td
+from obs import ObsClass
 from database import DatabaseClass
+from config import ConfigClass
 import global_functions as gf
 #import global_variables as gv
 
@@ -100,11 +102,11 @@ def scan_all_BUFRs_for_stations( source, known_stations, pid_file=None ):
     if "glob" in config_bufr and config_bufr["glob"]:   ext = f"{config_bufr['glob']}.{ext}"
     else:                                               ext = f"*.{ext}" #TODO add multiple extensions (list)
     
-    files_to_parse  = frozenset((os.path.basename(i) for i in glob( bufr_dir + ext )))
+    files_to_parse  = { os.path.basename(i) for i in glob( bufr_dir + ext ) }
 
     gf.create_dir( bufr_dir )
 
-    station_types = frozenset(config_general["stations"])
+    station_types = config_general["stations"]
     if verbose: stations = set()
 
     for FILE in files_to_parse:
@@ -204,32 +206,38 @@ def scan_all_BUFRs_for_stations( source, known_stations, pid_file=None ):
 
 
 if __name__ == "__main__":
-    
-    #pid_file = config_script["pid_file"]
 
-    #if gf.already_running( pid_file ):
-    #    sys.exit( f"{sys.argv[0]} is already running... exiting!" )
-    
-    #read configuration file config into dictionary
-    config = gf.read_yaml( "config" )
-    config_script   = config["scripts"][sys.argv[0]]
-    #if config_script["profile"]: import cProfiler #TODO use module
-    #if config_script["logging"]: import logging   #TODO use module
-    verbose         = config_script["verbose"]
+    # define program info message (--help, -h)
+    info        = "Add stations found in BUFR file(s) to the database, with all meta information"
+    script_name = gf.get_script_name(__file__)
+    flags       = ("l","v","C","m","M","o","O","d","t","P")
+    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    log_level   = cf.script["log_level"]
+    log         = gf.get_logger(script_name, log_level=log_level)
+    start_time  = dt.utcnow()
+    started_str = f"STARTED {script_name} @ {start_time}"
 
-    if verbose: print(f"STARTED {sys.argv[0]} @ {dt.utcnow()}")
+    log.info(started_str)
+
+    # define some shorthands from script config
+    verbose         = cf.script["verbose"]
+    debug           = cf.script["debug"]
+    traceback       = cf.script["traceback"]
+    timeout         = cf.script["timeout"]
+    max_retries     = cf.script["max_retries"]
+    mode            = cf.script["mode"]
+    output          = cf.script["output"] + "/" + mode
+    stations        = cf.script["stations"]
+
+    obs             = ObsClass( config=cf.obs, source=source, mode=mode, stage="forge" )
+    db              = DatabaseClass( config=cf.database, ro=1 )
+    stations        = db.get_stations( clusters )
+    db.close(commit=False)
 
     null_vals = { ec.CODES_MISSING_LONG, ec.CODES_MISSING_DOUBLE } # (2147483647, -1e+100)
-    for i in config_script["null_vals"]: null_vals.add( i )
+    for i in cf.script["null_vals"]: null_vals.add( i )
 
-    #station_keys    = frozenset(config_script["station_keys"])
-    traceback       = config_script["traceback"]
-    timeout_db      = config["Database"]["timeout"]
-    db_file         = config["Database"]["db_file"]
-
-    max_retries     = config_script["max_retries"]
-
-    db = DatabaseClass(db_file)
+    db = DatabaseClass(config=cf.database)
 
     retries = copy(max_retries)
     while retries > 0:
@@ -241,21 +249,31 @@ if __name__ == "__main__":
     if retries == 0:
         sys.exit(f"Cannot access main database, tried {max_retries} times... Is it locked?")
 
-    #parse command line arguments
-    if len(sys.argv) >= 2:
-        source = config["sources"][sys.argv[1]]
+    if args.file:
+        # only processing a single BUFR file
+        scan_all_BUFRs_for_stations(source=args.source, input_files=[args.file], pid_file=pid_file)
+    elif args.files:
+        # input can be a semicolon-seperated list of files as well (or other seperator char defined by sep)
+        #input_files = args.file.split(args.sep)
+        if args.sep in args.file:
+            import re
+            input_files = re.split(args.sep, args.file)
+        else: input_files = (args.file,)
+        scan_all_BUFRs_for_stations( source=args.source, input_files=input_files, pid_file=pid_file )
 
-        if "," in source:
-            sources = source.split(",")
+    elif args.source:
+        if len(args.source) > 1:
             config_sources = {}
-            for s in sources: config_sources[s] = config["sources"][s]
+            for s in sources:
+                config_sources[s] = cf.sources[s]
 
-        else: config_sources = { sys.argv[1] : config["sources"][sys.argv[1]] }
-    else: config_sources = config["sources"]
+        else: config_sources = { args.source : cf.sources[args.source] }
 
-    for SOURCE in config_sources:
-        if verbose: print(f"Parsing source {SOURCE}...")
-        #scan_all_BUFRs_for_stations( SOURCE, known_stations, pid_file )
-        scan_all_BUFRs_for_stations( SOURCE, known_stations )
+    else: config_sources = cf.sources
+
+    if config_sources:
+        for SOURCE in config_sources:
+            if verbose: print(f"Parsing source {SOURCE}...")
+            scan_all_BUFRs_for_stations( source = SOURCE, pid_file=pid_file )
 
     if verbose: print(f"FINISHED {sys.argv[0]} @ {dt.utcnow()}")

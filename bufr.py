@@ -7,22 +7,6 @@ from datetime import datetime as dt, timedelta as td
 import global_functions as gf
 import global_variables as gv
 
-# general functions and constants
-
-to_code = lambda integer : str(integer).rjust(6, "0")
-
-def to_wmo( block, station, add_zero=True ):
-    """
-    Get WMO ID from blockNumber and stationNumber
-    """
-    location = station + block * 1000
-    location = str(location).rjust(5,"0")
-
-    if add_zero: location += "0"
-
-    return location
-
-
 class BufrClass:
    
     # general function definitions and constants which are always available, even before class init
@@ -64,6 +48,46 @@ class BufrClass:
 
         return location
 
+    @staticmethod
+    def get_clear_key(self, key):
+        """
+        """
+        regex = r"#[0-9]+#"
+        return str( re.sub(regex, "". key) )
+    
+    @staticmethod
+    def get_number(self, key):
+        """
+        """
+        regex = r"#[A-Za-z0-9]+"
+        return int( re.sub(regex, "", key[1:]) )
+    
+    @staticmethod
+    def to_key(self, clear_key, number):
+        """
+        """
+        return f"#{number}#{clear_key}"
+
+    @classmethod
+    def get_code(msg, key=None, clear_key=None, number=None, datatype=None):
+        """
+        """
+        if clear_key and number:
+            key = self.to_key(clear_key, number)
+        if datatype == "native":
+            datatype = ec.codes_get_native_type(msg, key)
+        match datatype:
+            case "int" | "long":
+                return ec.codes_get_long(msg, key)
+            case "float" | "double":
+                return ec.codes_get_double(msg, key)
+            case "str" | "string":
+                return ec.codes_get_string(msg, key)
+            case "array":
+                return ec.codes_get_array(msg, key)
+            case _: # if datatype is None or unknown
+                return ec.codes_get(msg, key)
+
 
     def __init__(self, config={"bufr_translation":"bufr_translation", "bufr_flags":"bufr_flags", "mode":"dev", "output_path":"~/data/stations"}, script="us"):
         """
@@ -102,38 +126,38 @@ class BufrClass:
         if not hasattr(self, "max_files"): self.max_files = 0
 
         # common key names for BUFR obs decoding scrips
-        self.YMD                = frozenset( {"year", "month", "day"} )
+        self.YMD                = {"year", "month", "day"}
         # timePeriod is very frequently used so we shorten it up a lot
         self.tp                 = "timePeriod"
         self.obs_sequence       = "observationSequenceNumber"
         self.replication        = "delayedDescriptorReplicationFactor"
         self.ext_replication    = "extendedDelayedDescriptorReplicationFactor"
         self.short_replication  = "shortDelayedDescriptorReplicationFactor"
-        self.replication_keys   = frozenset( {self.replication, self.ext_replication, self.short_replication} )
+        self.replication_keys   = {self.replication, self.ext_replication, self.short_replication}
         #"delayedDescriptorAndDataRepetitionFactor", "extendedDelayedDescriptorAndDataRepetitionFactor"} )
         self.sensor_height      = "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform"
         self.sensor_depth       = "depthBelowLandSurface"
         self.vertical_signf     = "verticalSignificanceSurfaceObservations"
-        self.modifier_keys      = frozenset( {self.sensor_height, self.sensor_depth, self.vertical_signf, self.tp} )
+        self.modifier_keys      = {self.sensor_height, self.sensor_depth, self.vertical_signf, self.tp}
         
-        self.WMO                = frozenset( {"stationNumber", "blockNumber"} )
-        self.station_keys       = frozenset( {"shortStationName", "stationNumber", "blockNumber"} )
+        self.WMO                = {"stationNumber", "blockNumber"}
+        self.station_keys       = {"shortStationName", "stationNumber", "blockNumber"}
         self.time_keys          = ("year", "month", "day", "hour", "minute")
         self.time_keys_day      = self.time_keys[:-2]
         self.time_keys_hour     = self.time_keys[:-1]
-        self.set_time_keys      = frozenset(self.time_keys)
-        self.set_time_keys_hour = frozenset(self.time_keys_hour)
+        self.set_time_keys      = set(self.time_keys)
+        self.set_time_keys_hour = set(self.time_keys_hour)
 
         self.typical_time_keys  = ( "typical" + i.capitalize() for i in self.time_keys )
-        self.typical_datetime   = frozenset( {"typicalDate","typicalTime"} )
-        self.typical_keys       = frozenset( set(self.typical_time_keys) | self.typical_datetime )
+        self.typical_datetime   = {"typicalDate", "typicalTime"}
+        self.typical_keys       = set(self.typical_time_keys) | self.typical_datetime
 
         # MISSING values in ECCODES are:     {2147483647,            -1e+100}
-        self.null_vals          = frozenset( {ec.CODES_MISSING_LONG, ec.CODES_MISSING_DOUBLE} )
-        self.meta_ignore_vals   = frozenset( {"null", "NULL", "MISSING", "XXXX", " ", ""} )
-        self.meta_null_vals     = frozenset( self.null_vals | self.meta_ignore_vals )
+        self.null_vals          = {ec.CODES_MISSING_LONG, ec.CODES_MISSING_DOUBLE}
+        self.meta_ignore_vals   = {"null", "NULL", "MISSING", "XXXX", " ", ""}
+        self.meta_null_vals     = self.null_vals | self.meta_ignore_vals
         
-        self.skip_status        = frozenset( {"locked_.", "error", "empty", "parsed"} )
+        self.skip_status        = {"locked_.", "error", "empty", "parsed"}
 
         # parse the BUFR translation and bufr flags files into dictionaries
         self.bufr_translation   = gf.read_yaml( self.bufr_translation )
@@ -164,9 +188,8 @@ class BufrClass:
                             elif subkey[0] > 0:
                                 self.height_keys.add(i)
 
-                self.unit_keys = frozenset(self.unit_keys)
-                self.obs_time_keys  = frozenset( set(self.bufr_translation_keys) | set(self.time_keys) - {"cloudBase"} )
-                self.relevant_keys  = frozenset( self.obs_time_keys | self.station_keys | self.typical_keys )
+                self.obs_time_keys  = set(self.bufr_translation_keys) | set(self.time_keys) - {"cloudBase"}
+                self.relevant_keys  = self.obs_time_keys | self.station_keys | self.typical_keys
 
             case "us" | "ex":
                 
@@ -194,17 +217,17 @@ class BufrClass:
 
                 self.bufr_translation = copy(self.bufr_translation_codes)
 
-                self.obs_time_keys  = frozenset( set(self.bufr_translation_keys) | set(self.time_keys) - {"cloudBase"} )
-                self.relevant_keys  = frozenset( self.obs_time_keys | self.station_keys | self.typical_keys )
+                self.obs_time_keys  = set(self.bufr_translation_keys) | set(self.time_keys) - {"cloudBase"}
+                self.relevant_keys  = self.obs_time_keys | self.station_keys | self.typical_keys
 
                 # all codes which contain timePeriod information for our synoptic purposes
-                self.tp_codes       = frozenset( {4023, 4024, 4025} ) # d, h, min
+                self.tp_codes       = {4023, 4024, 4025} # d, h, min
                 self.tp_range       = range(4023, 4026)
 
                 # codes which alter height/depth of sensor
-                self.height_depth_codes = frozenset( self.height_codes | self.depth_codes )
+                self.height_depth_codes = self.height_codes | self.depth_codes
                 # all codes which modify the following keys duration, height, depth and so on
-                self.modifier_codes = frozenset( self.tp_codes | {1023, 7032, 7061, 8002, 31000, 31001, 31002} )
+                self.modifier_codes = self.tp_codes | {1023, 7032, 7061, 8002, 31000, 31001, 31002}
                 #TODO maybe add 31011, 31012 (not used by DWD but maybe other providers do use them)
 
                 if script in {"ex", "us"}:
@@ -215,7 +238,7 @@ class BufrClass:
                         4004 : "hour",  # XX
                         4005 : "minute" # XX
                     }
-                    self.station_codes  = frozenset( {1001, 1002} ) # 1018
+                    self.station_codes  = {1001, 1002} # 1018
                     
                     if hasattr(self, "bufr_sequences"):
                         self.bufr_sequences = gf.read_yaml( self.bufr_sequences )
@@ -229,21 +252,21 @@ class BufrClass:
                         202129 : 1, # temporarily increase scale by 1 digit
                     }
 
-                    self.repl_codes = frozenset( {31000, 31001, 31002} )
+                    self.repl_codes = {31000, 31001, 31002}
 
                     # all code relevant for extraction of expanded descriptors
-                    self.relevant_codes = frozenset( self.modifier_codes | set(self.bufr_translation) | set(self.scale_alter) - self.repl_codes )
+                    self.relevant_codes = self.modifier_codes | set(self.bufr_translation) | set(self.scale_alter) - self.repl_codes
         
                     self.size_alter = {
                         201000 : 0, # reset size
                         201132 : 4, # temporarily increase data size by 4 bits
                     }
                     
-                    self.scale_size_alter = frozenset(set(self.scale_alter) | set(self.size_alter))
+                    self.scale_size_alter = set(self.scale_alter) | set(self.size_alter)
 
                     self.repl_range     = range(101000, 131000) # range of repeated elements
                     self.repl_seq_range = range(131000, 132000) # repeat next sequence (999 times)
-                    self.repl_info      = frozenset( tuple(self.repl_codes) + tuple(self.repl_range) + tuple(self.repl_seq_range) )
+                    self.repl_info      = tuple(self.repl_codes) + tuple(self.repl_range) + tuple(self.repl_seq_range)
 
             case "pd" | "pl" | "fl" | "gt":
                 
@@ -266,26 +289,24 @@ class BufrClass:
                         if self.bufr_translation[i][1] is not None:
                             self.fixed_duration_keys.add(i)
 
-                self.fixed_duration_keys = frozenset(self.fixed_duration_keys)
-                
-                self.bufr_obs_keys = frozenset( set(self.bufr_translation_keys) - {"cloudBase"} )
+                self.bufr_obs_keys = set(self.bufr_translation_keys) - {"cloudBase"}
 
                 if script in {"pd", "pl", "gt"}:
                     self.ww             = "presentWeather"
                     self.rr             = "totalPrecipitationOrTotalWaterEquivalent"
                     self.wmo            = "WMO_station_id"
                     self.dt             = "data_datetime"
-                    self.required_keys  = frozenset( {self.wmo, self.dt} )
-                    self.relevant_keys  = frozenset( self.bufr_obs_keys | self.required_keys | self.modifier_keys | {self.obs_sequence} | self.replication_keys )
+                    self.required_keys  = {self.wmo, self.dt}
+                    self.relevant_keys  = self.bufr_obs_keys | self.required_keys | self.modifier_keys | {self.obs_sequence} | self.replication_keys
                     
                     if script in {"pl", "gt"}:
-                        self.ignore_keys    = frozenset( self.required_keys | self.replication_keys | {self.tp} )
-                        self.obs_list_keys  = frozenset( self.relevant_keys - self.ignore_keys )
+                        self.ignore_keys    = self.required_keys | self.replication_keys | {self.tp}
+                        self.obs_list_keys  = self.relevant_keys - self.ignore_keys
 
         # we currently don't need these seperate key groups, outcommented for future use
-        #self.height_keys, self.depth_keys   = frozenset(self.height_keys), frozenset(self.depth_keys)
+        #self.height_keys, self.depth_keys   = nset(self.height_keys), set(self.depth_keys)
         # union of both will be used later
-        self.height_depth_keys              = frozenset( self.height_keys | self.depth_keys )
+        self.height_depth_keys              = self.height_keys | self.depth_keys
 
 
     ### class lambda functions
