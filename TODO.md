@@ -1,0 +1,3 @@
+- fixed durations for params like CB
+- reduce obs (highest scale -> highest priority source -> latest COR)
+- implemented -N flag (skip nulls, default off) --> explicitly save 'null'
