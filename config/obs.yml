@@ -120,6 +120,8 @@ scripts:
     output:           !!str   /home/juri/data/stations_pl_test
     bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags           # code flag table conversions
+    shift_datetime:   !!bool  0
+    convert_datetime: !!bool  0
 
   decode_bufr_pd.py: # uses pdbufr
     conda_env:        !!str   obs
@@ -141,6 +143,8 @@ scripts:
     output:           !!str   /home/juri/data/stations_pd
     bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags           # code flag table conversions
+    shift_datetime:   !!bool  0
+    convert_datetime: !!bool  0
 
   decode_bufr_pl.py: # uses plbufr
     conda_env:        !!str   obs
@@ -162,7 +166,9 @@ scripts:
     output:           !!str   /home/juri/data/stations_pl_test
     bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags           # code flag table conversions
-
+    shift_datetime:   !!bool  0
+    convert_datetime: !!bool  0
+    
   decode_bufr_gt.py: # uses plbufr
     conda_env:        !!str   obs
     pid_file:         !!bool  0 # create and use pid file
@@ -183,6 +189,8 @@ scripts:
     output:           !!str   /home/juri/data/stations_gt
     bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags           # code flag table conversions
+    shift_datetime:   !!bool  0
+    convert_datetime: !!bool  0
 
   decode_bufr_mv.py:
     conda_env:        !!str   metview
@@ -202,6 +210,8 @@ scripts:
     output:           !!str   /home/juri/data/stations_mv
     bufr_translation: !!str   bufr_translation_mv # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags_mv #TODO not used at the moment, for cloud levels it could be useful though
+    shift_datetime:   !!bool  0
+    convert_datetime: !!bool  0
 
   decode_bufr_ex.py:
     conda_env:        !!str   obs #eccodes #cforge #obs # uses system eccodes instead of conda-forge version
@@ -227,6 +237,8 @@ scripts:
     bufr_sequences:   !!str   bufr_sequences
     stations:         !!set   [wmo,dwd]
     clusters:         !!set   [germany]
+    shift_datetime:   !!bool  0
+    convert_datetime: !!bool  0
 
   decode_bufr_us.py:
     conda_env:        !!str   obs
@@ -252,6 +264,8 @@ scripts:
     skip_duplicates:  !!bool  0
     stations:         !!set   [wmo,dwd]
     clusters:         !!set   [germany]
+    shift_datetime:   !!bool  1
+    convert_datetime: !!bool  0
 
   decode_synop.py:    #TODO
     conda_env:        !!str   obs

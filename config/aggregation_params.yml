@@ -21,4 +21,5 @@ periods:
   SUNDUR_srf_24h_syn:       [24h,   sum,  0]
   PCPDUR_srf_1h_syn:        [1h,    sum]
 instants:
-  TMP_2m_syn:               [10min]
+  TMP_2m_syn:               [+-, 10, min]
+  WIND_10m_syn:             [+-, 10, min]

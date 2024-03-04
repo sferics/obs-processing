@@ -41,7 +41,7 @@ use Data::Dumper;
 use DBI;
 use Geo::BUFR;
 
-my $config = LoadFile('/config');
+my $config = LoadFile('config/obs.yml');
 #print Dumper($config);
 my $config_db 	= $config->{database};
 
@@ -76,7 +76,7 @@ while ( not $bufr->eof() ) {
 	#my $table_version = $bufr->get_table_version($table);
 	#print $table_version;
 	my ($data, $descriptors) = $bufr->next_observation();
-	$bufr->set_filter_cb(\&callback,@args);
+	# $bufr->set_filter_cb(\&callback,@args);
 	$bufr->is_filtered();
 	print $bufr->dumpsections($data, $descriptors) if $data;
 }

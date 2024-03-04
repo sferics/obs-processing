@@ -1,3 +1,5 @@
+#TODO metview (mv), perl/GeoBUFR (gb), plbufr flat mode (fl) ???
+
 #TODO outsource all different BUFR main function versions to this file and import in respective script
 #from decode_bufr_functions import decode_bufr_XX
 
@@ -6,7 +8,7 @@
 import global_variables as gv
 import global_functions as gf
 
-def decode_bufr_gt(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug=False, verbose=False):
+def decode_bufr_gt(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
     import plbufr
@@ -17,7 +19,7 @@ def decode_bufr_gt(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
 
     time_period = ""
     obs_bufr    = {}
-    new_obs     = 0
+    file_status = "empty"
 
     for row in generator:
         if debug: print("ROW", row)
@@ -65,77 +67,38 @@ def decode_bufr_gt(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
         if obs_list:
             try:    obs_bufr[location][datetime][time_period] += obs_list
             except: obs_bufr[location][datetime][time_period] = obs_list
-            new_obs += 1
+            file_status = "parsed"
 
     # close the file handle of the BufrFile object
     BufrFile.close()
     #stop_time = dt.utcnow()
 
-    return obs_bufr, new_obs, file_statuses
+    return obs_bufr, file_status
 
 
-def decode_bufr_pl(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug=False, verbose=False):
+def decode_bufr_pl(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
     import plbufr
     
     obs_bufr = {}
+    file_status = "empty"
 
     PATH = DIR + FILE
-    if verbose: print(PATH)
-    #TODO from here on we could outsource into another function and would probably just need 1 decode_bufr.py
-
-    #https://pdbufr.readthedocs.io/en/latest/read_bufr.html#filters-section
-    #TODO for some reason my nice NaN removal filter doesnt work; fix or let it be...
-    #df = plbufr.read_bufr(PATH, filters=filters, columns="all", flat=True, required_columns=required_keys)
-    #df = plbufr.read_bufr(PATH, columns="all", flat=True, required_columns=required_keys)
-    #df = plbufr.read_bufr(PATH, flat=True, columns="data")
-    #print(df)
-    #df = plbufr.read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys, filters={}, skip_na=True)
     
     if hasattr(bf, "filters"):
         filters = bf.filters
     else: filters = {}
-    #print(filters.keys())
 
     df = plbufr.read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys, filters=filters,filter_method=all)#, skip_na=True)
-    #print(df)
+    
+    if df.width == 0: return {}, file_status
 
-    # len(df.index) == 0 is much faster than df.empty or len(df) == 0
-    # https://stackoverflow.com/questions/19828822/how-to-check-whether-a-pandas-dataframe-is-empty
-    # if the dataframe contains no data or no stations with WMO IDs, skip
-    #if len(df.index) == 0 or df.loc[:, bf.wmo].isna().all():
-    #if df.width == 0 or df.loc[:, bf.wmo].isna().all():
-    #if df.width == 0 or df[bf.wmo].is_null().all():
-    #if df.width == 0 or df.select(bf.wmo).collect().null_count() == df.height:
-    #    file_statuses.add( ("empty", ID) ); continue
-    if df.width == 0:
-        file_statuses.add( ("empty", ID) )
-        return {}, 0, file_statuses
-
-    #print(df)
-    """
-    # if dataframe larger than minimum keyset: drop all rows and columns which only contains NaNs
-    #elif len(df.columns) > number_of_filter_keys:
-    else:
-        #df.dropna(how="all", inplace=True)
-        #df.dropna(how="all")
-        #https://stackoverflow.com/a/73971515
-        #list_of_vars = ["datetime"]
-        #print(pl.all(bf.relevant_keys).is_not_null())
-
-        # https://github.com/pola-rs/polars/issues/1613#issuecomment-954530494
-        # filter rows where all values are null
-        df.filter(~pl.fold(True, lambda acc, s: acc & s.is_null(), pl.all()))
-
-        #print(df.shape)
-        #df.dropna(how="all", axis=1, inplace=True)
-        #print(df.shape)
-    """
     #TODO use typical datetime if no datetime present (which should never happen with DWD OpenData BUFRs)
     #typical_datetime = "typical_datetime"
     time_period = ""
-    cor,new_obs = 0,0
+    cor         = 0
+
     cols        = df.columns
     cols_needed = [ i for i in df.columns if i not in bf.ignore_keys ]
     
@@ -185,44 +148,37 @@ def decode_bufr_pl(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
         if obs_list:
             try:    obs_bufr[location][datetime][time_period] += obs_list
             except: obs_bufr[location][datetime][time_period] = obs_list
-            new_obs += 1
+            file_status = "parsed"
 
-    return obs_bufr, new_obs, file_statuses
+    return obs_bufr, file_status
 
 
-def decode_bufr_pd(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug=False, verbose=False):
+def decode_bufr_pd(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
     import pdbufr
 
     obs_bufr = {}
+    file_status = "empty"
 
     PATH = DIR + FILE
     if verbose: print(PATH)
 
-    #TODO from here on we could outsource into another function and would probably just need one decode_bufr.py
-
-    #TODO for some reason my nice NaN removal filter doesnt work; fix or let it be...
-    #df = pdbufr.read_bufr(PATH, filters=filters, columns="all", flat=True, required_columns=required_keys)
-    #df = pdbufr.read_bufr(PATH, columns="all", flat=True, required_columns=required_keys)
-    #df = pdbufr.read_bufr(PATH, flat=True, columns="data")
-    #print(df)
     df = pdbufr.read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys)
 
     # len(df.index) == 0 is much faster than df.empty or len(df) == 0
     # https://stackoverflow.com/questions/19828822/how-to-check-whether-a-pandas-dataframe-is-empty
     # if the dataframe contains no data or no stations with WMO IDs, skip
     if len(df.index) == 0 or df.loc[:, bf.wmo].isna().all():
-        file_statuses.add( ("empty", ID) )
-        return {}, 0, file_statuses
+        return {}, file_status
 
     # if dataframe larger than minimum keyset: drop all rows and columns which only contains NaNs
     #elif len(df.columns) > number_of_filter_keys:
     else:
         df.dropna(how="all", inplace=True)
         #print(df.shape)
-        if len(df.index) == 0: file_statuses.add( ("empty", ID) )
-        return {}, 0, file_statuses
+        if len(df.index) == 0:
+            return {}, file_status
         #df.dropna(how="all", axis=1, inplace=True)
         #print(df.shape)
 
@@ -283,25 +239,24 @@ def decode_bufr_pd(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
         if obs_list:
             try:    obs_bufr[location][datetime][time_period] += obs_list
             except: obs_bufr[location][datetime][time_period] = obs_list
-            new_obs += 1
+            file_status = "parsed"
 
-    return obs_bufr, new_obs, set()
+    return obs_bufr, file_status
 
 
-def decode_bufr_us(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug=False, verbose=False):
+def decode_bufr_us(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
     import eccodes as ec
     if debug: import pdb
-    
+
     with open(DIR + FILE, "rb") as file_handle:
         try:
-            #bufr = ec.codes_bufr_new_from_file(file_handle)
-            msg = ec.codes_new_from_file(file_handle, ec.CODES_PRODUCT_BUFR)
+            msg = ec.codes_bufr_new_from_file(file_handle)
+            #msg = ec.codes_new_from_file(file_handle, ec.CODES_PRODUCT_BUFR)
             if msg is None:
-                file_statuses.add( ("empty", ID) )
                 if verbose: print(f"EMPTY:  '{FILE}'")
-                return {}, 0, file_statuses
+                return {}, "empty"
             # skip extra attributes like units and scale to decode 25% faster (we can get them via key->code)
             # https://confluence.ecmwf.int/display/UDOC/Performance+improvement+by+skipping+some+keys+-+ecCodes+BUFR+FAQ)
             ec.codes_set(msg, 'skipExtraKeyAttributes', 1)
@@ -315,9 +270,10 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
             log.error(log_str)
             if verbose: print(log_str)
             if traceback: gf.print_trace(e)
-            file_statuses.add( ("error", ID) )
-            return {}, 0, file_statuses
-        else: obs_bufr = {} #shelve.open(f"shelves/{ID}", writeback=True)
+            return {}, "error"
+        
+        obs_bufr    = {} #shelve.open(f"shelves/{ID}", writeback=True)
+        file_status = "empty"
 
         iterid = ec.codes_bufr_keys_iterator_new(msg)
 
@@ -329,7 +285,7 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
         valid_obs       = False
         location        = None
         skip_next       = 10
-        subset, new_obs = 0, 0
+        subset          = 0
         skip_obs        = False
         last_key        = None
 
@@ -395,7 +351,7 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
                                     del obs_bufr[location][datetime][-2]
                             except: pass
                         """
-                        new_obs += 1
+                        file_status = "parsed"
 
             else:
                 if not subset and key in bf.typical_keys:
@@ -459,7 +415,6 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
                                 continue
 
                             # if we are still missing time keys: use the typical information
-                            # if we are still missing time keys: use the typical information
                             elif typical:
                                 # use the typical values we gathered earlier keys are missing
                                 for i,j in zip(bf.time_keys, bf.typical_keys):
@@ -493,19 +448,20 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
     # end of with clause (closes file handle)
     ec.codes_release(msg)
     
-    return obs_bufr, new_obs, file_statuses
+    return obs_bufr, file_status
 
 
-def decode_bufr_ex(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug=False, verbose=False):
+def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
     import eccodes as ec
     import numpy as np
     from itertools import cycle
     from copy import copy
+    from datetime import datetime as dt
 
     obs_bufr    = {}
-    obs_new     = 0
+    file_status = "empty"
 
     def get_num_elements_repl_factor(code):
         """
@@ -553,8 +509,6 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
         try:                block = int(val)
         except ValueError:  block = np.nan
 
-        if debug: print("BLOCK", block)
-
         # wait for the WMO station number key to appear
         while next(codes) != 1002:
             val = next(vals)
@@ -574,8 +528,6 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
         # otherwise, we do not have a valid WMO location
         else: return "", "", (0, 0)
 
-        print("WMO", location)
-
         # wait for the 'year' BUFR key to appear in the cycle iterator
         while next(codes) != 4001:
             if debug:   print(next(vals))
@@ -587,7 +539,6 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
         dt_info = []
         for _ in range(5):
             next_val = next(vals)
-            print(_, next_val)
             try:                dt_info.append( int(next_val) )
             #try:                dt_info.append( int(next(vals)) )
             # if this fails we need to skip yet one for value
@@ -602,20 +553,20 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
         # return location, datetime and tuple with skip information
         return location, datetime, (skip_codes, skip_vals)
 
+
     with open(DIR + FILE, "rb") as file_handle:
         try:
             # the file ID is the representation of the file in the main database (file_table)
             # if for whatever reason no ID (database lock?) or filestatus means skip:
             # continue with next file
-            if not ID: return {}, 0, file_statuses
+            if not ID: return {}, 0, file_status
             # let ECCODES read the file into memory and handle it
             msg = ec.codes_bufr_new_from_file(file_handle)
             # msg should be an integer (ID); if not it is None (empty) and needs to be skipped
             if msg is None:
                 # status is empty if the bufr file contains no data
-                file_statuses.add( ("empty", ID) )
                 if verbose: print(f"EMPTY:  '{FILE}'")
-                return {}, 0, file_statuses
+                return {}, "empty"
             # skip extra attributes like units and scale to decode 25% faster (we can get them via key->code)
             # https://confluence.ecmwf.int/display/UDOC/Performance+improvement+by+skipping+some+keys+-+ecCodes+BUFR+FAQ)
             ec.codes_set(msg, 'skipExtraKeyAttributes', 1)
@@ -631,8 +582,7 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
             if verbose: print(log_str)
             if traceback: gf.print_trace(e)
             # set file status to 'error' in order to be able to track down what went wrong
-            file_statuses.add( ("error", ID) )
-            return {}, 0, file_statuses
+            return {}, "error"
         # if all went down smoothly create an empty dictionary to store the data in it
         else: obs_bufr = {} #shelve.open(f"shelves/{ID}", writeback=True)
 
@@ -748,7 +698,7 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
                         log.error(log_str)
                         if verbose or debug: print(log_str)
                         # set file status to 'error' in order to be able to track down what went wrong
-                        file_statuses.add( ("error", ID) )
+                        file_status = "error"
                         # raising a ValueError enables us to exit the function and except the error outwards
                         raise ValueError
             else:
@@ -940,7 +890,7 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
         # end of while loop
 
         # if we need to skip the current file: continue to next one or, if it is the last, quit the for loop
-        if skip_file: return {}, 0, file_statuses
+        if skip_file: return {}, file_status
 
         # if the obs list contains any data add it to the dictionary
         if obs_list:
@@ -950,12 +900,11 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, file_statuses, traceback=False, debug
             # add to the dictionary if datetime exists; else create the datetime dict first
             try:    obs_bufr[location][datetime] += obs_list
             except: obs_bufr[location] = { datetime : obs_list }
+            if file_status != "error": file_status = "parsed"
 
     # end of with clause (closes file handle automatically)
 
     # free up memory again
     ec.codes_release(msg)
-
-    if obs_bufr: obs_new = 1
-
-    return obs_bufr, obs_new, file_statuses
+    
+    return obs_bufr, file_status

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import sqlite3
 from datetime import datetime as dt, timedelta as td
 from database import DatabaseClass
 from obs import ObsClass
@@ -43,8 +44,7 @@ def reduce_obs(stations):
                 sql = f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge;\n"
                 #sql = ["INSERT INTO forge.obs SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs WHERE reduced=0"]
                 #sql.append("UPDATE main.obs SET reduced=1")
-                # in dev mode we do not perform this forging stage (happens during inserting to database to save time)
-                # instead, we only select all distinct values and create the obs tables in all forge databases
+                # in dev mode we only need to reduce to one (datetime,duration,element,value) by selecting only the highest priority source
                 sql += "CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs;\n"
                 sql += "DETACH forge;"
 
@@ -93,7 +93,7 @@ def reduce_obs(stations):
         """
 
         try: db_loc.exescr(sql)
-        except Exception as e:
+        except sqlite3.Error as e:
             if verbose:     print(e)
             if traceback:   gf.print_trace(e)
         else: db_loc.close()

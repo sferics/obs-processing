@@ -586,7 +586,7 @@ class BufrClass:
 
 
     # version with units and scale (uses codes instead of keys) + expanded keys + values
-    def convert_keys_us( self, obs, dataset, shift_datetime=False, convert_datetime=False, verbose=False):
+    def convert_keys_us( self, obs, dataset, shift_dt=False, convert_dt=False, verbose=False):
         """
         Parameter:
         ----------
@@ -609,7 +609,7 @@ class BufrClass:
                 if location not in obs_db: obs_db[location] = set()
 
                 for datetime in obs[file][location]:
-                    if shift_datetime:
+                    if shift_dt:
                         if datetime.minute in {0,30}:   datetime_db = datetime - td(minutes=10)
                         else:                           datetime_db = copy(datetime)
                     else: datetime_db = copy(datetime)
@@ -706,6 +706,7 @@ class BufrClass:
 
     # extract values version uses same function
     convert_keys_ex = convert_keys_us
+
 
     # skip extra key attributes (like units) version
     def convert_keys_se(self, obs, dataset, verbose=None):
@@ -840,7 +841,7 @@ class BufrClass:
 
 
     # pdbufr version
-    def convert_keys_pd( self, obs, dataset, shift_datetime=False, convert_datetime=False, verbose=None ):
+    def convert_keys_pd( self, obs, dataset, shift_dt=False, convert_dt=False, verbose=None ):
         """
         Parameter:
         ----------
@@ -888,7 +889,7 @@ class BufrClass:
                             if time_period: duration_obs = time_periods[time_period]
                         except: continue
                         
-                        if convert_datetime:
+                        if convert_dt:
                             datetime_db = datetime.to_pydatetime()
                         else: datetime_db = copy(datetime)
                         

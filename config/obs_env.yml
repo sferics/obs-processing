@@ -276,6 +276,7 @@ dependencies:
       - xlsx2csv==0.8.2
       - xlsxwriter==3.1.9
       - xyzservices==2023.10.1
+      - yaml-to-sqlite==1.0
       - yapf==0.40.1
       - yarg==0.1.9
       - zipp==3.16.2

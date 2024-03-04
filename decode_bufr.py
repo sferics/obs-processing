@@ -9,7 +9,7 @@ from bufr import BufrClass as bc
 from obs import ObsClass as oc
 import global_functions as gf
 import global_variables as gv
-#import approaches
+#import decode_bufr_approaches
 
 #TODO write more (inline) comments, docstrings and make try/except blocks much shorter where possible
 
@@ -68,15 +68,9 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
 
         if verbose: print(FILE_DIR + FILE_NAME)
 
-        obs_bufr[ID], new_obs, file_statuses = decoder_approach(ID, FILE_NAME, FILE_DIR, bf, log,
-                file_statuses, traceback, debug, verbose)
+        obs_bufr[ID], file_status = decoder_approach(ID, FILE_NAME, FILE_DIR, bf, log, traceback, debug, verbose)
         
-        if new_obs:
-            file_statuses.add( ("parsed", ID) )
-            log.debug(f"PARSED: '{FILE}'")
-        else:
-            file_statuses.add( ("empty", ID) )
-            log.info(f"EMPTY:  '{FILE}'")
+        file_statuses.add( (file_status, ID) )
 
         #TODO fix memory leak or find out how restarting script works together with multiprocessing
         memory_free = psutil.virtual_memory()[1] // 1024**2
@@ -88,7 +82,7 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
             db.close()
 
             print("Too much RAM used, RESTARTING...")
-            obs_db = convert_keys( obs_bufr, source, shift_datetime=False, convert_datetime=False )
+            obs_db = convert_keys( obs_bufr, source, shift_dt=shift_dt, convert_dt=convert_dt )
             if obs_db: obs.to_station_databases(obs_db)
             
             if pid_file: os.remove( pid_file )
@@ -114,7 +108,7 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
     db.close(commit=True)
     
     if debug: print(obs_bufr)
-    obs_db = convert_keys( obs_bufr, source, shift_datetime=False, convert_datetime=False )
+    obs_db = convert_keys( obs_bufr, source, shift_dt=shift_dt, convert_dt=convert_dt )
 
     if debug: print(obs_db)
     if obs_db: obs.to_station_databases(obs_db)
@@ -162,10 +156,12 @@ if __name__ == "__main__":
     traceback   = cf.script["traceback"]
     debug       = cf.script["debug"]
     pid_file    = cf.script["pid_file"]
+    shift_dt    = cf.script["shift_datetime"]
+    convert_dt  = cf.script["convert_datetime"]
 
     # get the right decode_bufr_?? function according to -a/--approach setting as decoder_approach
-    #decoder_approach = getattr(approaches, f"decode_bufr_{approach}")
-    decoder_approach = gf.import_from("approaches", f"decode_bufr_{approach}", globals(), locals())
+    #decoder_approach = getattr(decode_bufr_approaches, f"decode_bufr_{approach}")
+    decoder_approach = gf.import_from("decode_bufr_approaches", f"decode_bufr_{approach}", globals(), locals())
 
     # add files table (file_table) to main database if not exists
     #TODO this should be done during initial system setup, file_table should be added there

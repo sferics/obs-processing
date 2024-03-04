@@ -53,6 +53,7 @@ class ObsClass:
         """
         #TODO implement stage match case for SQL and try/except/else: if verbose part
         if source is None:      source      = self.source
+        if scale is None:       scale       = self.scale
         if output is None:      output      = self.output
         if mode is None:        mode        = self.mode
         if stage is None:       stage       = self.stage
