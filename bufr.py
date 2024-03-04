@@ -4,6 +4,7 @@ import eccodes as ec
 import numpy as np
 from copy import copy
 from datetime import datetime as dt, timedelta as td
+from config import ConfigClass
 import global_functions as gf
 import global_variables as gv
 
@@ -89,18 +90,29 @@ class BufrClass:
                 return ec.codes_get(msg, key)
 
 
-    def __init__(self, config={"bufr_translation":"bufr_translation", "bufr_flags":"bufr_flags", "mode":"dev", "output_path":"~/data/stations"}, script="us"):
+    def __init__(self, cf: ConfigClass, source: str="extra", script: str="us", approach: str=""):
         """
         Parameter:
         ----------
 
         Notes:
         ------
+        script is a deprecated alias for approach
 
         Return:
         -------
 
         """
+        #TODO remove this after renaming
+        if not approach: approach = script
+        self.source = source
+
+        # initialize bufr class (contains all bufr specifics contants and settings)
+        config = cf.general | cf.bufr | cf.script
+        # try to apply the source specific config, if it does exists
+        try:    config = config | cf.sources[source]
+        except: pass
+
         # default settings values in case they are not present in the config dict
         self.verbose    = False
         self.traceback  = False
@@ -110,6 +122,9 @@ class BufrClass:
         for i in config:
             setattr(self, i, config[i])
             if self.verbose: print( i, "=", config[i] )
+        
+        # make config accessible as class object
+        self.config = config
 
         # check for mandatory class attributes
         mandatory = ("bufr_translation", "bufr_flags", "mode", "output")
@@ -170,7 +185,7 @@ class BufrClass:
         self.depth_keys, self.height_keys = set(), set()
 
         
-        match script:
+        match approach:
             
             case "00":
                 
@@ -230,7 +245,7 @@ class BufrClass:
                 self.modifier_codes = self.tp_codes | {1023, 7032, 7061, 8002, 31000, 31001, 31002}
                 #TODO maybe add 31011, 31012 (not used by DWD but maybe other providers do use them)
 
-                if script in {"ex", "us"}:
+                if approach in {"ex", "us"}:
                     self.datetime_codes = {
                         4001 : "year",  # XXXX
                         4002 : "month", # XX
@@ -291,7 +306,7 @@ class BufrClass:
 
                 self.bufr_obs_keys = set(self.bufr_translation_keys) - {"cloudBase"}
 
-                if script in {"pd", "pl", "gt"}:
+                if approach in {"pd", "pl", "gt"}:
                     self.ww             = "presentWeather"
                     self.rr             = "totalPrecipitationOrTotalWaterEquivalent"
                     self.wmo            = "WMO_station_id"
@@ -299,7 +314,7 @@ class BufrClass:
                     self.required_keys  = {self.wmo, self.dt}
                     self.relevant_keys  = self.bufr_obs_keys | self.required_keys | self.modifier_keys | {self.obs_sequence} | self.replication_keys
                     
-                    if script in {"pl", "gt"}:
+                    if approach in {"pl", "gt"}:
                         self.ignore_keys    = self.required_keys | self.replication_keys | {self.tp}
                         self.obs_list_keys  = self.relevant_keys - self.ignore_keys
 
@@ -571,7 +586,7 @@ class BufrClass:
 
 
     # version with units and scale (uses codes instead of keys) + expanded keys + values
-    def convert_keys_us( self, obs, dataset, shift_datetime=True, verbose=False):
+    def convert_keys_us( self, obs, dataset, shift_datetime=False, convert_datetime=False, verbose=False):
         """
         Parameter:
         ----------
@@ -688,6 +703,9 @@ class BufrClass:
 
         return obs_db
 
+
+    # extract values version uses same function
+    convert_keys_ex = convert_keys_us
 
     # skip extra key attributes (like units) version
     def convert_keys_se(self, obs, dataset, verbose=None):
@@ -822,7 +840,7 @@ class BufrClass:
 
 
     # pdbufr version
-    def convert_keys_pd( self, obs, dataset, convert_datetime=True, verbose=None ):
+    def convert_keys_pd( self, obs, dataset, shift_datetime=False, convert_datetime=False, verbose=None ):
         """
         Parameter:
         ----------
@@ -947,3 +965,6 @@ class BufrClass:
 
 
         return obs_db
+
+    # all of those approaches use the same function
+    convert_keys_gt = convert_keys_pl = convert_keys_pd

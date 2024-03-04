@@ -73,7 +73,9 @@ class ConfigClass:
         #TODO remove this rather ugly workaround; there should be only one config for decode_bufr.py
         if hasattr(self.args, "approach") and self.args.approach:
             script_name = script_name.replace(".", f"_{self.args.approach}.")
-       
+        
+        self.script_name = script_name
+
         # make all keys of config dict into class attributes for easier access
         for key, dic in self.config.items():
             if verbose: print(key, dic)

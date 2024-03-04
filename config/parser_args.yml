@@ -1,7 +1,7 @@
 positional:
   # name  nargs           default       help         
-  source: ["*",           ~,            "parse source / list of sources (space seperated)" ]
-  #source: ["*",           ~,            iter,   "parse source / list of sources (space seperated)" ]
+  source: ["*",           ~,            "parse source / list of sources (enter space seperated)" ]
+  #source: ["*",           ~,            iter,   "parse source / list of sources (enter space seperated)" ]
 
 flags:
   # short flag            choices                                     nargs       action      default   type        help
@@ -10,6 +10,7 @@ flags:
 #  c:      [clusters,      ~,                                          ~,          split_args, ~,        set,        "station clusters to consider, comma seperated"                       ]
   C:      [config_file,   ~,                                          ~,          ~,          ~,        str,        "set custom name of config file"                                      ]
   e:      [export,        ~,                                          ~,          store_true, ~,        ~,          "export data to legacy CSV format"                                    ]
+  E:      [extra,         ~,                                          ~,          ~,          extra,    str,        "name of source for extra files (provided by -f or -F arguments)"     ]
   d:      [debug,         ~,                                          ~,          store_true, ~,        ~,          "enable debugging (using pdb and debug prints)"                       ]
   D:      [dry,           ~,                                          ~,          store_true, ~,        ~,          "do not actually run scripts, only print commands"                    ]
   f:      [file,          ~,                                          ~,          ~,          ~,        str,        "parse single BUFR file, will be handled as source=extra by default"  ]
@@ -18,6 +19,7 @@ flags:
   i:      [pid_file,      ~,                                          ~,          store_true, ~,        ~,          "use a PID file to check whether script is running"                   ]
   l:      [log_level,     [CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET], ~,          ~,          NOTSET,   str,        "set logging level"                                                   ]
   L:      [legacy_output, ~,                                          ~,          ~,          ~,        str,        "define output directory for old system's CSV format"                 ]
+  k:      [known_stations,~,                                          ~,          ~,          ~,        split_set,  "only extract obs from these stations (comma-seperated list)"         ]
   m:      [max_retries,   ~,                                          ~,          ~,          ~,        int,        "maximum attemps when communicating with station databases"           ]
   n:      [max_files,     ~,                                          ~,          ~,          ~,        int,        "maximum number of files to parse (per source)"                       ]
   N:      [save_null,     ~,                                          ~,          store_true, ~,        ~,          "save non-existing / empty observations as NULL values in databases"  ]

@@ -1,13 +1,13 @@
 import sqlite3
 from copy import copy
 from database import DatabaseClass
+from config import ConfigClass
 import global_functions as gf
 import global_variables as gv
 
 
 class ObsClass:
-    def __init__(self, config: dict={}, source: str="test", mode: str="dev", stage: str="raw",
-            verbose: bool = False):
+    def __init__(self, cf: ConfigClass, source: str="extra", stage: str="raw", verbose: bool=False):
         """
         Parameter:
         ----------
@@ -19,12 +19,17 @@ class ObsClass:
         -------
         
         """
-        assert( mode in {"dev","oper","test"} and stage in {"raw","forge","final"} )
-
+        assert( stage in {"raw", "forge", "final"} )
+        
+        # in this merge we are adding only already present keys; while again overwriting them
+        config      = gf.merge_list_of_dicts([cf.obs, cf.script], add_keys=False)
+        # make config accessible as class object
+        self.config = config
+        self.mode   = config["mode"]
         self.source = source
-        self.mode   = mode
         self.stage  = stage
-      
+        self.scale  = True
+
         for key, val in config.items():
             if verbose: print(key, val)
             setattr(self, key, val)
@@ -33,7 +38,7 @@ class ObsClass:
 
 
     #TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
-    def to_station_databases(self, obs_db, source=None, scale=False, mode=None, stage=None, output=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings={}):
+    def to_station_databases(self, obs_db, source=None, scale=None, mode=None, stage=None, output=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings={}):
         #TODO
         """
         Parameter:
@@ -60,6 +65,7 @@ class ObsClass:
 
         # insert values or update value if we have a newer cor, then set parsed = 0 as well
         # statements for different stages
+        print(stage, scale)
         match stage:
             case "raw":
                 if scale:

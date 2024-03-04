@@ -306,7 +306,7 @@ if __name__ == "__main__":
     processes       = cf.script["processes"]
     params          = cf.script["params"]
 
-    obs             = ObsClass( config=cf.obs, source=source, mode=mode, stage="forge" )
+    obs             = ObsClass( cf, source, stage="forge" )
     db              = DatabaseClass( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)

@@ -17,7 +17,24 @@ value_in_list       = lambda lst, val : val if val in lst else None
 to_datetime         = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"], DT["minute"])
 to_datetime_hour    = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"])
 
+
+def import_from(module_or_file, obj, globs, locs):
+    """
+    Notes:
+    ------
+    import object(s) from module by their string names
+    """
+    if type(obj) == str:
+        namespace = __import__(module_or_file, globs, locs, [obj], 0)
+        return getattr(namespace, obj)
+    elif hasattr(obj, "__iter__"):
+        namespace = __import__(module_or_file, globs, locs, obj, 0)
+        return ( getattr(namespace, i) for i in obj )
+    else: raise ValueError("obj has to be str or iterable")
+
 def values_in_list(lst, vals):
+    """
+    """
     for val in vals:
         if val in lst: return val
     return None
@@ -517,7 +534,10 @@ def get_file_date( file_path, datetime=True ):
     return date
 
 
-def get_input_files_dict( input_files, source, config_database, known_stations={}, redo=False ):
+def get_input_files_dict( config_database, input_files=[], source="extra",
+        config_source = { "dir" : "/path/to/files", "sort_files" : False, "sort_method":sorted,
+            "max_files" : None, "glob" : "*", "ext" : "*", "redo" : False, "restart" : False },
+        PID=None, verbose=False ):
     """
     Parameter:
     ----------
@@ -531,29 +551,97 @@ def get_input_files_dict( input_files, source, config_database, known_stations={
     from database import DatabaseClass
     db = DatabaseClass(config=config_database)
 
-    if not known_stations: known_stations = db.get_stations()
-
     files_dict = {}
 
-    for file_path in input_files:
-        file_name   = file_path.split("/")[-1]
-        file_date   = get_file_date(file_path)
-        file_dir    = "/".join(file_path.split("/")[:-1]) + "/"
-        ID          = db.get_file_id(file_name, file_path)
+    if input_files:
 
-        if ID:
-            if not redo and db.get_file_status(ID) in gv.skip_status:
-                continue
-            db.set_file_status(ID, status_locked)
+        for file_path in input_files:
+            file_name   = file_path.split("/")[-1]
+            file_date   = get_file_date(file_path)
+            file_dir    = "/".join(file_path.split("/")[:-1]) + "/"
+            ID          = db.get_file_id(file_name, file_path)
+
+            if ID:
+                if not redo and db.get_file_status(ID) in gv.skip_status:
+                    continue
+                db.set_file_status(ID, status_locked)
+            else:
+                ID = db.register_file(file_name, file_path, source, status_locked, file_date, False, False)
+                if not ID:
+                    log.error(f"REGISTERING FILE '{file_path}' FAILED!")
+                    continue
+
+            files_dict[ID] = { "name":file_name, "dir":file_dir, "date":file_date }
+
+        db.close(commit=True)
+    
+    elif source and config_source:
+        source_dir  = config_source["dir"] + "/"
+        try:    sort_files  = config_source["sort_files"]
+        except: sort_files  = False
+        try:
+            if callable(config_source["sort_method"]):
+                sort_method = config_source["sort_method"]
+            else: sort_method = sorted
+        except: sort_method = sorted
+        try:    max_files   = config_source["max_files"]
+        except: max_files   = None
+        try:    glob        = config_source["glob"]
+        except: glob        = "*"
+        try:    ext         = config_source["ext"]
+        except: ext         = "*"
+        try:    redo        = config_source["redo"]
+        except: redo        = False
+        try:    restart     = config_source["restart"]
+        except: restart     = False
+
+        glob_ext = f"{glob}.{ext}"
+
+        if restart:
+            files_to_parse = db.get_files_with_status( f"locked_{restart}", source )
         else:
-            ID = db.register_file(file_name, file_path, source, status_locked, file_date, False, False)
+            from glob import glob
+            files_in_dir   = { os.path.basename(i) for i in glob( source_dir + glob_ext ) }
+
+            if redo:    skip_files  = db.get_files_with_status( r"locked_%", source )
+            else:       skip_files  = db.get_files_with_status( gv.skip_status, source )
+
+            files_to_parse = list( files_in_dir - skip_files )
+
+            #TODO special sort functions for CCA, RRA and stuff in case we dont have sequence key
+            #TODO implement order by datetime (via sort_method callable)
+            if sort_files: files_to_parse = sort_method(files_to_parse)
+            if max_files:  files_to_parse = files_to_parse[:max_files]
+
+            if verbose:
+                print("#FILES in DIR:  ",   len(files_in_dir))
+                print("#FILES to skip: ",   len(skip_files))
+
+        if verbose: print("#FILES to parse:",   len(files_to_parse))
+
+        for file_name in files_to_parse:
+
+            file_path = get_file_path( source_dir + file_name )
+            file_date = get_file_date( file_path )
+
+            ID = db.get_file_id(file_name, file_path)
             if not ID:
-                log.error(f"REGISTERING FILE '{file_path}' FAILED!")
-                continue
+                if PID: status_locked = f"locked_{PID}"
+                else:   status_locked = "locked"
+                ID = db.register_file(file_name, file_path, source, status_locked, file_date, verbose=verbose)
+                if not ID:
+                    log.error(f"REGISTERING FILE '{file_path}' FAILED!")
+                    continue
 
-        files_dict[ID] = { "name":file_name, "dir":file_dir, "date":file_date }
+            files_dict[ID] = { "name":file_name, "dir":source_dir, "date":file_date }
 
-    db.close(commit=True)
+        db.close(commit=True)
+
+        #TODO if multiprocessing: split files_to_parse by # of processes (e.g. 8) and parse files simultaneously
+        #see https://superfastpython.com/restart-a-process-in-python/
+
+    else: raise TypeError("Either source+config_source or input_files args have to be provided!")
+
     return files_dict
 
 

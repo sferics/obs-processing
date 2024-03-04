@@ -229,7 +229,7 @@ if __name__ == "__main__":
     output          = cf.script["output"] + "/" + mode
     stations        = cf.script["stations"]
 
-    obs             = ObsClass( config=cf.obs, source=source, mode=mode, stage="forge" )
+    obs             = ObsClass( cf, source, stage="forge" )
     db              = DatabaseClass( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)

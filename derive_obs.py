@@ -157,7 +157,7 @@ if __name__ == "__main__":
     replacements    = cf.script["replacements"]
     combinations    = cf.script["combinations"]
 
-    obs             = ObsClass( config=cf.obs, source=source, mode=mode, stage="forge" )
+    obs             = ObsClass( cf, source, stage="forge" )
     db              = DatabaseClass( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)

@@ -76,7 +76,7 @@ if __name__ == "__main__":
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
 
-    obs             = ObsClass( config=cf.obs, source=source, mode=mode, stage="forge" )
+    obs             = ObsClass( cf, source, stage="forge" )
     db              = DatabaseClass( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     elements        = tuple(f'{element}' for element in db.get_elements())

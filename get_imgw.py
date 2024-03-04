@@ -1,6 +1,7 @@
 #!python
 import os, sys, time, requests, argparse
 import global_functions as gf
+from config import ConfigClass
 from obs import ObsClass
 from datetime import datetime as dt
 import logging as log
@@ -27,43 +28,37 @@ def convert_imgw_keys(key, data):
 
 
 if __name__ == "__main__":
-    config          = gf.read_yaml("config")
-    config_script   = config["scripts"][sys.argv[0]]
-    conda_env       = os.environ['CONDA_DEFAULT_ENV']
-    if config_script["conda_env"] != conda_env:
-        sys.exit(f"This script needs to run in conda environment {config_script['conda_env']}, exiting!")
+    
+    # define program info message (--help, -h)
+    info        = "Get latest obs from polish weather service and insert observatio data into database."
+    script_name = gf.get_script_name(__file__)
+    flags       = ("l","v","c","d","m","o")
+    cf          = ConfigClass(script_name, flags=flags, info=info, verbose=True)
+    
+    # get currently active conda environment
+    conda_env   = os.environ['CONDA_DEFAULT_ENV']
 
-    config_source   = config["sources"]["IMGW"]
+    # check whether script is running in correct environment; if not exit
+    if cf.script["conda_env"] != conda_env:
+        sys.exit(f"This script ({script_name}) needs to run in conda env {cf.script['conda_env']}, exiting!")
 
-    msg    = "Get latest obs from polish weather service and insert observatio data into database."
-    parser = argparse.ArgumentParser(description=msg)
+    log_level   = cf.script["log_level"]
+    log         = gf.get_logger(script_name, log_level=log_level)
+    start_time  = dt.utcnow()
+    started_str = f"STARTED {script_name} @ {start_time}"
 
-    # add arguments to the parser
-    log_levels = { "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG" }
-    parser.add_argument("-l","--log_level", choices=log_levels, default="NOTSET", help="set log level") 
-    parser.add_argument("-v","--verbose", action='store_true', help="show detailed output")
-    parser.add_argument("-c","--config", default="config", help="set name of config file")
-    parser.add_argument("-d","--dev_mode", action='store_true', help="enable or disable dev mode")
-    parser.add_argument("-m","--max_retries", help="maximum attemps when communicating with IMGW server")
-    parser.add_argument("-o","--timeout", help="waiting timeout (in seconds) for HTTPS connection")
-    args = parser.parse_args()
+    log.info(started_str)
 
-    if args.log_level: config_script["log_level"] = args.log_level
-    log.basicConfig(filename=f"{sys.argv[0]}.log", filemode="w", level=eval(f"log.{config_script['log_level']}"))
+    # define some shorthands from script config 
+    verbose         = cf.script["verbose"]
+    debug           = cf.script["debug"]
+    traceback       = cf.script["traceback"]
+    timeout         = cf.script["timeout"]
+    max_retries     = cf.script["max_retries"] 
 
-    started_str = f"STARTED {sys.argv[0]} @ {dt.utcnow()}"; log.info(started_str)
-
-    if args.verbose:        verbose = True
-    else:                   verbose = config_script["verbose"]
-    if verbose:
-        print(started_str)
-        config["obs"]["verbose"] = True
-
-    if args.timeout:        timeout     = args.timeout
-    else:                   timeout     = config_script["timeout"]
-    if args.max_retries:    max_retries = args.max_retries
-    else:                   max_retries = config_script["max_retries"]
-
+    # get source specific configuration
+    config_source   = cf.sources["IMGW"]
+    
     success = False
     for i in range(1, max_retries+1):
         r = requests.get(config_source["url"])
@@ -77,16 +72,7 @@ if __name__ == "__main__":
         log.error(error_message)
         sys.exit(error_message)
 
-    obs         = ObsClass("raw", config["obs"], "imgw")
-
-    timeout_db  = config["database"]["timeout"]
-    db_file     = config["database"]["db_file"]
-
-    #if args.dev_mode:                   config_script["dev_mode"] = True
-    #elif config_general["dev_mode"]:    config_script["dev_mode"] = True
-    #if config_script["dev_mode"]:       output_path = config_general["output_dev"]
-    #else:                               output_path = config_general["output_oper"]
-
+    obs         = ObsClass(cf, "imgw", stage="raw")
     translation = gf.read_yaml("imgw_translation")
     elements    = translation["elements"]
 
