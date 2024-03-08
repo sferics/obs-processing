@@ -1,3 +1,4 @@
-- fixed durations for params like CB
+- outcomment unneeded, experimental params lik WDIRmax
+- fixed durations for params like CB, PRMSL, RCDC (extra column or define 1s, 1min as fixed?)
 - reduce obs (highest scale -> highest priority source -> latest COR)
 - implemented -N flag (skip nulls, default off) --> explicitly save 'null'

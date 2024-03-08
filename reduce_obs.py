@@ -16,13 +16,14 @@ def reduce_obs(stations):
     """
     Parameter:
     ----------
+    stations : list of stations to consider
 
     Notes:
     ------
 
     Return:
     -------
-
+    None
     """
     # for st in stations:
     # get only data rows with highest file ID and copy the remaining data to forge databases
@@ -36,34 +37,50 @@ def reduce_obs(stations):
             continue
 
         # create tation table in the forge databases directory
-        #obs.create_station_tables(loc)
-        #sql = [f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge"]
+        obs.create_station_tables(loc)
+        # attach forge database to fill it with reduced observational data
+        db_loc.attach(f"{output}/forge/{loc[0]}/{loc}.db", "forge")
 
         match mode:
             case "dev":
-                sql = f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge;\n"
+                #sql = f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge;\n"
                 #sql = ["INSERT INTO forge.obs SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs WHERE reduced=0"]
                 #sql.append("UPDATE main.obs SET reduced=1")
-                # in dev mode we only need to reduce to one (datetime,duration,element,value) by selecting only the highest priority source
-                sql += "CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs;\n"
-                sql += "DETACH forge;"
+                
+                # in dev mode we only need to reduce to one (datetime,duration,element,value)
+                # by selecting only the highest priority source
+                sql += "CREATE TABLE IF NOT EXISTS forge.obs f AS SELECT DISTINCT datetime,duration,element,value FROM main.obs r WHERE reduced=0 AND prio = ( SELECT MAX(prio) FROM r WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration );\n"
+                sql += "DETACH forge;\n"
+                
+                # mark all data as reduced (processed)
+                sql += "UPDATE main.obs SET reduced=1;"
 
             case "oper":
-                obs.create_station_tables(loc)
-                sql = "INSERT INTO forge.obs f SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs r WHERE reduced=0 AND cor = ( SELECT MAX(cor) FROM obs_raw r WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration AND file = ( SELECT MAX(file) FROM main.obs WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration;"
+                # select highest prio from highest fileID of highest COR (correction)
+                sql = ("INSERT INTO forge.obs f SELECT DISTINCT dataset,file,datetime,duration,"
+                    "element,value FROM main.obs r WHERE reduced=0 AND prio = ( SELECT MAX(prio) "
+                    "FROM ( SELECT MAX(file) FROM ( SELECT MAX(cor) FROM r WHERE r.datetime="
+                    "f.datetime AND r.element=f.element AND r.duration=f.duration ) ) );\n")
+                # select highest prio form highest COR
+                #sql = "INSERT INTO forge.obs f SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs r WHERE reduced=0 AND prio = ( SELECT MAX(prio) FROM ( SELECT MAX(cor) FROM r WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration ) );\n"
+
                 # delete all but latest COR
-                #sql.append("DELETE FROM main.obs a WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
-                #sql.append("UPDATE main.obs SET reduced = 1")
+                #sql += "DELETE FROM main.obs a WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration );\n"
+               
+                sql += "DETACH forge;\n"
+
                 # keep all CORs
-                sql += "UPDATE main.obs a set reduced=1 WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration );"
+                sql += "UPDATE main.obs a set reduced=1 WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration );\n"
                 
-                #sql.append("CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration ) AND file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
+                #sql += "CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration ) AND file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration );\n"
                 
             case "test":
                 raise NotImplementedError("TODO")
 
+        #sql += "UPDATE main.obs SET reduced = 1"
+
         #https://stackoverflow.com/questions/7745609/sql-select-only-rows-with-max-value-on-a-column
-        # 3 statements to get all data and copy them to a new database (forge)
+        # 3 statements to get all data and copy it to a new database (forge)
 
         #gf.create_station_tables( loc, output_path, "forge", verbose=verbose )
         
@@ -97,7 +114,8 @@ def reduce_obs(stations):
             if verbose:     print(e)
             if traceback:   gf.print_trace(e)
         else: db_loc.close()
-
+        
+    # currently the function does not return any value (None)
     return
 
 
@@ -127,7 +145,7 @@ if __name__ == "__main__":
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
 
-    obs             = ObsClass( cf, source, stage="forge" )
+    obs             = ObsClass( cf, stage="forge" )
     db              = DatabaseClass( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)

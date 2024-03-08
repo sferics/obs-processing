@@ -83,7 +83,7 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
 
             print("Too much RAM used, RESTARTING...")
             obs_db = convert_keys( obs_bufr, source, shift_dt=shift_dt, convert_dt=convert_dt )
-            if obs_db: obs.to_station_databases(obs_db)
+            if obs_db: obs.to_station_databases(obs_db, scale=scale_info)
             
             if pid_file: os.remove( pid_file )
 
@@ -111,7 +111,7 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
     obs_db = convert_keys( obs_bufr, source, shift_dt=shift_dt, convert_dt=convert_dt )
 
     if debug: print(obs_db)
-    if obs_db: obs.to_station_databases(obs_db)
+    if obs_db: obs.to_station_databases(obs_db, scale=scale_info)
      
     # remove file containing the PID, so the script can be started again
     if pid_file: os.remove( pid_file )
@@ -156,6 +156,7 @@ if __name__ == "__main__":
     traceback   = cf.script["traceback"]
     debug       = cf.script["debug"]
     pid_file    = cf.script["pid_file"]
+    scale_info  = cf.script["scale_info"]
     shift_dt    = cf.script["shift_datetime"]
     convert_dt  = cf.script["convert_datetime"]
 
@@ -172,10 +173,10 @@ if __name__ == "__main__":
     config_sources = None
     
     if args.file or args.files:
-
+        print("REDO",args.redo)
         if args.file:
             # only processing a single BUFR file
-            input_files_dict = gf.get_input_files_dict( cf.database, [input_file], PID=PID )
+            input_files_dict = gf.get_input_files_dict( cf.database, [args.file], PID=PID, redo=args.redo )
         
         else:
             # input can be a semicolon-seperated list of files as well (or other seperator char defined by sep)
@@ -183,10 +184,11 @@ if __name__ == "__main__":
             if args.sep in args.files:
                 import re
                 input_files = re.split(args.sep, args.file)
-            else: input_files = (args.files,)
-            input_files_dict = gf.get_input_files_dict( cf.database, input_files, PID=PID )
-        
-        decode_bufr( cf, input_files_dict, cf.extra, approach, pid_file, verbose=verbose )
+            else: input_files = args.files
+            input_files_dict = gf.get_input_files_dict( cf.database, input_files, PID=PID, redo=args.redo )
+       
+        print(input_files_dict)
+        decode_bufr( cf, input_files_dict, cf.args.extra, approach, pid_file, verbose=verbose )
     
     elif args.source:
         if len(args.source) > 1:

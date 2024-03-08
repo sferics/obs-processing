@@ -10,7 +10,7 @@ meta:
 elements:
   temperatura:          [TMP_2m_syn,    1s,   10,    1]
   predkosc_wiatru:      [WIND_10m_syn,  1h, *ms2kn,  0]
-  kierunek_wiatru:      [WDIR,          1min, 1,    -1]  
+  kierunek_wiatru:      [WDIR_10m_syn,  1min, 1,    -1]  
   wilgotnosc_wzgledna:  [RH_2m_syn,     1s,   1,     1] 
   suma_opadu:           [PRATE_1m_syn,  1h,   1,     1]
   cisnienie:            [PRMSL_ms_syn,  1s,   1,     1]

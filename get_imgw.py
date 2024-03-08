@@ -58,6 +58,8 @@ if __name__ == "__main__":
 
     # get source specific configuration
     config_source   = cf.sources["IMGW"]
+    # get priority setting for IMGW source
+    prio            = config_source["prio"]
     
     success = False
     for i in range(1, max_retries+1):
@@ -68,7 +70,7 @@ if __name__ == "__main__":
         else: success = True; break
 
     if not success:
-        error_message = f"Unable to reach IMGW data server, tried {max_retries} times!"
+        error_message = f"Unable to reach IMGW server, tried {max_retries} times | {r.status_code}"
         log.error(error_message)
         sys.exit(error_message)
 
@@ -87,14 +89,19 @@ if __name__ == "__main__":
 
         date = meta["date"]; hour = int(meta["hour"])
         datetime = dt(int(date[:4]), int(date[5:7]), int(date[8:10]), hour)
-
+        
         for key in elements:
             # if observation value is None: skip it
             if data[key] is None: continue
             element, value, duration, scale = convert_imgw_keys(key, data)
             obs_db[location].add( (0, datetime, duration, element, value, 0, scale) )
 
-    obs.to_station_databases(obs_db, "imgw", scale=True)
+    obs.to_station_databases(obs_db, "imgw", scale=True, prio=prio)
 
-    finished_str = f"FINISHED {sys.argv[0]} @ {dt.utcnow()}"; log.info(finished_str)
+    stop_time       = dt.utcnow()
+    finished_str    = f"FINISHED {sys.argv[0]} @ {stop_time}"
+    log.info(finished_str)
     if verbose: print(finished_str)
+
+    time_taken = stop_time - start_time
+    print(f"{time_taken.seconds}.{time_taken.microseconds} s")

@@ -38,7 +38,9 @@ class ObsClass:
 
 
     #TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
-    def to_station_databases(self, obs_db, source=None, scale=None, mode=None, stage=None, output=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None, settings={}):
+    def to_station_databases(self, obs_db, source=None, scale=None, prio=0, mode=None, stage=None,
+            output=None, max_retries=None, commit=None, timeout=None, traceback=None, verbose=None,
+            settings={}):
         #TODO
         """
         Parameter:
@@ -70,13 +72,15 @@ class ObsClass:
         match stage:
             case "raw":
                 if scale:
-                    sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor,scale) VALUES "
-                        f"('{source}',?,?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value=excluded.value, reduced=0, "
-                        f"file = excluded.file WHERE excluded.cor > obs.cor and excluded.file > obs.file" )
+                    sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor,scale,prio) "
+                        f"VALUES ('{source}',?,?,?,?,?,?,?,{prio}) ON CONFLICT DO UPDATE SET "
+                        f"value=excluded.value, reduced=0, file = excluded.file WHERE excluded.cor "
+                        f"> obs.cor and excluded.file > obs.file" )
                 else:
-                    sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES "
-                        f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value=excluded.value, reduced=0, "
-                        f"file = excluded.file WHERE excluded.cor > obs.cor and excluded.file > obs.file" )
+                    sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor,prio) "
+                        f"VALUES ('{source}',?,?,?,?,?,?,{prio}) ON CONFLICT DO UPDATE SET "
+                        f"value=excluded.value, reduced=0, file = excluded.file WHERE excluded.cor "
+                        f"> obs.cor and excluded.file > obs.file" )
             case "forge":
                 sql = ( f"INSERT INTO obs (dataset,datetime,duration,value) VALUES(?,?,?,?) "
                         f"ON CONFLICT DO UPDATE SET value=excluded.value" )

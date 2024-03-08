@@ -117,8 +117,8 @@ scripts:
     stations:         !!set   [wmo]
     clusters:         !!set   [germany]
     mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations_pl_test
-    bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
+    output:           !!str   /home/juri/data/stations
+    bufr_translation: !!str   "bufr_translation_{approach}"
     bufr_flags:       !!str   bufr_flags           # code flag table conversions
     shift_datetime:   !!bool  0
     convert_datetime: !!bool  0
@@ -140,11 +140,12 @@ scripts:
     stations:         !!set   [wmo]
     clusters:         !!set   [germany]
     mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations_pd
+    output:           !!str   /home/juri/data/stations
     bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags           # code flag table conversions
     shift_datetime:   !!bool  0
     convert_datetime: !!bool  0
+    scale_info:       !!bool  0
 
   decode_bufr_pl.py: # uses plbufr
     conda_env:        !!str   obs
@@ -163,12 +164,13 @@ scripts:
     stations:         !!set   [wmo]
     clusters:         !!set   [germany]
     mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations_pl_test
+    output:           !!str   /home/juri/data/stations
     bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags           # code flag table conversions
     shift_datetime:   !!bool  0
     convert_datetime: !!bool  0
-    
+    scale_info:       !!bool  0
+ 
   decode_bufr_gt.py: # uses plbufr
     conda_env:        !!str   obs
     pid_file:         !!bool  0 # create and use pid file
@@ -186,11 +188,12 @@ scripts:
     stations:         !!set   [wmo]
     clusters:         !!set   [germany]
     mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations_gt
+    output:           !!str   /home/juri/data/stations
     bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags           # code flag table conversions
     shift_datetime:   !!bool  0
     convert_datetime: !!bool  0
+    scale_info:       !!bool  0
 
   decode_bufr_mv.py:
     conda_env:        !!str   metview
@@ -207,7 +210,7 @@ scripts:
     max_retries:      !!int   1200 # max retries when writing into databases 
     sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations_mv
+    output:           !!str   /home/juri/data/stations
     bufr_translation: !!str   bufr_translation_mv # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags_mv #TODO not used at the moment, for cloud levels it could be useful though
     shift_datetime:   !!bool  0
@@ -231,7 +234,7 @@ scripts:
     skip_computed:    !!bool  0
     skip_duplicates:  !!bool  0
     mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations_ex
+    output:           !!str   /home/juri/data/stations
     bufr_translation: !!str   bufr_translation_us # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
     bufr_sequences:   !!str   bufr_sequences
@@ -239,6 +242,7 @@ scripts:
     clusters:         !!set   [germany]
     shift_datetime:   !!bool  0
     convert_datetime: !!bool  0
+    scale_info:       !!bool  1
 
   decode_bufr_us.py:
     conda_env:        !!str   obs
@@ -255,7 +259,7 @@ scripts:
     max_retries:      !!int   1200 # max retries when writing into databases 
     sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
     mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations_us
+    output:           !!str   /home/juri/data/stations
     bufr_translation: !!str   bufr_translation_us # TODO might be useful in future to define this by source?
     bufr_flags:       !!str   bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
     extract_subsets:  !!bool  0
@@ -266,6 +270,7 @@ scripts:
     clusters:         !!set   [germany]
     shift_datetime:   !!bool  1
     convert_datetime: !!bool  0
+    scale_info:       !!bool  1
 
   decode_synop.py:    #TODO
     conda_env:        !!str   obs
@@ -297,8 +302,8 @@ scripts:
     verbose:          !!bool  1
     max_retries:      !!int   10
     timeout:          !!int   3
-    output:           !!str   /home/juri/data/stations_imgw
-    
+    output:           !!str   /home/juri/data/stations
+
   forge_obs.py:
     conda_env:        !!str   obs
     pid_file:         !!bool  0 # create and use pid file
@@ -551,7 +556,8 @@ sources:
     url:  https://api.met.no/weatherapi
 
   IMGW: # Polish meteo+hydrological service
-    url:    https://danepubliczne.imgw.pl/api/data/synop
+    url:    !!str   https://danepubliczne.imgw.pl/api/data/synop
+    prio:   !!int   4
     #historical data 2017-
     #https://danepubliczne.imgw.pl/data/arch/ost_meteo/
     #historical data 1951-

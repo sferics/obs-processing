@@ -7,5 +7,6 @@ obs:
   value:    text NOT NULL
   cor:      integer DEFAULT 0 #TODO number of corrections (COR/CCA)
   scale:    real DEFAULT NULL
+  prio:     int DEFAULT 0
   reduced:  integer DEFAULT 0 #TODO will be set to 1 after handled by "reduce_obs.py"
   UNIQUE:   (dataset, datetime, file, duration, element, cor)
