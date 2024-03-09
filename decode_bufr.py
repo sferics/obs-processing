@@ -180,11 +180,11 @@ if __name__ == "__main__":
         
         else:
             # input can be a semicolon-seperated list of files as well (or other seperator char defined by sep)
-            #input_files = args.file.split(args.sep)
-            if args.sep in args.files:
-                import re
-                input_files = re.split(args.sep, args.file)
-            else: input_files = args.files
+            input_files = args.files.split(args.sep)
+            #if args.sep in args.files:
+            #    import re
+            #    input_files = re.split(args.sep, args.file)
+            #else: input_files = args.files
             input_files_dict = gf.get_input_files_dict( cf.database, input_files, PID=PID, redo=args.redo )
        
         print(input_files_dict)

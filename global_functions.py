@@ -535,7 +535,7 @@ def get_file_date( file_path, datetime=True ):
 
 
 def get_input_files_dict( config_database, input_files=[], source="extra",
-        config_source: dict = {}, PID=None, redo=False, verbose=False ):
+        config_source: dict = {}, PID=None, redo=False, log=None, verbose=False ):
     """
     Parameter:
     ----------
@@ -558,13 +558,14 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
     except: pass
 
     if input_files:
-        print(input_files)
+        
         for file_path in input_files:
+            
             file_name   = file_path.split("/")[-1]
             file_date   = get_file_date(file_path)
-            file_dir    = "/".join(file_path.split("/")[:-1]) + "/"
-            ID          = db.get_file_id(file_name, file_path)
-            print(ID, redo)
+            file_dir    = "/".join(file_path.split("/")[:-1])
+            ID          = db.get_file_id(file_name, file_dir)
+            
             if ID:
                 if not redo:
                     if db.get_file_status(ID) in gv.skip_status:
@@ -573,11 +574,12 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
             else:
                 ID = db.register_file(file_name, file_path, source, status_locked, file_date, 0, 0)
                 if not ID:
-                    #log.error(f"REGISTERING FILE '{file_path}' FAILED!")
+                    print(f"REGISTERING FILE '{file_path}' FAILED!")
+                    if log: log.error(f"REGISTERING FILE '{file_path}' FAILED!")
                     continue
 
-            files_dict[ID] = { "name":file_name, "dir":file_dir, "date":file_date }
-            print(files_dict)
+            files_dict[ID] = { "name":file_name, "dir":file_dir+"/", "date":file_date }
+        
         db.close(commit=True)
     
     elif source and config_source:
@@ -633,7 +635,7 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
                 else:   status_locked = "locked"
                 ID = db.register_file(file_name, file_path, source, status_locked, file_date, verbose=verbose)
                 if not ID:
-                    #log.error(f"REGISTERING FILE '{file_path}' FAILED!")
+                    if log: log.error(f"REGISTERING FILE '{file_path}' FAILED!")
                     continue
 
             files_dict[ID] = { "name":file_name, "dir":source_dir, "date":file_date }

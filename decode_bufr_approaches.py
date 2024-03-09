@@ -12,6 +12,7 @@ def decode_bufr_gt(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
     """
     """
     import plbufr
+    if debug: import pdb
 
     PATH = DIR + FILE
 
@@ -80,6 +81,7 @@ def decode_bufr_pl(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
     """
     """
     import plbufr
+    if debug: import pdb
     
     obs_bufr = {}
     file_status = "empty"
@@ -157,6 +159,7 @@ def decode_bufr_pd(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
     """
     """
     import pdbufr
+    if debug: import pdb
 
     obs_bufr = {}
     file_status = "empty"
@@ -454,11 +457,13 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
+    import sys
     import eccodes as ec
     import numpy as np
     from itertools import cycle
     from copy import copy
     from datetime import datetime as dt
+    if debug: import pdb
 
     obs_bufr    = {}
     file_status = "empty"
@@ -491,10 +496,10 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
         """
         Parameter:
         ----------
-        codes: iterator of BUFR codes
-        code: current BUFR code
-        vals: iterator of values in dataset
-        val: current value
+        codes : iterator of BUFR codes
+        code : current BUFR code
+        vals : iterator of values in dataset
+        val : current value
 
         Notes:
         ------
@@ -600,10 +605,13 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
         # previous code is None at first and will be needed to spot repeated sequences
         previous_code = None
 
+        #codes_debug = {307096, 302084, 302085}
+
         # as long as we did not reach the and of the unexpanded data array; continue
         while pos_code < len(unexp):
             # get code by subscripting position in the unexp array
             code = unexp[pos_code]
+            #if code in codes_debug: sys.exit(code)
             # if the code is a sequence but no replication info sits directly in front of it
             if code in bf.sequence_range and previous_code not in bf.repl_info:
                 # replace sequence codes by actual sequences and apply replication factors
@@ -644,14 +652,43 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
         #TODO instead of defining the following functions and using standard iterators we could also write
         #our own (complex) generator function with explicit return and/or yield from statements or decorators
 
+        def get_repl_factor(code, val):
+            """
+            """
+            # check the next_code, whether it provides a (short/extended) replication factor
+            match code:
+                case 31000: # short delayed replication factor
+                    if debug: print(code, val)
+                    # if the next value is not zero or contains a NaN set repl_factor to 1
+                    if val and not np.isnan(val):   repl_factor = 1
+                    else:                           repl_factor = 0
+                case 31001 | 31002: # (extended) delayed replication factor
+                    if debug: print(code, val)
+                    # if the next value is not zero or NaN: set repl_factor to value itself
+                    if val and not np.isnan(val):   repl_factor = int(val)
+                    else:                           repl_factor = 0
+                case _: # this case should rarely occur and actually only in case of faulty BUFR data
+                    # in case we get some other code; release BUFR and skip this file to be save
+                    ec.codes_release(msg)
+                    # log an error message with the file that is currently processed + 'code'
+                    log_str = f"ERROR:  '{FILE}' (MISSING REPLICATION FACTOR CODE '{code}')"
+                    log.error(log_str)
+                    if verbose or debug: print(log_str)
+                    # set file status to 'error' in order to be able to track down what went wrong
+                    file_status = "error"
+                    # raising a ValueError enables us to exit the function and except the error outwards
+                    raise ValueError
+            
+            return repl_factor
+
         def get_repl_codes(codes_repl, code, vals_repl, val):
             """
             Parameter:
             ----------
-            codes: iterator of BUFR codes
-            code: current BUFR code
-            vals: iterator of values in dataset
-            val: current value
+            codes_repl : iterator of BUFR codes
+            code : current BUFR code
+            vals_repl : iterator of values in dataset
+            val : current value
 
             Notes:
             ------
@@ -662,7 +699,7 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
             """
             if debug:
                 print("GET REPL")
-                print( bc.to_code(code), val)
+                print( bf.to_code(code), val)
             # get number of element to be repeated and the amount of repetitions (repl_factor)
             num_elements, repl_factor   = get_num_elements_repl_factor(code)
             # initial values of skip_codes and skip_values; define how many codes/values to skip
@@ -677,7 +714,9 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                 #TODO maybe it is yet better to use only the global ones? avoiding confusion...
                 next_code       = next(codes_repl)
                 next_val        = next(vals_repl)
-
+                
+                repl_factor = get_repl_factor(next_code, next_val)
+                """
                 # check the next_code, whether it provides a (short/extended) replication factor
                 match next_code:
                     case 31000: # short delayed replication factor
@@ -701,6 +740,7 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                         file_status = "error"
                         # raising a ValueError enables us to exit the function and except the error outwards
                         raise ValueError
+                """
             else:
                 repl_present = 1
                 skip_codes  -= num_elements + 1
@@ -716,23 +756,71 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 
             if num_elements == 1:
                 next_code = next(codes_repl)
-                # if next_code is a BUFR sequence get the elements it contains
+                #if next_code in codes_debug: sys.exit(next_code)
                 if next_code in bf.sequence_range:
+                    # if next_code is a BUFR sequence get the elements it contains
                     elements = bf.bufr_sequences[next_code]
                 else:
                     # otherwise elements is just a single-element list
                     elements = [next_code]
             else:
-                # get the next elements in range and save them into a list comprehension
-                elements = [ next(codes_repl) for _ in range(num_elements) ]
+                ## get the next elements in range and save them into a list comprehension
+                #elements = [ next(codes_repl) for _ in range(num_elements) ]
+                
+                # because sequences can also contain nested repl information we need a for loop
+                elements = []
+                
+                for i in range(num_elements):
+                    
+                    next_code_i = next(codes_repl)
+                    #if next_code_i in codes_debug: sys.exit(next_code_i)
+
+                    if next_code_i in bf.repl_range:
+                        print("NEXT CODE I", next_code_i)
+                        skip_codes += 1
+                        #TODO solution does not consider possibility of 3100X codes (never happens?)
+                        num_elements_i, repl_factor_i = get_num_elements_repl_factor(next_code_i)
+                        print("NUM ELEM I", num_elements_i)
+                        print("REPL I", repl_factor_i)
+                        #elements += [next(codes_repl) for _ in range(num_elements_i)]*repl_factor_i
+                        
+                        if not repl_factor_i:
+                            next_val_i = next(vals_repl)
+                            skip_vals += 1
+                            repl_factor_i = get_repl_factor(next_code_i, next_val_i)
+
+                        elements_i = []
+                        for j in range(num_elements_i):
+                            next_code_j = next(codes_repl)
+                            if next_code_j in bf.sequence_range:
+                                #skip_codes += 1
+                                # if code is sequence: get codes and add them to temporary list
+                                elements_i += bf.bufr_sequences[next_code_j]
+                                #TODO currently only supports a simple sequence (without repl & seq)
+                            else:
+                                # otherwise add just single element to list
+                                elements_i.append(next_code_j)
+                        # add the elements from temp list 'repl_factor_i' times to elements list
+                        elements += elements_i * repl_factor_i
+                    else:
+                        if next_code_i in bf.sequence_range:
+                            skip_codes += 1
+                            # if code is a sequence: get codes and add them
+                            elements += bf.bufr_sequences[next_code_i]
+                            print("ELEMENTS", elements)
+                            #TODO the sequence could also contain repl, what then? (never happens?)
+                        else:
+                            # otherwise add just a single element
+                            elements.append(next_code_i)
+
                 skip_codes -= 1; skip_vals -= 1
 
             # only if a replication factor is given directly in the code: skip one value
-            skip_vals   += repl_present
+            skip_vals += repl_present
 
             if debug:
                 print("REPL ELEMENTS / REPL / SKIP CODES / SKIP VALS")
-                print(tuple(elements), repl_factor, skip_codes, skip_vals)
+                print(elements, repl_factor, skip_codes, skip_vals)
             # return elements list, replication factor and tuple containing skip information
             return elements, repl_factor, (skip_codes, skip_vals)
 
@@ -783,7 +871,7 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                                 if previous_code != 202129: obs_list.append( (code, None) )
                                 # else delete the last element of the obs_list
                                 else: del obs_list[-1]
-                                # remember previous code to compare later on
+                                # remember previous code to compare it later on
                                 previous_code = copy(code)
 
                     # if the code is a replication information indicator (not 3100X though)
@@ -791,8 +879,8 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                         #val = next(vals)
                         # try to get codes to repeat and replication factor (how many times?)
                         try: codes_repl, repl_factor, skip = get_repl_codes(codes, code, vals, val)
-                        # if we come across a faulty value we need to skip the current file; therefore break
-                        except ValueError:
+                        # if we come across a faulty/unknown value we need to skip the current file
+                        except (ValueError, KeyError):
                             skip_file = True
                             break
                         skip_codes, skip_vals           = skip
@@ -807,7 +895,7 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                         # aggregate 1 min values to 10 min
                         if repl_factor == 10:
                             if debug: print("REPL 10")
-                            # the next 10 values are put into a list comprehension as follows
+                            # the next 10 values will be put into a list comprehension as follows
                             val_10 = [ next(vals) for _ in range(10) ]
                             if debug: print(val_10)
                             # this is necessary because stations that contain no data still need to be parsed
@@ -836,7 +924,7 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                                         continue
                                     # move on to the next value in our main values iterator
                                     val_r = next(vals)
-                                    if debug: print(bc.to_code(code_r), val_r)
+                                    if debug: print(bf.to_code(code_r), val_r)
                                     # only if location and datetime have a proper value (not None or "")
                                     if location and datetime:
                                         # if the code_r is relevant and is not a NaN: add it to the obs list
@@ -855,12 +943,12 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                             if location and datetime and not np.isnan(val):
                                 # turn 1min values to 10min values
                                 if code == 4025 and val == -1: val = -10
-                                if debug: print(bc.to_code(code), val)
+                                if debug: print(bf.to_code(code), val)
                                 # last but not least append the (code, value) tuple to the list of obs
                                 obs_list.append( (code, val) )
                         #
                         else:
-                            if debug: print(bc.to_code(code))
+                            if debug: print(bf.to_code(code))
                             # we always need to iterate to the next value at the end
                             next(vals)
 
@@ -877,7 +965,7 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 
                 #
                 else:
-                    if debug: print(bc.to_code(code))
+                    if debug: print(bf.to_code(code))
                     # also in this case we need to get the next value to match with next(codes)
                     next(vals)
 

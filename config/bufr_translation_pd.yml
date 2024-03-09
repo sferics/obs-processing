@@ -199,10 +199,11 @@ vAt10M:                             [v_10m_syn, ~, *ms2kn, 0]
   #windDirectionAssociatedWithWindSpeedWhichFollows:                 [DIR_10m_syn, ~, 1, 0]
 windDirection:                      [WDIR_10m_syn, 10min, 1, 0]       # Windrichtung
 windDirectionAt10M:                 [WDIR_10m_syn, 10min, 1, 0]       # Windrichtung
-windDirectionAt5M:                  [WDIR_5m_syn, 10min, 1, 0]       # Windrichtung
-windSpeed:                          [WIND_10m_syn, 10min, *ms2kn, 0] # Windgeschwindigkeit 10-Min-Mittel kn
-windSpeedAt10M:                     [WIND_10m_syn, 10min, *ms2kn, 0] # Mittelwind der letzten Stunde
-windSpeedAt5M:                      [WIND_5m_syn, 10min, *ms2kn, 0] # Mittelwind der letzten Stunde
+windDirectionAt5M:                  [WDIR_5m_syn, 10min, 1, 0]        # Windrichtung
+maximumWindGustDirection:           [WDIRmax_10m_syn, ~, 1, 0, 0]     # Windrichtung der max Böen
+windSpeed:                          [WIND_10m_syn, 10min, *ms2kn, 0]  # Windgeschwindigkeit 10-Min-Mittel kn
+windSpeedAt10M:                     [WIND_10m_syn, 10min, *ms2kn, 0]  # Mittelwind der letzten Stunde
+windSpeedAt5M:                      [WIND_5m_syn, 10min, *ms2kn, 0]   # Mittelwind der letzten Stunde
 meanWindSpeed:                      [WIND_10m_syn, 10min, *ms2kn, 0]
 maximumMeanWindSpeed:               [WINDmax_10m_syn,~, *ms2kn,  0]
 minimumMeanWindSpeed:               [WINDmin_10m_syn,~, *ms2kn,  0]

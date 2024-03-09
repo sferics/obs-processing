@@ -267,7 +267,7 @@ minimumMeteorologicalOpticalRange:
 maximumMeteorologicalOpticalRange:
   020239:                             [VISmax_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
 horizontalVisibility:
-  020001:                             [VISsyn,     0s, 0.001, 0,-1]     # Horizontale Sichtweite
+  020001:                             [VIS_syn,     0s, 0.001, 0,-1]     # Horizontale Sichtweite
 minimumHorizontalVisibility:
   020059:                             [VISmin_syn, 0s, 0.001, 0,-1]     # Horizontale Sichtweite
 prevailingHorizontalVisibility:
