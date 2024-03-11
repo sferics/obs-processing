@@ -362,9 +362,11 @@ maximumTemperatureAtHeightAndOverPeriodSpecified:
 minimumTemperatureAtHeightAndOverPeriodSpecified:
   012012:
     0.05:                             [TMIN_5cm_syn,12h,    10, *K2C, 1] # 24h-Minimum der 5cm-Lufttemperatur
+    0.1:                              [TMIN_10cm_syn,12h,   10, *K2C, 2] # 24h-Minimum der 10cm-Lufttemperatur
     2.0:                              [TMIN_2m_syn, 12h,    10, *K2C, 1] # 24h-Minimum der 2m-Lufttemperatur
   012112:
     0.05:                             [TMIN_5cm_syn,12h,    10, *K2C, 2] # 24h-Minimum der 5cm-Lufttemperatur
+    0.1:                              [TMIN_10cm_syn,12h,   10, *K2C, 2] # 24h-Minimum der 10cm-Lufttemperatur
     2.0:                              [TMIN_2m_syn, 12h,    10, *K2C, 2] # 24h-Minimum der 2m-Lufttemperatur
 
 maximumTemperatureAt2MPast12Hours:

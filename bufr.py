@@ -227,11 +227,17 @@ class BufrClass:
                 # all codes which contain timePeriod information for our synoptic purposes
                 self.tp_codes       = {4023, 4024, 4025} # d, h, min
                 self.tp_range       = range(4023, 4026)
+                #self.tp_codes       = set(self.tp_range)
 
                 # codes which alter height/depth of sensor
                 self.height_depth_codes = self.height_codes | self.depth_codes
+                
+                # codes that contain replication factors
+                self.repl_codes = {31000, 31001, 31002}
+                #TODO maybe add 31011, 31012 (not used by DWD but maybe other providers do use them)
+                
                 # all codes which modify the following keys duration, height, depth and so on
-                self.modifier_codes = self.tp_codes | {1023, 7032, 7061, 8002, 31000, 31001, 31002}
+                self.modifier_codes = self.tp_codes|self.height_depth_codes|self.repl_codes | {1023}
                 #TODO maybe add 31011, 31012 (not used by DWD but maybe other providers do use them)
 
                 self.datetime_codes = {
@@ -241,6 +247,8 @@ class BufrClass:
                     4004 : "hour",  # XX
                     4005 : "minute" # XX
                 }
+                
+                # codes for blockNumber and stationNumber
                 self.station_codes  = {1001, 1002} # 1018
                 
                 if hasattr(self, "bufr_sequences"):
@@ -255,10 +263,8 @@ class BufrClass:
                     202129 : 1, # temporarily increase scale by 1 digit
                 }
 
-                self.repl_codes = {31000, 31001, 31002}
-
                 # all code relevant for extraction of expanded descriptors
-                self.relevant_codes = self.modifier_codes | set(self.bufr_translation) | set(self.scale_alter) - self.repl_codes
+                self.relevant_codes = set( self.modifier_codes | set(self.bufr_translation) | set(self.scale_alter) ) - self.repl_codes
     
                 self.size_alter = {
                     201000 : 0, # reset size
@@ -269,7 +275,7 @@ class BufrClass:
 
                 self.repl_range     = range(101000, 131000) # range of repeated elements
                 self.repl_seq_range = range(131000, 132000) # repeat next sequence (999 times)
-                self.repl_info      = tuple(self.repl_codes) + tuple(self.repl_range) + tuple(self.repl_seq_range)
+                self.repl_info      = set( tuple(self.repl_codes) + tuple(self.repl_range) + tuple(self.repl_seq_range) )
 
             case "pd" | "pl" | "gt":
                 
@@ -440,7 +446,7 @@ class BufrClass:
                         code, val_obs = data[0], data[1]
                         
                         if code == 1023: # observationSequenceNumber
-                            cor = copy(val_obs)
+                            cor = int(val_obs)
                         elif code in self.tp_codes:
                             try:    duration    = self.bufr_translation[code][val_obs]
                             except: duration    = "" # TODO or continue to skip unknown duration?
