@@ -23,7 +23,7 @@ class ObsClass:
         
         # in this merge we are adding only already present keys; while again overwriting them
         config      = gf.merge_list_of_dicts([cf.obs, cf.script], add_keys=False)
-        # make config accessible as class object
+        # make config and important definitions accessible as class objects
         self.config = config
         self.mode   = config["mode"]
         self.source = source
@@ -68,19 +68,18 @@ class ObsClass:
 
         # insert values or update value if we have a newer cor, then set parsed = 0 as well
         # statements for different stages
-        print(stage, scale)
         match stage:
             case "raw":
                 if scale:
                     sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor,scale,prio) "
                         f"VALUES ('{source}',?,?,?,?,?,?,?,{prio}) ON CONFLICT DO UPDATE SET "
-                        f"value=excluded.value, reduced=0, file = excluded.file WHERE excluded.cor "
-                        f"> obs.cor and excluded.file > obs.file" )
+                        f"value=excluded.value, file=excluded.file, cor=excluded.cor, reduced=0 WHERE "
+                        f"excluded.cor > obs.cor" ) # AND excluded.file > obs.file AND excluded scale > obs.scale
                 else:
                     sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor,prio) "
                         f"VALUES ('{source}',?,?,?,?,?,?,{prio}) ON CONFLICT DO UPDATE SET "
-                        f"value=excluded.value, reduced=0, file = excluded.file WHERE excluded.cor "
-                        f"> obs.cor and excluded.file > obs.file" )
+                        f"value=excluded.value, file=excluded.file, cor=excluded.cor, reduced=0 WHERE "
+                        f"excluded.cor > obs.cor" ) # AND excluded.file > obs.file
             case "forge":
                 sql = ( f"INSERT INTO obs (dataset,datetime,duration,value) VALUES(?,?,?,?) "
                         f"ON CONFLICT DO UPDATE SET value=excluded.value" )
@@ -173,8 +172,8 @@ class ObsClass:
                 continue
             else:
                 match mode:
-                    case "oper" | "test":   mode_tables = 5
-                    case "dev":             mode_tables = 6
+                    case "oper" | "dev":    mode_tables = 1
+                    case "test":            mode_tables = 5
                 ready = ( n_tables == mode_tables ) # is hardcoded for performance reasons, remember to change!
                 break
 

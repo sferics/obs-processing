@@ -93,9 +93,7 @@ def get_script_name(FILE, realpath=True):
     else: return os.path.basename(FILE)
 
 
-#TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
-def obs_to_station_databases( obs_db, source, output_path, max_retries=100, timeout=5, verbose=0 ):
-    #TODO
+def print_time_taken(start_time, stop_time, precision=3):
     """
     Parameter:
     ----------
@@ -105,111 +103,11 @@ def obs_to_station_databases( obs_db, source, output_path, max_retries=100, time
 
     Return:
     -------
-
-    """ 
-    from database import DatabaseClass
-    # insert values or update value if we have a newer cor, then set parsed = 0 as well
-    sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor) VALUES " 
-        f"('{source}',?,?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, reduced = 0, "
-        f"file = excluded.file WHERE excluded.cor > obs.cor" )
-
-    for loc in obs_db:
-        created = create_station_tables(loc, output_path, "raw", max_retries, 1, 1, verbose=verbose)
-        if not created: continue
-       
-        retries = copy(max_retries)
-
-        while retries > 0:
-            try:
-                db_loc = DatabaseClass( f"{output_path}/raw/{loc[0]}/{loc}.db", timeout=timeout)
-                db_loc.exemany( sql, obs_db[loc] )
-            except sqlite3.Error as e:
-                print(e, retries)
-                retries -= 1
-                if verbose: print(f"Retrying to insert data", retries, "times")
-                continue
-            else:
-                if verbose:
-                    print(loc)
-                    loc = list(obs_db[loc])
-                    for i in range(len(loc)):
-                        if loc[i][5]:   cor = "CC" + chr(64+loc[i][5])
-                        else:           cor = ""
-                        print(f"{loc[i][1]} {loc[i][2]:<6} {loc[i][3]:<20} {loc[i][4]:<21} {cor}")
-                    print()
-                break
-
-        db_loc.close(commit=True)
-
-
-def create_station_tables( location, output_path, typ, max_retries=100, commit=True, traceback=True, verbose=None ):
+    None
     """
-    Parameter:
-    ----------
-    location : station location, usually WMO ID
-    output_path : where the station databases are saved
-    commit : commit to database afterwards
-    verbose : print exceptions that are being raised
-
-    Notes:
-    ------
-    creates the obs,model and stats tables for a new station
-
-    Return:
-    -------
-    True if succesful, False if not, None if tables already exists and completely setup (ready == 1)
-    """
-    from database import DatabaseClass
-    station_path = f'{output_path}/{typ}/{location[0]}'
-    create_dir( station_path )
-    db_path = f'{station_path}/{location}.db'
-
-    ready = False
-    
-    retries = copy(max_retries)
-
-    while retries > 0:
-        try:
-            db = DatabaseClass( db_path )
-            # get number of tables in attached DB
-            db.exe(f"SELECT count(*) FROM sqlite_master WHERE type='table'")
-            n_tables = db.fetch1()
-        except sqlite3.Error as e:
-            print(e, retries)
-            retries -= 1
-            continue
-        else:
-            ready = ( n_tables == 3 ) # 3 is hardcoded for performance reasons, remember to change!
-            break
-
-    if retries == 0: return False
-
-    if ready:
-        db.close()
-        return True
-    else:
-        if verbose: print("Creating table and adding columns...")
-
-        # read structure file station_tables.yaml into a dict
-        tables = read_yaml( f"station_tables_{typ}" )
-
-        for table in tables:
-            retries = copy(max_retries)
-            while retries > 0:
-                try:
-                    created = db.create_table( table, tables[table], verbose=verbose )
-                except sqlite.Error as e:
-                    print(e, retries)
-                    retries -= 1
-                    continue
-                else:
-                    if not created: retries -= 1; continue
-                    else: break
-    
-            if retries == 0: return False
-
-    db.close(commit=commit)
-    return True
+    time_taken      = stop_time - start_time
+    time_taken_deci = int(time_taken.microseconds / (1e6 / 10**precision) )
+    print(f"{time_taken.seconds}.{time_taken_deci} s")
 
 
 def chunks(l, n):

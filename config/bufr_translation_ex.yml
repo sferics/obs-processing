@@ -418,11 +418,11 @@ windDirectionAt5m:
 windDirectionAt10M:
   011011:                             [WDIR_10m_syn, 10min, 1, 0, 0]       # Windrichtung
   
-  #windDirectionAssociatedWithWindSpeedWhichFollows:
-  #011010:                             [WDIRass_10m_syn, ~, 1, 0, 0]       # Windrichtung
+#windDirectionAssociatedWithWindSpeedWhichFollows:
+#  011010:                             [WDIRass_10m_syn, ~, 1, 0, 0]       # Windrichtung
 
-maximumWindGustDirection:
-  011043:                             [WDIRmax_10m_syn, ~, 1, 0, 0] # Windrichtung der max Böen
+#maximumWindGustDirection:
+#  011043:                             [WDIRmax_10m_syn, ~, 1, 0, 0] # Windrichtung der max Böen
 
 windSpeed:
   011002:                             [WIND_10m_syn, 10min, *ms2kn, 0, 1]

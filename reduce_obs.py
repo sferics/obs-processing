@@ -29,7 +29,7 @@ def reduce_obs(stations):
     # get only data rows with highest file ID and copy the remaining data to forge databases
     for loc in stations:
         db_file = f"{output}/raw/{loc[0]}/{loc}.db"
-        try: db_loc = DatabaseClass( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
+        try: db_loc = DatabaseClass( db_file, {"verbose":verbose, "traceback":traceback}, ro=False )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
@@ -40,74 +40,44 @@ def reduce_obs(stations):
         obs.create_station_tables(loc)
         # attach forge database to fill it with reduced observational data
         db_loc.attach(f"{output}/forge/{loc[0]}/{loc}.db", "forge")
+        #db_loc.drop_table("forge.obs", exists=False)
+        sql = "DROP TABLE forge.obs;\n"
+        # if debug: mark all data as not reduced again and thereby process anew
+        if debug: sql += "UPDATE obs SET reduced = 0;\n"
 
         match mode:
             case "dev":
-                #sql = f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge;\n"
-                #sql = ["INSERT INTO forge.obs SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs WHERE reduced=0"]
-                #sql.append("UPDATE main.obs SET reduced=1")
-                
                 # in dev mode we only need to reduce to one (datetime,duration,element,value)
-                # by selecting only the highest priority source
-                sql += "CREATE TABLE IF NOT EXISTS forge.obs f AS SELECT DISTINCT datetime,duration,element,value FROM main.obs r WHERE reduced=0 AND prio = ( SELECT MAX(prio) FROM r WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration );\n"
-                sql += "DETACH forge;\n"
+                # by selecting only the highest priority source (and from that the highest scale)
                 
-                # mark all data as reduced (processed)
-                sql += "UPDATE main.obs SET reduced=1;"
+                sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
+                    "datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
+                    "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE r.datetime=obs.datetime "
+                    "AND r.element=obs.element AND r.duration=obs.duration AND scale = ( SELECT "
+                    "MAX(scale) FROM main.obs WHERE r.datetime=obs.datetime "
+                    "AND r.element=obs.element AND r.duration=obs.duration ) );\n")
 
             case "oper":
-                # select highest prio from highest fileID of highest COR (correction)
-                sql = ("INSERT INTO forge.obs f SELECT DISTINCT dataset,file,datetime,duration,"
-                    "element,value FROM main.obs r WHERE reduced=0 AND prio = ( SELECT MAX(prio) "
-                    "FROM ( SELECT MAX(file) FROM ( SELECT MAX(cor) FROM r WHERE r.datetime="
-                    "f.datetime AND r.element=f.element AND r.duration=f.duration ) ) );\n")
-                # select highest prio form highest COR
-                #sql = "INSERT INTO forge.obs f SELECT DISTINCT dataset,file,datetime,duration,element,value FROM main.obs r WHERE reduced=0 AND prio = ( SELECT MAX(prio) FROM ( SELECT MAX(cor) FROM r WHERE r.datetime=f.datetime AND r.element=f.element AND r.duration=f.duration ) );\n"
-
-                # delete all but latest COR
-                #sql += "DELETE FROM main.obs a WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration );\n"
-               
-                sql += "DETACH forge;\n"
-
-                # keep all CORs
-                sql += "UPDATE main.obs a set reduced=1 WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration );\n"
-                
-                #sql += "CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration ) AND file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration );\n"
+                #TODO debug! this looks crazy and might also not be necessary (just use dev?)
+                # select latest COR (correction) of highest scale from source with highest prio
+                sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
+                    "datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
+                    "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE r.datetime=obs.datetime "
+                    "AND r.element=obs.element AND r.duration=obs.duration AND cor = ( SELECT "
+                    "MAX(cor) FROM main.obs WHERE r.datetime=obs.datetime AND r.element=obs.element "
+                    "AND r.duration=obs.duration AND scale = ( SELECT "
+                    "MAX(scale) FROM main.obs WHERE r.datetime=obs.datetime "
+                    "AND r.element=obs.element AND r.duration=obs.duration ) ) );\n")
                 
             case "test":
                 raise NotImplementedError("TODO")
-
-        #sql += "UPDATE main.obs SET reduced = 1"
-
-        #https://stackoverflow.com/questions/7745609/sql-select-only-rows-with-max-value-on-a-column
-        # 3 statements to get all data and copy it to a new database (forge)
-
-        #gf.create_station_tables( loc, output_path, "forge", verbose=verbose )
         
-        #TODO the CREATE TABLE command below already creates the table; is there another solution?
-        # problem: we might want/need the actual table structure from station_tables_forge
-        
-        #sql = [f"ATTACH DATABASE '{output}/forge/{loc[0]}/{loc}.db' AS forge"]
-        #sql.append("CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration ) AND file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
+        # detach the forge database again
+        sql += "DETACH forge;\n"
+        # mark all data as reduced (processed)
+        sql += "UPDATE obs SET reduced = 0;"
 
-        #https://stackoverflow.com/questions/57134793/how-to-save-query-results-to-a-new-sqlite
-        #oper mode when we want to keep all CORs
-        #sql.append("CREATE TABLE IF NOT EXISTS forge.obs AS SELECT DISTINCT a.datetime,a.duration,a.element,a.value FROM main.obs a WHERE cor = ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration ) AND file = ( SELECT MAX(file) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )")
-        #dev mode when we only want to keep latest COR
-        #sql.append(f"CREATE TABLE IF NOT EXISTS {mode}.obs_forge AS SELECT DISTINCT datetime,duration,element,value FROM main.obs WHERE reduced=0")
-        #sql.append(f"CREATE UNIQUE INDEX unique_obs ON {mode}.obs_forge(datetime,duration,element)")
-        #sql.append(f"DETACH {mode}")
-       
-        #"DELETE FROM main.obs a WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )"
-        #"UPDATE main.obs a set reduced=1 WHERE cor < ( SELECT MAX(cor) FROM main.obs b WHERE a.datetime=b.datetime AND a.element=b.element AND a.duration=b.duration )"
-        
-        """
-        for sql in sql:
-            if verbose: print(sql)
-            try: db_loc.exe(sql)
-            except Exception as e:
-                if verbose: print(e)
-        """
+        if debug: print(sql)
 
         try: db_loc.exescr(sql)
         except sqlite3.Error as e:

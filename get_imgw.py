@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python
 import os, sys, time, requests, argparse
 import global_functions as gf
 from config import ConfigClass

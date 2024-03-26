@@ -125,7 +125,7 @@ if __name__ == "__main__":
                 NOTE: Setting a command line flag or option always overwrites settings from the config file!"""
 
     script_name = gf.get_script_name(__file__)
-    flags       = ("a","l","i","E","f","F","S","v","p","c","C","t","k","m","M","n","s","o","O","L","d","r","R")
+    flags       = ("a","l","i","E","f","F","S","v","p","c","C","t","k","m","M","n","s","o","O","L","d","r","R","w")
     cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=False)
     # get the right script name by adding approach suffix
     script_name = cf.script_name
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     log.info(started_str)
 
     # save PID, we will need it later
-    PID = os.getpid()
+    PID = str(os.getpid())
 
     # shorthands for cli arguments and config
     args        = cf.args
@@ -159,6 +159,10 @@ if __name__ == "__main__":
     scale_info  = cf.script["scale_info"]
     shift_dt    = cf.script["shift_datetime"]
     convert_dt  = cf.script["convert_datetime"]
+
+    if args.no_warnings:
+        import warnings
+        warnings.filterwarnings("ignore")
 
     # get the right decode_bufr_?? function according to -a/--approach setting as decoder_approach
     #decoder_approach = getattr(decode_bufr_approaches, f"decode_bufr_{approach}")
@@ -173,7 +177,7 @@ if __name__ == "__main__":
     config_sources = None
     
     if args.file or args.files:
-        print("REDO",args.redo)
+        if verbose and args.redo: print("REDO")
         if args.file:
             # only processing a single BUFR file
             input_files_dict = gf.get_input_files_dict( cf.database, [args.file], PID=PID, redo=args.redo )
@@ -187,7 +191,7 @@ if __name__ == "__main__":
             #else: input_files = args.files
             input_files_dict = gf.get_input_files_dict( cf.database, input_files, PID=PID, redo=args.redo )
        
-        print(input_files_dict)
+        if debug: print(input_files_dict)
         decode_bufr( cf, input_files_dict, cf.args.extra, approach, pid_file, verbose=verbose )
     
     elif args.source:
@@ -217,6 +221,5 @@ if __name__ == "__main__":
     finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)
 
     if verbose: print(finished_str)
-    
-    time_taken = stop_time - start_time
-    print(f"{time_taken.seconds}.{time_taken.microseconds} s")
+   
+    gf.print_time_taken(start_time, stop_time)

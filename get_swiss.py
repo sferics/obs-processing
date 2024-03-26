@@ -37,8 +37,8 @@ else:
     except FileNotFoundError:
         print("No latest file, downloading new!")
     #download latest file and copy it
-    outfiles = [wget.download( url + filename, out = path )]
-    shutil.copyfile( outfiles[0], path + dt.utcnow().strftime(fmt + C) )
+    outfile = wget.download( url + filename, out = path )
+    shutil.copyfile( outfile, path + dt.utcnow().strftime(fmt + C) )
 
 stations = {
     "0-756-0-PFA" : "PFA",

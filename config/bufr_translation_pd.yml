@@ -200,16 +200,19 @@ vAt10M:                             [v_10m_syn, ~, *ms2kn, 0]
 windDirection:                      [WDIR_10m_syn, 10min, 1, 0]       # Windrichtung
 windDirectionAt10M:                 [WDIR_10m_syn, 10min, 1, 0]       # Windrichtung
 windDirectionAt5M:                  [WDIR_5m_syn, 10min, 1, 0]        # Windrichtung
-maximumWindGustDirection:           [WDIRmax_10m_syn, ~, 1, 0, 0]     # Windrichtung der max Böen
+  #maximumWindGustDirection:           [WDIRmax_10m_syn, ~, 1, 0, 0]     # Windrichtung der max Böen
 windSpeed:                          [WIND_10m_syn, 10min, *ms2kn, 0]  # Windgeschwindigkeit 10-Min-Mittel kn
 windSpeedAt10M:                     [WIND_10m_syn, 10min, *ms2kn, 0]  # Mittelwind der letzten Stunde
 windSpeedAt5M:                      [WIND_5m_syn, 10min, *ms2kn, 0]   # Mittelwind der letzten Stunde
 meanWindSpeed:                      [WIND_10m_syn, 10min, *ms2kn, 0]
+  #TODO rename to MAXWIND?
 maximumMeanWindSpeed:               [WINDmax_10m_syn,~, *ms2kn,  0]
-minimumMeanWindSpeed:               [WINDmin_10m_syn,~, *ms2kn,  0]
+  #TODO rename to MINWIND?
+  #minimumMeanWindSpeed:               [WINDmin_10m_syn,~, *ms2kn,  0]
 highestGustDuringThe10MinutePeriodPrecedingObservation: [GUST_10m_syn, 10min, *ms2kn, 0]
 meanWindSpeedFrom610minMeasurement: [WIND_10m_syn,    1h, *ms2kn, 0] # Windgeschwindigkeit 10-Min-Mittel kn
 maximumWindGustSpeed:               [GUST_10m_syn,     ~, *ms2kn, 0]
+#TODO should maybe be renamed to MAXWIND
 maximumWindSpeed10MinuteMeanWind:   [MAXGUST_10m_syn, ~, *ms2kn, 0] # Maximales 10min-Mittel im Bezugszeitraum
   #TODO what are these? how is their duration defined? Different from gust speeds or equal/comparable?
   #maximumInstantaneousWindSpeed:      [FFmax_10m_syn, ~,  *ms2kn, 0]

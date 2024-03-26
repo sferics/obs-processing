@@ -1352,7 +1352,7 @@ class DatabaseClass:
 
     #TODO add more ALTER TABLE commands https://www.sqlite.org/lang_altertable.html
     
-    def create_table( self, table, columns, exists="IF NOT EXISTS ", verbose=None ):
+    def create_table( self, table, columns, exists="IF NOT EXISTS", verbose=None ):
         #TODO
         """
         Parameter:
@@ -1370,7 +1370,7 @@ class DatabaseClass:
         table = self.fix_table_name(table)
 
         if not exists: exists = ""
-        sql = f"CREATE TABLE {exists}{table} ("
+        sql = f"CREATE TABLE {exists} {table} ("
         
         if type(columns) == str: sql += columns
         
@@ -1387,7 +1387,7 @@ class DatabaseClass:
         else: return True
 
 
-    def drop_table( self, table, verbose=None ):
+    def drop_table( self, table, exists="IF EXISTS", verbose=None ):
         #TODO
         """
         Parameter:
@@ -1403,9 +1403,10 @@ class DatabaseClass:
         if verbose is None: verbose = self.verbose
 
         table = self.fix_table_name(table)
-        column = self.fix_column_name(column)
 
-        sql = f"DROP TABLE {table}"
+        if not exists: exists = ""
+
+        sql = f"DROP TABLE {exists} {table}"
         try: self.exe( sql )
         except Exception as e:
             if self.traceback: gf.print_trace(e)

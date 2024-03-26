@@ -35,3 +35,4 @@ flags:
   S:      [sep,           ~,                                          ~,          ~,          ;,        str,        "seperator char for the file argument (default=;)"                    ]
   t:      [traceback,     ~,                                          ~,          store_true, ~,        ~,          "enable traceback debugging prints (using traceback module)"          ]
   v:      [verbose,       ~,                                          ~,          store_true, ~,        ~,          "show more detailed output"                                           ]
+  w:      [no_warnings,   ~,                                          ~,          store_true, ~,        ~,          "show warnings instead of surpressing them (default)"                 ]

@@ -129,7 +129,6 @@ class BufrClass:
         # check for mandatory class attributes
         mandatory = ("bufr_translation", "bufr_flags", "mode", "output")
         for attr in mandatory:
-            print(attr)
             assert( hasattr(self, attr) )
 
         if "log_level" in config and config["log_level"] in gv.log_levels: 

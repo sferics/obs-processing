@@ -55,11 +55,11 @@ if __name__ == "__main__":
     if export: scripts.append("export")
     
     # get all provided command line arguments as a list
-    cli_args    = sys.argv
+    cli_args = sys.argv
     
     if export and legacy_output:
         # returns "-L" or "--legacy_output" if either of them are found in cli arguments; else None
-        arg_L       = gf.values_in_list(("-L", "--legacy_output"), cli_args)
+        arg_L = gf.values_in_list(("-L", "--legacy_output"), cli_args)
 
         # if legacy_output: remove temporarly from argument list
         # we will only add it later to the export_obs script
@@ -93,8 +93,9 @@ if __name__ == "__main__":
                 gf.print_trace(e)
                 sys.exit( f"FAILED TO RUN '{script}_obs.py'! STOPPING CHAIN..." )
 
-    stop_time = dt.utcnow()
-    finished_str = f"FINISHED {script_name} @ {stop_time}"; log.info(finished_str)
+    stop_time       = dt.utcnow()
+    finished_str    = f"FINISHED {script_name} @ {stop_time}"
+    log.info(finished_str)
 
     if verbose: print(finished_str)
 

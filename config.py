@@ -85,6 +85,6 @@ class ConfigClass:
         self.script     = self.general | self.script_raw
 
         # command line arguments overwrite settings in script config OR can even add new keys
-        #TODO rewrite as dict comprehension
+        #TODO rewrite as dict comprehension?
         for key, val in self.args.__dict__.items():
             if val is not None: self.script[key] = val

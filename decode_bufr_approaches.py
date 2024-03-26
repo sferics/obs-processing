@@ -11,8 +11,14 @@ import global_functions as gf
 def decode_bufr_gt(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
-    import plbufr
     if debug: import pdb
+    if not verbose:
+        import warnings
+        warnings.simplefilter(action='ignore', category=FutureWarning)
+        warnings.simplefilter(action='ignore', category=UserWarning)
+        warnings.filterwarnings("ignore", module="plbufr")
+        warnings.filterwarnings("ignore", module="ecmwflibs")
+    import plbufr
 
     PATH = DIR + FILE
 
@@ -80,9 +86,15 @@ def decode_bufr_gt(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 def decode_bufr_pl(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
-    import plbufr
     if debug: import pdb
-    
+    if not verbose:
+        import warnings
+        warnings.simplefilter(action='ignore', category=FutureWarning)
+        warnings.simplefilter(action='ignore', category=UserWarning)
+        warnings.filterwarnings("ignore", module="plbufr")
+        warnings.filterwarnings("ignore", module="ecmwflibs")
+    import plbufr
+
     obs_bufr = {}
     file_status = "empty"
 
@@ -158,8 +170,14 @@ def decode_bufr_pl(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 def decode_bufr_pd(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
-    import pdbufr
     if debug: import pdb
+    if not verbose:
+        import warnings
+        warnings.simplefilter(action='ignore', category=FutureWarning)
+        warnings.simplefilter(action='ignore', category=UserWarning)
+        warnings.filterwarnings("ignore", module="pdbufr")
+        warnings.filterwarnings("ignore", module="ecmwflibs")
+    import pdbufr
 
     obs_bufr = {}
     file_status = "empty"
@@ -250,6 +268,10 @@ def decode_bufr_pd(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 def decode_bufr_us(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
+    if not verbose:
+        import warnings
+        warnings.simplefilter(action='ignore', category=UserWarning)
+        warnings.filterwarnings("ignore", module="ecmwflibs") 
     import eccodes as ec
     if debug: import pdb
 
@@ -457,17 +479,32 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose=False):
     """
     """
-    import sys
+    if not verbose:
+        import warnings
+        warnings.simplefilter(action='ignore', category=UserWarning)
+        warnings.filterwarnings("ignore", module="ecmwflibs")
     import eccodes as ec
     import numpy as np
     from itertools import cycle
     from copy import copy
     from datetime import datetime as dt
+    import sys
     if debug: import pdb
 
-    obs_bufr    = {}
-    file_status = "empty"
-    error_type  = None
+    obs_bufr        = {}
+    file_status     = "empty"
+    error_message   = "unknown error"
+
+    def get_error_message(error_type):
+        """
+        """
+        match error_type:
+            case ValueError():
+                return "missing replication factor"
+            case KeyError():
+                return "unknown sequence number"
+            case _:
+                return error_message
 
     def get_num_elements(code):
         """
@@ -783,12 +820,12 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
             return elements, repl_factor, (skip_codes, skip_vals)
 
         # if everything goes well this bool should stay False; only for the rare case of wrong values or keys
-        skip_file = False
+        skip_file       = False
+        continue_loop   = True
+        
+        # this loop runs until one of the iteration causes a StopIteration error - which we accept
+        while continue_loop:
 
-        # this loop runs until one of the iteration causes a StopIteration error which we accept
-        #continue_loop = True
-        #while continue_loop:
-        while True:
             try:
                 # iterate to get next code
                 code = next(codes)
@@ -838,11 +875,10 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                         # try to get codes to repeat and replication factor (how many times?)
                         try: codes_repl, repl_factor, skip = get_repl_codes(codes, code, vals, val)
                         # if we come across a faulty/unknown value we need to skip the current file
-                        except (ValueError, KeyError) as e:
-                            skip_file   = True
-                            file_status = "error"
-                            #TODO pass on error type (through another variable like this?)
-                            error_type  = copy(e)
+                        except Exception as error_type:
+                            skip_file       = True
+                            file_status     = "error"
+                            error_message   = get_error_message(error_type)
                             break
                         
                         skip_codes, skip_vals = skip
@@ -903,8 +939,16 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                                         codes_r = iter(codes_repl[idx+1:])
                                         if debug: print("CODES R", codes_repl[idx+1:])
 
-                                        codes_repl_r, repl_factor_r, skip_r = get_repl_codes(codes_r, code_r, vals, val)
-                                        
+                                        try: codes_repl_r, repl_factor_r, skip_r = get_repl_codes(codes_r, code_r, vals, val)
+                                        # if we come across a faulty/unknown value we need to skip the current file
+                                        except Exception as error_type:
+                                            skip_file       = True
+                                            file_status     = "error"
+                                            error_message   = get_error_message(error_type)
+                                            continue_loop   = False
+                                            # break the for loop and then the outer while loop
+                                            break
+
                                         skip_codes_r, skip_vals_r = skip_r
                                         # skip only values again
                                         if debug: print("SKIP VALUES R",    skip_vals_r)
@@ -979,16 +1023,14 @@ def decode_bufr_ex(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                     # also in this case we need to get the next value to match with next(codes)
                     next(vals)
 
-            # if we encounter a StopIteration error we break the loop
+            # if we encounter a StopIteration error we just break the while loop
             except StopIteration:   break
             else:                   continue
-            #except StopIteration:   continue_loop = False; continue # break while loop
-            #else:                   continue_loop = True            # continue while loop
 
         # end of while loop
 
         # if we need to skip the current file: continue to next one or, if it is the last, quit the for loop
-        if skip_file: return {}, file_status
+        if skip_file: return {}, file_status#, error_message
 
         # if the obs list contains any data add it to the dictionary
         if obs_list:
