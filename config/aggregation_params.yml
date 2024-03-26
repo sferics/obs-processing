@@ -1,25 +1,99 @@
 periods:
-  WIND_10m_10min_syn:       [10min, ~]
-  GUST_10m_10min_syn:       [10min, ~]
-  WIND_10m_1h_syn:          [1h,    avg]
-  GUST_10m_1h_syn:          [1h,    max]
-  MAXWIND_10m_1h_syn:       [1h,    max]
-  PRATE_srf_1h_syn:         [1h,    sum]
-  PRATE_srf_24h_syn:        [24h,   sum,  6]
-  GLRAD_srf_1h_syn:         [1h,    sum]
-  LONGRAD_srf_1h_syn:       [1h,    sum]
-  DIFFRAD_srf_1h_syn:       [1h,    sum]
-  TMIN_5cm_24h_syn:         [24h,   min,  0]
-  TMIN_2m_24h_syn:          [24h,   min,  0]
-  TMAX_5cm_24h_syn:         [24h,   max,  0]
-  TMAX_2m_24h_syn:          [24h,   max,  0]
-  TMIN_5cm_12h_syn:         [12h,   min,  18]
-  TMIN_2m_12h_syn:          [12h,   min,  18]
-  TMAX_5cm_12h_syn:         [12h,   max,  6]
-  TMAX_2m_12h_syn:          [12h,   max,  6]
-  SUNDUR_srf_1h_syn:        [1h,    sum]
-  SUNDUR_srf_24h_syn:       [24h,   sum,  0]
-  PCPDUR_srf_1h_syn:        [1h,    sum]
+  WIND_10m_syn:
+    10min:                  ~
+    1h:                     [[30min, 10min],                  avg]
+  GUST_10m_syn:
+    10min:                  ~
+    1h:                     [[30min, 10min],                  avg]
+    6h:                     [[3h, 1h, 30min, 10min],          avg]
+  MAXWIND_10m_syn:
+    10min:                  ~
+    1h:                     [[30min, 10min],                  avg]
+  PRATE_srf_syn:
+    10min:                  ~
+    1h:                     [[1h, 30min, 10min],              sum]
+    24h:                    [[12h, 6h, 3h, 1h, 30min, 10min], sum]
+  PCPDUR_srf_syn:
+    10min:                  ~
+    1h:                     [[30min, 10min],                  sum]
+  SUNDUR_srf_syn:
+    10min:                  ~
+    1h:                     [[30min, 10min],                  sum
+    24h:                    [[12h, 6h, 3h, 1h, 30min, 10min], sum]
+  GLRAD_srf_syn:
+    10min:                  ~
+    1h:                     [[30min, 10min],                  sum]
+  LONGRAD_srf_syn:
+    10min:                  ~
+    1h:                     [[30min, 10min],                  sum]
+  DIFFRAD1h_srf_syn:
+    10min:                  ~
+    1h:                     [[30min, 10min],                  sum]
+  TMIN_5cm_syn:
+    12h:                    [[12h, 6h, 3h, 1h],               min,  18]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],          min,  0 ]
+  TMIN_2m_syn:
+    12h:                    [[12h, 6h, 3h, 1h],               min,  18]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],          min,  0 ]
+  TMAX_2m_syn:
+    12h:                    [[12h, 6h, 3h, 1h],               max,  18]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],          max,  0 ]
+
+periods_old:
+  WIND10min_10m_syn:        [10min, ~]
+  GUST10min_10m_syn:        [10min, ~]
+  WIND1h_10m_syn:           [1h,    avg]
+  GUST1h_10m_syn:           [1h,    max]
+  GUST6h_10m_syn:           [1h,    max]
+  MAXGUST10min_10m_syn:     [10min, max]
+  MAXWIND1h_10m_syn:        [1h,    max]
+  PRATE1h_srf_syn:          [1h,    sum]
+  PRATE24h_srf_syn:         [24h,   sum,  6]
+  GLRAD1h_srf_syn:          [1h,    sum]
+  LONGRAD1h_srf_syn:        [1h,    sum]
+  DIFFRAD1h_srf_syn:        [1h,    sum]
+  TMIN24h_5cm_syn:          [24h,   min,  0]
+  TMIN24h_2m_syn:           [24h,   min,  0]
+  TMAX24h_5cm_syn:          [24h,   max,  0]
+  TMAX24h_2m_syn:           [24h,   max,  0]
+  TMIN12h_5cm_syn:          [12h,   min,  18]
+  TMIN12h_2m_syn:           [12h,   min,  18]
+  TMAX12h_5cm_syn:          [12h,   max,  6]
+  TMAX12h_2m_syn:           [12h,   max,  6]
+  SUNDUR1h_srf_syn:         [1h,    sum]
+  SUNDUR24h_srf_syn:        [24h,   sum,  0]
+  PCPDUR1h_srf_syn:         [1h,    sum]
+
 instants:
-  TMP_2m_syn:               [+-, 10, min]
-  WIND_10m_syn:             [+-, 10, min]
+  # instantaneous / 10min duration values
+  # if not available on full hour/30mins?, look for close-by values [+-, 10, min]
+  - WDIR_10m_syn
+  - TMP_2m_syn
+  - DPT_2m_syn
+  - TMP_5cm_syn
+  - Twater_sst_syn
+  - TMP_srf_syn
+  - TMP_n5cm_syn
+  - TMP_n10cm_syn
+  - TMP_n20cm_syn
+  - TMP_n50cm_syn
+  - TMP_n1m_syn
+  - TMP_n2m_syn
+  - PRES_0m_syn
+  - PRMSL_ms_syn 
+  - PRMSLNN_ms_met
+  - WW_syn 
+  - WWN_syn
+  - W1_syn
+  - W2_syn
+  - natWW
+  - VIS_syn
+  - TCDC_2m_syn
+  - LCDC_2m_syn
+  - HLC_syn
+  - CB1_syn
+  - CB2_syn
+  - CB3_syn
+  - CB4_syn
+  - SNOD_srf_syn
+  - GS_syn

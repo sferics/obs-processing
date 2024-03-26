@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     match mode:
         case "oper":
-            scripts = ["reduce", "audit", "derive", "aggregate", "conclude"]
+            scripts = ["reduce", "derive", "aggregate", "audit", "conclude"]
         case "dev":
             scripts = ["reduce", "derive", "aggregate", "conclude"]
         case "test":
@@ -98,6 +98,5 @@ if __name__ == "__main__":
     log.info(finished_str)
 
     if verbose: print(finished_str)
-
-    time_taken = stop_time - start_time
-    print(f"{time_taken.seconds}.{time_taken.microseconds} s")
+    
+    gf.print_time_taken(start_time, stop_time)

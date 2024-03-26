@@ -86,7 +86,7 @@ def derive_obs(stations):
         db_loc.exemany(sql2, sql_values)
         """    
     
-        sql = "SELECT datetime,element,round(value) from obs WHERE element IN ('TCC_{i}C_syn', 'CB{i}_syn') ORDER BY datetime asc, element desc"
+        sql = "SELECT datetime,element,round(value) from obs WHERE element IN ('TCDC_{i}C_syn', 'CB{i}_syn') ORDER BY datetime asc, element desc"
         
         # https://discourse.techart.online/t/python-group-nested-list-by-first-element/3637
 
@@ -101,7 +101,7 @@ def derive_obs(stations):
             cloud_covers    = set()
 
             for j in data:
-                if len(CL[j[0]]) == 0 and j[1] == f"TCC_{i}C_syn" and j[0] not in cloud_covers:
+                if len(CL[j[0]]) == 0 and j[1] == f"TCDC_{i}C_syn" and j[0] not in cloud_covers:
                     CL[j[0]]    += str(int(j[-1]))
                     cloud_covers.add(j[0])
                 elif len(CL[j[0]]) == 1 and j[1] == f"CB{i}_syn" and j[0] in cloud_covers:
