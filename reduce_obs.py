@@ -42,6 +42,7 @@ def reduce_obs(stations):
         db_loc.attach(f"{output}/forge/{loc[0]}/{loc}.db", "forge")
         #db_loc.drop_table("forge.obs", exists=False)
         sql = "DROP TABLE forge.obs;\n"
+        
         # if debug: mark all data as not reduced again and thereby process anew
         if debug: sql += "UPDATE obs SET reduced = 0;\n"
 
@@ -52,14 +53,20 @@ def reduce_obs(stations):
                 
                 sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
                     "datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
-                    "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE r.datetime=obs.datetime "
-                    "AND r.element=obs.element AND r.duration=obs.duration AND scale = ( SELECT "
-                    "MAX(scale) FROM main.obs WHERE r.datetime=obs.datetime "
-                    "AND r.element=obs.element AND r.duration=obs.duration ) );\n")
-
+                    "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE "
+                    "r.datetime=obs.datetime AND r.element=obs.element AND "
+                    "r.duration=obs.duration );\n")
+                
             case "oper":
                 #TODO debug! this looks crazy and might also not be necessary (just use dev?)
                 # select latest COR (correction) of highest scale from source with highest prio
+                sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
+                    "datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
+                    "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE cor = ( SELECT "
+                    "MAX(cor) FROM main.obs WHERE scale = ( SELECT "
+                    "MAX(scale) FROM main.obs WHERE r.datetime=obs.datetime "
+                    "AND r.element=obs.element AND r.duration=obs.duration ) ) );\n")
+                """
                 sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
                     "datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
                     "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE r.datetime=obs.datetime "
@@ -68,6 +75,7 @@ def reduce_obs(stations):
                     "AND r.duration=obs.duration AND scale = ( SELECT "
                     "MAX(scale) FROM main.obs WHERE r.datetime=obs.datetime "
                     "AND r.element=obs.element AND r.duration=obs.duration ) ) );\n")
+                """
                 
             case "test":
                 raise NotImplementedError("TODO")
@@ -77,7 +85,7 @@ def reduce_obs(stations):
         # mark all data as reduced (processed)
         sql += "UPDATE obs SET reduced = 0;"
 
-        if debug: print(sql)
+        #if debug: print(sql)
 
         try: db_loc.exescr(sql)
         except sqlite3.Error as e:

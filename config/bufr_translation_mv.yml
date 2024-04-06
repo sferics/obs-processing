@@ -239,7 +239,7 @@ cloudBase:
 
 #TODO check if this matches!
 #generalWeatherIndicatorTafOrMetar:
-020009:                             [WWN_syn, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
+020009:                             [WWN_met, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
 
 
 ### VISIBILITY

@@ -44,9 +44,9 @@ if __name__ == "__main__":
 
     match mode:
         case "oper":
-            scripts = ["reduce", "derive", "aggregate", "audit", "conclude"]
+            scripts = ["reduce", "aggregate", "derive", "audit"]
         case "dev":
-            scripts = ["reduce", "derive", "aggregate", "conclude"]
+            scripts = ["reduce", "derive", "aggregate", "derive", "audit"]
         case "test":
             raise NotImplementedError("TODO: TEST MODE")
         case _:

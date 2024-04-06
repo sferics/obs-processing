@@ -1,54 +1,63 @@
+kn2ms:  &kn2ms  0.5144444444444444  # kn to m/s
+
 # metwatch
 metwatch:                                                                                                                                
-  IW                            : ['sIW','1']                                      # Wind unit, not in bufr available, hardcod                             
-  IX                            : ['sIx','1']                                      # ww Type, not in bufr available, hardcoded                             
-  DIR                           : ['WDIR_10m_syn', '10min']                        # Windrichtung                                                          
-  FF                            : ['WIND_10m_syn','10min']                         # Windgeschwindigkeit 10-Min-Mittel kn                                  
-  FG                            : ['GUST6h_10m_syn','6h']                          # Windspitze im Bezugszeitraum kn => m/s                                 
-  G1h                           : ['GUST_10m_syn','1h']                            # Windspitze der letzten Stunde kn => m/s                 
-  FX                            : ['MAXGUST10min_10m_syn','10min']                 # Maximales 10-Min-Mittel im Bezugszeitraum             
-  FFM                           : ['WIND1h_10m_syn','1h']                          # Mittelwind der letzten Stunde (gemessen i                             
-  TL                            : ['TMP_2m_syn','2s']                              # 2m-Lufttemperatur                                                     
-  TD                            : ['DPT_2m_syn','2s']                              # 2m-Taupunktstemperatur                                                
-  T5                            : ['TMP_5cm_syn','2s']                             # 5cm-Lufttemperatur                                                    
-  TX                            : ['TMAX24h_2m_syn','24h']                         # 24h-Maximum der 2m-Lufttemperatur                                     
-  TN                            : ['TMIN24h_2m_syn','24h']                         # 24h-Minimum der 2m-Lufttemperatur                                     
-  TN5                           : ['TMIN24h_5cm_syn','24h']                        # 24h-Minimum der 5cm-Lufttemperatur                                    
-  TW                            : ['Twater_sst_syn','2s']                          # Wassertemperatur sea surface temperature                              
-  Tsfc                          : ['TMP_srf_syn','2s']                             # Erdbodentemperatur  0 cm                                                
-  T-05                          : ['TMP_n5cm_syn','2s']                            # Erdbodentemperatur -5 cm                                               
-  T-10                          : ['TMP_n10cm_syn','2s']                           # Erdbodentemperatur -10cm                                              
-  T-20                          : ['TMP_n20cm_syn','2s']                           # Erdbodentemperatur -20cm                                              
-  T-50                          : ['TMP_n50cm_syn','2s']                           # Erdbodentemperatur -50cm                                              
-  T-1m                          : ['TMP_n1m_syn','2s']                             # Erdbodentemperatur -1  m                                                
-  T-2m                          : ['TMP_n2m_syn','2s']                             # Erdbodentemperatur -2  m                                                
-  QFE                           : ['PRES_0m_syn','2s']                             # Luftdruck an der Station                                              
-  QFF                           : ['PRMSL_ms_syn','2s']                            # Auf NN reduzierter Luftdruck                                          
-  QNH                           : ['PRMSLNN_ms_met','2s']                          # Gemäß Standardatmosphäre auf NN reduziert                             
-  www                           : ['WW_syn','1h']                                  # Signifikantes Wetter                                                  
-  MetarWX                       : ['WWN_syn','1h']                                 # Signifikantes Wetter und Bewölkung                                    
-  W1                            : ['W1_syn','W']                                   # Wetterverlauf (Typ 1)                                                 
-  W2                            : ['W2_syn','W']                                   # Wetterverlauf (Typ 2)                                                 
-  WWZ                           : ['natWW','1h']                                   # Zusätzliches Wetter (Nationale Meldung)                        
-  VIS                           : ['VIS_syn','0s']                                 # Horizontale Sichtweite                                                
-  N                             : ['TCDC_2m_syn','10min']                          # Bedeckungsgrad                                                        
-  L                             : ['LCDC_2m_syn','10min']                          # Bedeckungsgrad niedrige oder mittelhohe Wolken                                  
-  HLC                           : ['HLC_syn','10min']                              # Höhe der tiefen Wolken                                                
-  ClCmCh                        : ['CLCMCH_syn','10min']                           # Wolkenarten in den Stockwerken                                        
-  LAYER1                        : ['CL1_syn','1']                                  # unterste Wolkenschicht Bedeckung/Art/Unte                             
-  LAYER2                        : ['CL2_syn','1']                                  # 2.Wolkenschicht                                                       
-  LAYER3                        : ['CL3_syn','1']                                  # 3.Wolkenschicht                                                       
-  LAYER4                        : ['CL4_syn','1']                                  # 4.Wolkenschicht                                                       
-  RR                            : ['PRATETR_1m_syn','TR']                          # Niederschlagsmenge im Bezugszeitraum                                  
-  TR                            : ['TR_syn','1']                                   # Bezugszeitraum RR      
-  RR1h                          : ['PRATE_1m_syn','1h']                            # Niederschlagsmenge der letzten Stunde                                 
-  hh                            : ['PCPDUR_1m_syn','1h']                           # Niederschlagsdauer der letzten Stunde                                 
-  RR24h                         : ['PRATE24h_1m_syn','24h']                        # Niederschlagsmenge der letzten 24 Stunden                             
-  SNO                           : ['SNOD_srf_syn','10min']                         # Gesamtschneehöhe                                                      
-  NEW                           : ['NWESNOD_srf_syn','12h']                        # Neuschneehöhe im Bezugszeitraum                                       
-  GS                            : ['GS_syn','10min']                               # Erdbodenzustand                                                       
-  SS24                          : ['SUNDUR24h_srf_syn','24h']                      # Sonnenscheindauer am Vortag                                           
-  Sh                            : ['SUNDUR_srf_syn','1h']                          # Sonnenscheindauer der letzten Stunde                                  
-  GL1h                          : ['GLRAD_srf_syn','1h']                           # Globalstrahlung der letzten Stunde [KJ/m²                             
-  DF1h                          : ['DIFFRAD_srf_syn','1h']                         # Diffusstrahlung der letzten Stunde                                    
-  LW1h                          : ['LONGRAD_srf_syn','1h']                         # Langwellige Strahlung der letzten Stunde 
+  IW                            : ['sIW','1',~]                       # Wind unit, not in bufr available, hardcod                             
+  IX                            : ['sIx','1',~]                       # ww Type, not in bufr available, hardcoded                             
+  DIR                           : ['WDIR_10m_syn','10min',~]          # Windrichtung                                                          
+  FF                            : ['WIND_10m_syn','10min',*kn2ms]     # Windgeschwindigkeit 10-Min-Mittel kn                                  
+  FG                            : ['GUST_10m_syn','6h',*kn2ms]        # Windspitze im Bezugszeitraum kn => m/s                                 
+  G1h                           : ['GUST_10m_syn','1h',*kn2ms]        # Windspitze der letzten Stunde kn => m/s                               
+  FX                            : ['MAXWIND_10m_syn','10min',*kn2ms]  # Maximales 10-Min-Mittel im Bezugszeitraum                               
+  FFM                           : ['WIND_10m_syn','1h',*kn2ms]        # Mittelwind der letzten Stunde (gemessen i                             
+  TL                            : ['TMP_2m_syn','2s',0.1]             # 2m-Lufttemperatur                                                     
+  TD                            : ['DPT_2m_syn','2s',0.1]             # 2m-Taupunktstemperatur                                                
+  T5                            : ['TMP_5cm_syn','2s',0.1]            # 5cm-Lufttemperatur                                                    
+  TX                            : ['TMAX_2m_syn','24h',0.1]           # 24h-Maximum der 2m-Lufttemperatur                                     
+  TN                            : ['TMIN_2m_syn','24h',0.1]           # 24h-Minimum der 2m-Lufttemperatur                                     
+  TN5                           : ['TMIN_5cm_syn','24h',0.1]          # 24h-Minimum der 5cm-Lufttemperatur                                    
+  TW                            : ['Twater_sst_syn','2s',0.1]         # Wassertemperatur sea surface temperature                              
+  Tsfc                          : ['TMP_srf_syn','2s',0.1]            # Erdbodentemperatur  0 cm                                                
+  T-05                          : ['TMP_n5cm_syn','2s',0.1]           # Erdbodentemperatur -5 cm                                               
+  T-10                          : ['TMP_n10cm_syn','2s',0.1]          # Erdbodentemperatur -10cm                                              
+  T-20                          : ['TMP_n20cm_syn','2s',0.1]          # Erdbodentemperatur -20cm                                              
+  T-50                          : ['TMP_n50cm_syn','2s',0.1]          # Erdbodentemperatur -50cm                                              
+  T-1m                          : ['TMP_n1m_syn','2s',0.1]            # Erdbodentemperatur -1  m                                                
+  T-2m                          : ['TMP_n2m_syn','2s',0.1]            # Erdbodentemperatur -2  m                                                
+  QFE                           : ['PRES_srf_syn','2s',1]             # Luftdruck an der Station                                              
+  QFF                           : ['PRMSL_ms_syn','2s',1]             # Auf NN reduzierter Luftdruck                                          
+  QNH                           : ['PRMSL_ms_met','2s',1]             # Gemäß Standardatmosphäre auf NN reduziert                             
+  www                           : ['WW_2m_syn','1h',1]                # Signifikantes Wetter                                                  
+  MetarWX                       : ['WWN_2m_met','1h',~]               # Signifikantes Wetter und Bewölkung                                    
+  W1                            : ['W1_2m_syn','W',1]                 # Wetterverlauf (Typ 1)                                                 
+  W2                            : ['W2_2m_syn','W',1]                 # Wetterverlauf (Typ 2)                                                 
+  WWZ                           : ['natWW_2m_syn','1h',~]             # Zusätzliches Wetter (Nationale Meldung)                               
+  VIS                           : ['VIS_2m_syn','0s',1]               # Horizontale Sichtweite                                                
+  N                             : ['TCDC_2m_syn','10min',1]           # Bedeckungsgrad                                                        
+  L                             : ['LCDC_2m_syn','10min',1]           # Bedeckungsgrad niedrige oder mittelhohe Wolken                                  
+  HLC                           : ['HLC_2m_syn','10min'],1            # Höhe der tiefen Wolken                                                
+  ClCmCh                        : ['CLCMCH_2m_syn','10min',~]         # Wolkenarten in den Stockwerken                                        
+  LAYER1                        : ['CL1_2m_syn','1',~]                # unterste Wolkenschicht Bedeckung/Art/Unte                             
+  LAYER2                        : ['CL2_2m_syn','1',~]                # 2.Wolkenschicht                                                       
+  LAYER3                        : ['CL3_2m_syn','1',~]                # 3.Wolkenschicht                                                       
+  LAYER4                        : ['CL4_2m_syn','1',~]                # 4.Wolkenschicht                                                       
+  RR                            : ['PRATETR_1m_syn','TR',1]           # Niederschlagsmenge im Bezugszeitraum                                  
+  TR                            : ['TR','1',~]                        # Bezugszeitraum RR                                                     
+  RR1h                          : ['PRATE_1m_syn','1h',1]             # Niederschlagsmenge der letzten Stunde                                 
+  hh                            : ['PCPDUR_1m_syn','1h',1]            # Niederschlagsdauer der letzten Stunde                                 
+  RR24h                         : ['PRATE_1m_syn','24h',1]            # Niederschlagsmenge der letzten 24 Stunden                             
+  SNO                           : ['SNOD_srf_syn','10min',1]          # Gesamtschneehöhe                                                      
+  NEW                           : ['NEWSNOD_srf_syn','12h',1]         # Neuschneehöhe im Bezugszeitraum                                       
+  GS                            : ['GS_srf_syn','10min',1]            # Erdbodenzustand                                                       
+  SS24                          : ['SUNDUR_srf_syn','24h',1]          # Sonnenscheindauer am Vortag                                           
+  Sh                            : ['SUNDUR_srf_syn','1h',1]           # Sonnenscheindauer der letzten Stunde                                  
+  GL1h                          : ['GLRAD_srf_syn','1h',1]            # Globalstrahlung der letzten Stunde [KJ/m²]                            
+  DF1h                          : ['DIFFRAD_srf_syn','1h',1]          # Diffusstrahlung der letzten Stunde                                    
+  LW1h                          : ['LONGRAD_srf_syn','1h',1]          # Langwellige Strahlung der letzten Stunde                              
+
+#TODO proposals:
+#rename MAXGUST to MAXWIND (because it the max mean wind speed, not an actual gust)
+#(srf, 0m) -> 0m OR srf
+#remove suffixes syn and met!
+#add suffix with height infos to params like HLC, GS, WW, W1, W2 and natWW (where it is missing)
+#no seperate duration column after aggregation step; duration always after param name! 

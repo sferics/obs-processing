@@ -25,7 +25,7 @@ def audit_obs(stations):
     
     # 1 take data from forge databases
     for loc in stations:
-        db_file = f"{output_path}/forge/{loc[0]}/{loc}.db"
+        db_file = obs.get_station_db_path(loc)
         try: db_loc = DatabaseClass( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
@@ -33,38 +33,53 @@ def audit_obs(stations):
             if debug:       pdb.set_trace()
             continue
         
+        obs.create_station_tables(mode=mode, stage="final")
+        db_loc.attach_station_db(loc, output, mode=mode, stage="final")
+        
+        #sql = ""
+        sql_good    = "INSERT INTO obs.final (timestamp,element,value) VALUES (?,?,?)"
+        sq_bad      = "INSERT INTO obs_bad.final (timestamp,element,value,reason) VALUES (?,?,?,?)"
+        values_good, values_bad = set(), set()
+
         for element in elements:
             
-            # get all data for this element
-            data = db_loc.exe(f"SELECT * FROM obs WHERE element='{element}'")
+            # get all 30-min data for this element
+            data = db_loc.exe((f"SELECT datetime,element,value FROM obs WHERE element='{element}' "
+            #    f"AND substr(datetime,15,2) IN ('00','30')"))
+                f"AND strftime('%M', datetime) IN ('00','30')"))
             # 2 check for bad (out-of-range) values
             
             for row in data:
                 
-                # element range of element
-                er_element      = element_ranges[element]
+                # element properties and range
+                element_info    = element_info[element]
                 element_range   = range(er_element[0], er_element[1])
-                sql = []
+                #sql = ""
                 
-                if (row[3] in element_range or row[3] == er_element[2]) and row[3] != er_element[3]:
-                    # 3a round value to significant digits (defined by scale)
-                    pass
+                if (row[2] in element_range or row[2] in element_info[2]) and row[2] != element_info[3]:
+                    #TODO 3a round value to significant digits (defined by scale) ???
+                    # insert good data into obs table of final database
+                    #sql += f"INSERT INTO obs.final (timestamp,element,value) VALUES ({row[0]},{row[1]},{row[2]})\n"
+                    row[0] = int( row[0].timestamp() )
+                    values_good.add(row)
                 else:
-                    reason = ""
+                    reason = "out_of_range"
                     
                     if row[3] < lower:
                         reason = "to_low"
                     elif row[3] > upper:
-                        reson = "to_high"
+                        reason = "to_high"
                     
-                    # 3b delete bad data -> move to obs_bad database
-                    sql.append(f"DELETE FROM obs WHERE datetime='{row[0]}' AND duration='{row[1]}' AND element='{row[2]}' AND value='{row[3]}'")
-                    sql.append(f"INSERT INTO obs_bad (datetime,duration,element,value,reason) VALUES ({row[0]},{row[1]},{row[2]},{row[3]},{reason})")
-
-                for s in sql:
-                    print(s)
-                    db_loc.exe(s)
-
+                    # insert bad data into obs_bad table of final database
+                    #sql += f"INSERT INTO obs_bad.final (timestamp,duration,element,value,reason) VALUES ({row[0]},{row[1]},{row[2]},{reason})\n"
+                    timestamp = int( row[0].timestamp() )
+                    values_bad.add((timestamp, row[1], row[2], reason))
+                        
+            
+        db_loc.exemany(sql_good, values_good)
+        db_loc.exemany(sql_bad, values_bad)
+        #db_loc.exescr(sql)
+        db_loc.close(commit=True)
 
 if __name__ == "__main__":
     
@@ -98,7 +113,7 @@ if __name__ == "__main__":
     db.close(commit=False)
 
     elements        = tuple(f'{element}' for element in db.get_elements())
-    element_ranges  = gf.read_yaml(cf.script["element_ranges"])
+    element_info    = gf.read_yaml(cf.script["element_info"])
 
     if processes: # number of processes
         import multiprocessing as mp

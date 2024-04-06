@@ -80,6 +80,22 @@ class DatabaseClass:
     detach  = lambda self, DB     : self.exe( f"DETACH DATABASE '{DB}'" )
 
 
+    def attach_station_db(loc, output, mode="dev", stage="forge"):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        ------
+        """
+        from obs import ObsClass as oc
+        station_db_path = oc.get_station_db_path(loc, output, mode, stage)
+        self.attach(station_db_path, stage)
+
+
     def close(self, commit=True, verbose=False ):
         """
         Parameter:
@@ -1080,9 +1096,9 @@ class DatabaseClass:
         self.exe( f"PRAGMA wal_checkpoint{mode}" )
 
 
-    # some helper functions
-
-    def sql_value_list( self, params, update=False ):
+    # some helper functions (static and classmethods)
+    @staticmethod
+    def sql_value_list( params, update=False ):
         """
         Parameter:
         ----------
@@ -1106,7 +1122,8 @@ class DatabaseClass:
             else: value_list += f'"{params[i]}", '
         return value_list[:-2]
 
-
+    
+    @classmethod
     def sql_values( self, params ):
         """
         Parameter:
@@ -1128,14 +1145,15 @@ class DatabaseClass:
     
     
     # helper function which adds IN() around a the values OR produces a REGEXP statement (for ".")
-    def sql_in(self, what, regexp=False):
+    @staticmethod
+    def sql_in(what, regexp=False):
         """
         """
         if regexp:      return "REGEXP '(" + "|".join(what) + ")'"
         else:           return "IN('"+"','".join(what)+"')"
     
-
-    def fix_table_name( self, table ):
+    @staticmethod
+    def fix_table_name( table ):
         #TODO
         """
         Parameter:
@@ -1151,8 +1169,8 @@ class DatabaseClass:
         if "." not in table: return f"'{table}'"
         return table
 
-
-    def fix_column_name( self, column ):
+    @staticmethod
+    def fix_column_name( column ):
         #TODO
         """
         Parameter:
@@ -1730,6 +1748,7 @@ class DatabaseClass:
     get_station_longitude   = lambda self, location : self.get_station_X(location, "longitude")
     get_station_latitude    = lambda self, location : self.get_station_X(location, "latitude")
     get_station_elevation   = lambda self, location : self.get_station_X(location, "elevation")
+    get_station_baro_elev   = lambda self, location : self.get_station_X(location, "baro_elevation")
     get_station_cluster     = lambda self, location : self.get_station_X(location, "cluster")
     get_station_orography   = lambda self, location : self.get_station_X(location, "orography")
 

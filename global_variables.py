@@ -41,3 +41,13 @@ array_types = frozenset( { list, tuple, set, frozenset } )
 
 # file statuses to skip
 skip_status = {"locked_.", "error", "empty", "parsed"}
+
+# meteorological constants
+K   = 273.15 # conversion between Celsius and Kelvin
+g   = 9.80665 # m/s**2
+R   = 8.31446261815324
+a   = 0.0065 # K/m
+Ch  = 0.12 # K/hPa
+C1  = 6.11213
+C2  = 17.5043
+C3  = 241.2

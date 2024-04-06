@@ -1,18 +1,26 @@
 model:
-  FP:       integer
-  datetime: datetime
-  element:  text
-  model:    text
-  value:    real
-  UNIQUE:   (datetime, element, model)
+  FP:         integer
+  datetime:   datetime NOT NULL
+  timestamp:  integer NOT NULL
+  element:    text
+  model:      text
+  value:      real
+  UNIQUE:     (timestamp, element, model)
 
 obs:
-  datetime: datetime NOT NULL
-  duration: text
+  #datetime:   datetime NOT NULL
+  timestamp:  integer NOT NULL
+  element:    text NOT NULL
+  value:      text NOT NULL
+  exported:   integer DEFAULT 0
+  UNIQUE:     (timestamp, element)
+
+obs_bad:
+  #datetime: datetime NOT NULL
+  timestamp: integer NOT NULL
   element:  text NOT NULL
   value:    text NOT NULL
-  exported: integer DEFAULT 0
-  UNIQUE:   (datetime, duration, element)
+  UNIQUE:   (timestamp, element)
 
 stats:
   RMSE:     real

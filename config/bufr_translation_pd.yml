@@ -1,11 +1,16 @@
 ### UNIT CONVERSIONS
 # excact-as-possible unit conversion factors
 # great source for these fractions: https://unitchefs.com/speed/
+
 # TEMPERATURE
-K2C:    &K2C    -2731.5             # K to C*10
+K2C:   &K2C    -273.15             # K to C
+#C2K:   &C2K    273.15              # C to K
+
 # WIND SPEED
+#kn2ms:  &kn2ms  0.5144444444444444  # kn to m/s
 ms2kn:  &ms2kn  1.9438444924406046  # m/s to kn
 kh2kn:  &kh2kn  0.5399568034557235  # km/h to kn
+
 # LENGTH
 #m2ft:   &m2ft   3.2808398950131235  # m to ft
 #ft2m:   &ft2m   0.3048
@@ -14,10 +19,10 @@ ft2m30: &ft2m30 0.01016             # ft to m/30
 
 # helper key, not part of BUFR tables
 cloudBase:
-  1:                                [CB1_syn,     1s, *m2m30, 0]
-  2:                                [CB2_syn,     1s, *m2m30, 0]
-  3:                                [CB3_syn,     1s, *m2m30, 0]
-  4:                                [CB4_syn,     1s, *m2m30, 0]
+  1:                                [CB1_2m_syn,     1s, *m2m30, 0]
+  2:                                [CB2_2m_syn,     1s, *m2m30, 0]
+  3:                                [CB3_2m_syn,     1s, *m2m30, 0]
+  4:                                [CB4_2m_syn,     1s, *m2m30, 0]
   #TODO see obs.cfg for cloud level thresholds
 
 timePeriod:
@@ -46,12 +51,12 @@ timePeriod:
   #TODO use for derived paramters during decoding or remove -> derive_obs.py
   #relativeHumidity:                   [RH_2m_syn,  1s, 1,     0]
   #wetBulbTemperature:
-  #  0.05:                             [WBT_5cm_syn, 1s, 10, *K2C]
-  #  2.0:                              [WBT_2m_syn,  1s, 10, *K2C]
-  #wetBulbTemperatureAt2M:             [WBT_2m_syn,  1s, 10, *K2C]
+  #  0.05:                             [WBT_5cm_syn, 1s, 1, *K2C]
+  #  2.0:                              [WBT_2m_syn,  1s, 1, *K2C]
+  #wetBulbTemperatureAt2M:             [WBT_2m_syn,  1s, 1, *K2C]
   #virtualTemperature:
-  #  0.05:                             [VT_5cm_syn, 1s, 10, *K2C]
-  #  2.0:                              [VT_2m_syn,  1s, 10, *K2C]
+  #  0.05:                             [VT_5cm_syn, 1s,  1, *K2C]
+  #  2.0:                              [VT_2m_syn,  1s,  1, *K2C]
   #specificHumidity:                   [SH_2m_syn,  1s,  1,    0]
   #mixingRatio:                        [MR_2m_syn,  1s,  1,    0]
   #mixingHeights:                      [MH_syn,     1s,  1,    0]
@@ -71,20 +76,20 @@ depthOfFreshSnow:                   [NEWSNOD_srf_syn,  ~, 100, 0]   # Neuschneeh
 
 ### PRECIPITATION
 #TODO units/scale
-totalPrecipitationOrTotalWaterEquivalent: [PRATE_srf_syn, ~,    1, 0] # Niederschlagsmenge
-totalPrecipitationPast1Hour:              [PRATE_srf_syn, 1h,   1, 0]
-totalPrecipitationPast3Hours:             [PRATE_srf_syn, 3h,   1, 0]
-totalPrecipitationPast6Hours:             [PRATE_srf_syn, 6h,   1, 0]
-totalPrecipitationPast12Hours:            [PRATE_srf_syn, 12h,  1, 0]
-totalPrecipitationPast24Hours:            [PRATE_srf_syn, 24h,  1, 0] # Niederschlagsmenge der letzten 24 Stunden
-totalAccumulatedPrecipitation:            [PRATE_srf_syn, ~,    1, 0] # Niederschlagsmenge im Bezugszeitraum
-durationOfPrecipitation:                  [PCPDUR_srf_syn,  ~,   1, 0]
+totalPrecipitationOrTotalWaterEquivalent: [PRATE_1m_syn, ~,    1, 0] # Niederschlagsmenge
+totalPrecipitationPast1Hour:              [PRATE_1m_syn, 1h,   1, 0]
+totalPrecipitationPast3Hours:             [PRATE_1m_syn, 3h,   1, 0]
+totalPrecipitationPast6Hours:             [PRATE_1m_syn, 6h,   1, 0]
+totalPrecipitationPast12Hours:            [PRATE_1m_syn, 12h,  1, 0]
+totalPrecipitationPast24Hours:            [PRATE_1m_syn, 24h,  1, 0] # Niederschlagsmenge der letzten 24 Stunden
+totalAccumulatedPrecipitation:            [PRATE_1m_syn, ~,    1, 0] # Niederschlagsmenge im Bezugszeitraum
+durationOfPrecipitation:                  [PCPDUR_1m_syn,  ~,   1, 0]
   #TODO precipitation could also be derived from duration + intensity
-  #intensityOfPrecipitation:              [PCPINT_srf_syn, ~,    1, 0]
-  #highestDailyAmountOfPrecipitation:     [PCPMAX_srf_syn, 24h,  1, 0]
+  #intensityOfPrecipitation:              [PCPINT_1m_syn, ~,    1, 0]
+  #highestDailyAmountOfPrecipitation:     [PCPMAX_1m_syn, 24h,  1, 0]
   #TODO might be useful if WW is missing?
-  #typeOfPrecipitation:                   [PCPTYPE_srf_syn, ~, 1, 0]
-  #formOfPrecipitation:                   [PCPFORM_srf_syn, ~, 1, 0]
+  #typeOfPrecipitation:                   [PCPTYPE_1m_syn, ~, 1, 0]
+  #formOfPrecipitation:                   [PCPFORM_1m_syn, ~, 1, 0]
 
 ### PRESSURE
 pressure:                           [PRES_0m_syn,   1s, 0.01,   0]      # Luftdruck an der Station
@@ -97,7 +102,7 @@ globalSolarRadiation24Hours:                        [GLRAD_srf_syn,   24h,  0.00
 globalSolarRadiationIntegratedOver24Hours:          [GLRAD_srf_syn,   24h,  0.001, 0]
 longWaveRadiationIntegratedOverPeriodSpecified:     [LONGRAD_srf_syn, ~,    0.001, 0] # Langwellige Strahlung
 longWaveRadiationIntegratedOver24Hours:             [LONGRAD_srf_syn, 24h,  0.001, 0] # Langwellige Strahlung
-#TODO is net~ really the same as above?
+#TODO is net really the same as above?
 netLongWaveRadiationIntegratedOverPeriodSpecified:  [LONGRAD_srf_syn, ~,    0.001, 0] # Langwellige Strahlung
 netLongWaveRadiationIntegratedOver24Hours:          [LONGRAD_srf_syn, 24h,  0.001, 0] # Langwellige Strahlung
 diffuseSolarRadiationIntegratedOverPeriodSpecified: [DIFFRAD_srf_syn, ~,    0.001, 0] # Diffusstrahlung
@@ -106,42 +111,42 @@ totalSunshine:                      [SUNDUR_srf_syn, ~, 1,  0]      # Sonnensche
 sunshineOverPeriodSpecified:        [SUNDUR_srf_syn, ~, 1,  0]      # Sonnenscheindauer im Bezugszeitraum
 
 ### WEATHER / PHENOMENA
-presentWeather:                     [WW_syn,  1min, 1, 0]           # Signifikantes Wetter
+presentWeather:                     [WW_2m_syn,  1min, 1, 0]           # Signifikantes Wetter
   #TODO these keys contain characters (CCITT IA5 code), useful?
-  #significantWeather:                 [WWsig_syn,1min, 1, 0]         # Signifikantes Wetter
-  #significantRecentWeatherPhenomena:  [WWsig_syn,1min, 1, 0]         # Signifikantes Wetter
-pastWeather1:                       [W1_syn,  ~,    1, 0]           # Wetterverlauf (Typ 1)
-pastWeather2:                       [W2_syn,  ~,    1, 0]           # Wetterverlauf (Typ 2)
-additionalWeatherPhenomena:         [natWW,   1min, 1, 0]           # Zusätzliches Wetter (Nationale Meldung)
+  #significantWeather:                 [WWsig_2m_syn,1min, 1, 0]         # Signifikantes Wetter
+  #significantRecentWeatherPhenomena:  [WWsig_2n_syn,1min, 1, 0]         # Signifikantes Wetter
+pastWeather1:                       [W1_2m_syn,  ~,    1, 0]           # Wetterverlauf (Typ 1)
+pastWeather2:                       [W2_2m_syn,  ~,    1, 0]           # Wetterverlauf (Typ 2)
+  #additionalWeatherPhenomena:         [natWW_2m_syn,   1min, 1, 0]           # Zusätzliches Wetter (Nationale Meldung)
   #TODO some interesting BUFR keys, maybe with potential future usefulness?
-  #intensityOfPhenomena:               [PHint, ~, 1, 0]              #
-  #phenomenaOccurrence:                [PHocc, ~, 1, 0]              # 
-  #specialPhenomena:                   [PHspl, ~, 1, 0]              # 
-  #otherWeatherPhenomena:              [PHoth, ~, 1, 0]              # 
+  #intensityOfPhenomena:               [PHint_2m_syn, ~, 1, 0]              #
+  #phenomenaOccurrence:                [PHocc_2m_syn, ~, 1, 0]              # 
+  #specialPhenomena:                   [PHspl_2m_syn, ~, 1, 0]              # 
+  #otherWeatherPhenomena:              [PHoth_2m_syn, ~, 1, 0]              # 
 #this parameter is not equivalent to old METAR parameter
-#generalWeatherIndicatorTafOrMetar:  [WWN_syn, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
+generalWeatherIndicatorTafOrMetar:      [WWN_2m_met, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
 
 ### VISIBILITY
 #TODO which of these visibility/optical range parameters should have priority? how do we order them?
-meteorologicalOpticalRange:             [VIS_syn,     0s, 0.001, 0] # Horizontale Sichtweite
-minimumMeteorologicalOpticalRange:      [VISmin_syn,  0s, 0.001, 0] # minimale Horizontale Sichtweite
-maximumMeteorologicalOpticalRange:      [VISmax_syn,  0s, 0.001, 0] # maximale Horizontale Sichtweite
-horizontalVisibility:                   [VIS_syn,     0s, 0.001, 0] # Horizontale Sichtweite
-minimumHorizontalVisibility:            [VISmin_syn,  0s, 0.001, 0] # minimale Horizontale Sichtweite
-prevailingHorizontalVisibility:         [VISpre_syn,  0s, 0.001, 0] # vorherrschende Horizontale Sichtweite
-runwayVisualRangeRvr:                   [VISrun_syn,  0s, 0.001, 0] # Horizontale Sichtweite auf dem Rollfeld
-visibilitySeawardsFromACoastalStation:  [VISsea_syn,  0s, 0.001, 0] # Horizontale Sichtweite (Küste Richtung See)
+meteorologicalOpticalRange:             [VIS_2m_syn,     0s, 0.001, 0] # Horizontale Sichtweite
+minimumMeteorologicalOpticalRange:      [VISmin_2m_syn,  0s, 0.001, 0] # minimale Horizontale Sichtweite
+maximumMeteorologicalOpticalRange:      [VISmax_2m_syn,  0s, 0.001, 0] # maximale Horizontale Sichtweite
+horizontalVisibility:                   [VIS_2m_syn,     0s, 0.001, 0] # Horizontale Sichtweite
+minimumHorizontalVisibility:            [VISmin_2m_syn,  0s, 0.001, 0] # minimale Horizontale Sichtweite
+prevailingHorizontalVisibility:         [VISpre_2m_syn,  0s, 0.001, 0] # vorherrschende Horizontale Sichtweite
+runwayVisualRangeRvr:                   [VIS_2m_met,    0s, 0.001, 0] # Horizontale Sichtweite auf dem Rollfeld
+visibilitySeawardsFromACoastalStation:  [VISsea_2m_syn,  0s, 0.001, 0] # Horizontale Sichtweite (Küste Richtung See)
 
 ### TEMPERATURE / GROUND
-stateOfGround:                      [GS_syn,    1min,  1,    0]     # Erdbodenzustand
+stateOfGround:                      [GS_srf_syn,    1min,  1,    0]     # Erdbodenzustand
 soilTemperature:
-  -0.05:                            [TMP_n5cm_syn,  1s, 10, *K2C]     # Erdbodentemperatur -5cm
-  -0.1:                             [TMP_n10cm_syn, 1s, 10, *K2C]     # Erdbodentemperatur -10cm
-  -0.2:                             [TMP_n20cm_syn, 1s, 10, *K2C]     # Erdbodentemperatur -20cm
-  -0.5:                             [TMP_n50cm_syn, 1s, 10, *K2C]     # Erdbodentemperatur -50cm
-  -1.0:                             [TMP_n1m_syn,   1s, 10, *K2C]     # Erdbodentemperatur -1m
-  -2.0:                             [TMP_n2m_syn,   1s, 10, *K2C]     # Erdbodentemperatur -2m
-groundTemperature:                  [TMP_srf_syn,   1s, 10, *K2C]     # Erdbodentemperatur 0cm
+  -0.05:                            [TMP_n5cm_syn,  1s, 1, *K2C]     # Erdbodentemperatur -5cm
+  -0.1:                             [TMP_n10cm_syn, 1s, 1, *K2C]     # Erdbodentemperatur -10cm
+  -0.2:                             [TMP_n20cm_syn, 1s, 1, *K2C]     # Erdbodentemperatur -20cm
+  -0.5:                             [TMP_n50cm_syn, 1s, 1, *K2C]     # Erdbodentemperatur -50cm
+  -1.0:                             [TMP_n1m_syn,   1s, 1, *K2C]     # Erdbodentemperatur -1m
+  -2.0:                             [TMP_n2m_syn,   1s, 1, *K2C]     # Erdbodentemperatur -2m
+groundTemperature:                  [TMP_srf_syn,   1s, 1, *K2C]     # Erdbodentemperatur 0cm
   #TODO interesting parameters
   #groundMinimumTemperature
   #groundMinimumTemperatureOfPrecedingNight
@@ -156,37 +161,37 @@ groundTemperature:                  [TMP_srf_syn,   1s, 10, *K2C]     # Erdboden
   #durationOfTimeRelatingToFollowingValue:
 
 temperature: # in Celsius! 
-  0.05:                             [TMP_5cm_syn,     1s, 10, 0]      # 5cm-Lufttemperatur
-  2.0:                              [TMP_2m_syn,      1s, 10, 0]      # 2m-Lufttemperatur
+  0.05:                             [TMP_5cm_syn,     1s, 1, 0]      # 5cm-Lufttemperatur
+  2.0:                              [TMP_2m_syn,      1s, 1, 0]      # 2m-Lufttemperatur
 airTemperature:                     
-  0.05:                             [TMP_5cm_syn,     1s, 10, *K2C]   # 5cm-Lufttemperatur
-  2.0:                              [TMP_2m_syn,      1s, 10, *K2C]   # 2m-Lufttemperatur
-airTemperatureAt2M:                 [TMP_2m_syn,      1s, 10, *K2C]   # 2m-Lufttemperatur   
+  0.05:                             [TMP_5cm_syn,     1s, 1, *K2C]   # 5cm-Lufttemperatur
+  2.0:                              [TMP_2m_syn,      1s, 1, *K2C]   # 2m-Lufttemperatur
+airTemperatureAt2M:                 [TMP_2m_syn,      1s, 1, *K2C]   # 2m-Lufttemperatur   
 dewpointTemperature:
-  0.05:                             [DPT_5cm_syn,    1s, 10, *K2C]   # 5cm-Taupunktstemperatur
-  2.0:                              [DPT_2m_syn,     1s, 10, *K2C]   # 2m-Taupunktstemperatur
-dewpointTemperatureAt2M:            [DPT_2m_syn,     1s, 10, *K2C]   # 2m-Taupunktstemperatur
+  0.05:                             [DPT_5cm_syn,    1s, 1, *K2C]   # 5cm-Taupunktstemperatur
+  2.0:                              [DPT_2m_syn,     1s, 1, *K2C]   # 2m-Taupunktstemperatur
+dewpointTemperatureAt2M:            [DPT_2m_syn,     1s, 1, *K2C]   # 2m-Taupunktstemperatur
 
-maximumTemperatureAt2M:             [TMAX_2m_syn,   12h,  10, *K2C] # 24h-Maximum der 2m-Lufttemperatur
-minimumTemperatureAt2M:             [TMIN_2m_syn,   12h,  10, *K2C] # 24h-Minimum der 2m-Lufttemperatur
+maximumTemperatureAt2M:             [TMAX_2m_syn,   12h,  1, *K2C] # 24h-Maximum der 2m-Lufttemperatur
+minimumTemperatureAt2M:             [TMIN_2m_syn,   12h,  1, *K2C] # 24h-Minimum der 2m-Lufttemperatur
 maximumTemperatureAtHeightAndOverPeriodSpecified:
-  0.05:                             [TMAX_5cm_syn,  12h,  10, *K2C] # 24h-Maximum der 5cm-Lufttemperatur
-  2.0:                              [TMAX_2m_syn,   12h,  10, *K2C] # 24h-Maximum der 2m-Lufttemperatur
+  0.05:                             [TMAX_5cm_syn,  12h,  1, *K2C] # 24h-Maximum der 5cm-Lufttemperatur
+  2.0:                              [TMAX_2m_syn,   12h,  1, *K2C] # 24h-Maximum der 2m-Lufttemperatur
 minimumTemperatureAtHeightAndOverPeriodsPecified:
-  0.05:                             [TMIN_5cm_syn,  12h,  10, *K2C] # 24h-Minimum der 5cm-Lufttemperatur
-  2.0:                              [TMIN_2m_syn,   12h,  10, *K2C] # 24h-Minimum der 2m-Lufttemperatur
-maximumTemperatureAt2MPast12Hours:  [TMAX_2m_syn,   12h,  10, *K2C]
-minimumTemperatureAt2MPast12Hours:  [TMIN_2m_syn,   12h,  10, *K2C]
-maximumTemperatureAt2MPast24Hours:  [TMAX_2m_syn,   24h,  10, *K2C]
-minimumTemperatureAt2MPast24Hours:  [TMIN_2m_syn,   24h,  10, *K2C]
+  0.05:                             [TMIN_5cm_syn,  12h,  1, *K2C] # 24h-Minimum der 5cm-Lufttemperatur
+  2.0:                              [TMIN_2m_syn,   12h,  1, *K2C] # 24h-Minimum der 2m-Lufttemperatur
+maximumTemperatureAt2MPast12Hours:  [TMAX_2m_syn,   12h,  1, *K2C]
+minimumTemperatureAt2MPast12Hours:  [TMIN_2m_syn,   12h,  1, *K2C]
+maximumTemperatureAt2MPast24Hours:  [TMAX_2m_syn,   24h,  1, *K2C]
+minimumTemperatureAt2MPast24Hours:  [TMIN_2m_syn,   24h,  1, *K2C]
 maximumTemperatureAtHeightSpecifiedPast24Hours:
-  0.05:                             [TMAX_5cm_syn,  24h,  10, *K2C]
-  2.0:                              [TMAX_2m_syn,   24h,  10, *K2C]
+  0.05:                             [TMAX_5cm_syn,  24h,  1, *K2C]
+  2.0:                              [TMAX_2m_syn,   24h,  1, *K2C]
 minimumTemperatureAtHeightSpecifiedPast24Hours:
-  0.05:                             [TMIN_5cm_syn,  24h,  10, *K2C]
-  2.0:                              [TMIN_2m_syn,   24h,  10, *K2C]
+  0.05:                             [TMIN_5cm_syn,  24h,  1, *K2C]
+  2.0:                              [TMIN_2m_syn,   24h,  1, *K2C]
 
-oceanographicWaterTemperature:      [Twater_sst_syn, 1s, 10,  *K2C] # Wassertemperatur sea surface temperature
+oceanographicWaterTemperature:      [Twater_sst_syn, 1s, 1,  *K2C] # Wassertemperatur sea surface temperature
 
 
 ### WIND
@@ -206,14 +211,13 @@ windSpeedAt10M:                     [WIND_10m_syn, 10min, *ms2kn, 0]  # Mittelwi
 windSpeedAt5M:                      [WIND_5m_syn, 10min, *ms2kn, 0]   # Mittelwind der letzten Stunde
 meanWindSpeed:                      [WIND_10m_syn, 10min, *ms2kn, 0]
   #TODO rename to MAXWIND?
-maximumMeanWindSpeed:               [WINDmax_10m_syn,~, *ms2kn,  0]
+maximumMeanWindSpeed:               [MAXWIND_10m_syn,~, *ms2kn,  0]
   #TODO rename to MINWIND?
   #minimumMeanWindSpeed:               [WINDmin_10m_syn,~, *ms2kn,  0]
 highestGustDuringThe10MinutePeriodPrecedingObservation: [GUST_10m_syn, 10min, *ms2kn, 0]
 meanWindSpeedFrom610minMeasurement: [WIND_10m_syn,    1h, *ms2kn, 0] # Windgeschwindigkeit 10-Min-Mittel kn
 maximumWindGustSpeed:               [GUST_10m_syn,     ~, *ms2kn, 0]
-#TODO should maybe be renamed to MAXWIND
-maximumWindSpeed10MinuteMeanWind:   [MAXGUST_10m_syn, ~, *ms2kn, 0] # Maximales 10min-Mittel im Bezugszeitraum
+maximumWindSpeed10MinuteMeanWind:   [MAXWIND_10m_syn, ~, *ms2kn, 0] # Maximales 10min-Mittel im Bezugszeitraum
   #TODO what are these? how is their duration defined? Different from gust speeds or equal/comparable?
   #maximumInstantaneousWindSpeed:      [FFmax_10m_syn, ~,  *ms2kn, 0]
   #maximumInstantaneousWindSpeedOver10Minutes:  [FFmax_10m_syn, 10min, *ms2kn, 0]
@@ -245,7 +249,7 @@ cloudAmount:
 
 cloudCoverTotal:                    [TCDC_2m_syn, 1s, 0.08, 0]    # Bedeckungsgrad gesamt
 
-heightOfBaseOfCloud:                [HLC_syn,       1s,*m2m30, 0]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+heightOfBaseOfCloud:                [HLC_2m_syn,       1s,*m2m30, 0]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
 
 # usually not used by DWD
 amountOfLowClouds:                  [CDCL_2m_syn,    1s,   1,   0]   # Bedeckungsgrad der niedrigen Wolken

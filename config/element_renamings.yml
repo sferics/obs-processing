@@ -1,3 +1,5 @@
+MAXGUST_10m_syn:      MAXWIND_10m_syn
+
 DIR_5m_syn:           WDIR_5m_syn
 DIR_10m_syn:          WDIR_10m_syn
 FFavg_5m_syn:         WIND_5m_syn

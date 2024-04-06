@@ -699,13 +699,15 @@ def already_running2():
 
 
 # meteorological functions
-def rh2dp( rh, T ):
+def rh2dpt( rh, t, C_in=True, C_out=True ):
     #TODO
     """
     Parameter:
     ----------
     rh : relative humidity in %
-    T : temperature in K
+    t : temperature in K or C
+    C_in : input in Celsius (if True: Celsius; else: Kelvin)
+    C_out : output in Celsius 
 
     Notes:
     ------
@@ -713,24 +715,81 @@ def rh2dp( rh, T ):
 
     Return:
     -------
-    dewpoint in K
-    """ 
+    dewpoint in K or C
+    """
+    # convert Celsius to Kelvin if needed
+    if C_in: t += gv.K
+
     #https://www.omnicalculator.com/physics/relative-humidity
     beta = 17.625
     lamb = -30.11
-
+    
     ln_rh_100 = np.log( rh / 100 )
-    bT_lT = (beta * T) + (lamb + T)
+    bt_lt = (beta * t) + (lamb + t)
+    
+    dpt = (lamb * bt_lt) / (beta - bt_lt)
+    if C_out: dpt -= gv.K
+    return dpt
 
-    return (lamb * bT_lT) / (beta - bT_lT)
+
+def dpt2rh(dpt, T, C_in=True):
+    #TODO the above function reversed
+    if C_in: T += gv.K
+    
+    return
+
+def qfe( ppp, h, t, C_in=True ):
+    """
+    C_in : input in Celsius (if True: Celsius; else: Kelvin)
+    """
+    # convert Celsius to Kelvin if needed
+    if C_in: t += gv.K
+
+    return p * ( 1 + (gv.g * h) / (gv.R * t) )
 
 
-#source for these pressure reductions: https://www.metpod.co.uk/calculators/pressure/
-def qfe( ppp, h, t, lat ):
+def svp(t):
+    """
+    Parameter:
+    ----------
+    t : temperature in Celsius
+    """
+    return gv.C1 * np.exp( gv.C2 * t / (gv.C3 + t) )
+
+#DWD standard pressure reduction method
+def qff_dwd( ppp, h, t, rh, C_in=True ):
+    """
+    Parameter:
+    ----------
+    ppp : pressure in hPa
+    h : height of barometer
+    t : temperature in Celsius
+    rh : relative humidity (in percent)
+    C_in : input in Celsius (if True: Celsius; else: Kelvin)
+    """
+    # convert betwen Celsius and Kelvin
+    if C_in:
+        t_C = copy(t)
+        t_K = t + gv.K
+    else:
+        t_C = t - gv.K 
+        t_K = copy(t) 
+    
+    VP  = gf.svp(t_C) * (rh / 100)
+    EXP = np.exp( gv.g / (gv.R * h) / (t_K + VP * gv.Ch + gv.a * h / 2) )
+    return ppp * EXP
+
+#source for this pressure reductions: https://www.metpod.co.uk/calculators/pressure/
+def qff_smhi( ppp, h, t, lat, C_in=True ):
     #TODO lat to phi, doctring
     """
     Parameter:
     ----------
+    ppp : pressure in hPa
+    h : height of barometer
+    t : temperature in Celsius or Kelvin
+    lat : latitude (float between 0 and 1)
+    C_in : input in Celsius (if True: Celsius; else: Kelvin)
 
     Notes:
     ------
@@ -739,6 +798,9 @@ def qfe( ppp, h, t, lat ):
     -------
 
     """
+    # convert Kelvin to Celsius if needed
+    if not C_in: t -= gv.K
+
     if t < -7: #°C!
         t = 0.5*t + 275 #K!
     elif -7 <= t <= 2:
@@ -750,11 +812,13 @@ def qfe( ppp, h, t, lat ):
     return ppp * np.exp( ( h*a * (1-b*np.cos(lat)) ) / t ) 
 
 
-def qnh( ppp, h, t ):
-    #TODO docstring
+def qnh( ppp, h, t, C_in=True ):
     """
     Parameter:
     ----------
+    ppp : pressure in hPa
+    h : height of barometer
+    t : temperature in Kelvin or Celsius
 
     Notes:
     ------
@@ -763,5 +827,8 @@ def qnh( ppp, h, t ):
     -------
 
     """
+    # convert Kelvin to Celsius if needed
+    if not C_in: t -= gv.K
+
     a = 18429.1; b = 67.53; c = 0.003
     return h / (a + b*t + c*h)

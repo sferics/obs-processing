@@ -3,7 +3,7 @@
 # great source for these fractions: https://unitchefs.com/speed/
 
 # TEMPERATURE
-K2C:    &K2C    -2731.5               # K to C*10
+K2C:    &K2C    -273.15               # K to C*10
 
 # WIND SPEED
 ms2kn:  &ms2kn  1.9438444924406046    # m/s to kn
@@ -69,10 +69,10 @@ timePeriod:
 # another helper key, not part of BUFR tables
 helpers:
   cloudBase:
-    1:                                [CB1_syn,     1s, *m2m30, 0, 0]
-    2:                                [CB2_syn,     1s, *m2m30, 0, 0]
-    3:                                [CB3_syn,     1s, *m2m30, 0, 0]
-    4:                                [CB4_syn,     1s, *m2m30, 0, 0]
+    1:                                [CB1_2m_syn,     1s, *m2m30, 0, 0]
+    2:                                [CB2_2m_syn,     1s, *m2m30, 0, 0]
+    3:                                [CB3_2m_syn,     1s, *m2m30, 0, 0]
+    4:                                [CB4_2m_syn,     1s, *m2m30, 0, 0]
     #TODO see obs.cfg for cloud level thresholds
 
 #TODO seperate between keys which can have different UNIT and/or SCALE - and the ones which always have the same
@@ -82,7 +82,7 @@ helpers:
 #008023: ~
 #skip next 10 (DWD only!)
 #102005: ~
-#TODO then it gets tooooo wild, see DWD manula page 141-146
+#TODO then it gets tooooo wild, see BUFR DWD manual pages 141-146
 
 observationSequenceNumber: #(COR/CCX)
   001023: ~
@@ -102,20 +102,20 @@ relativeHumidity:
   013009:                             [RH_2m_syn,  1s, 1, 0, 1]
 wetBulbTemperature:
   012002:
-    0.05:                             [TW_5cm_syn, 1s, 10, *K2C, 1]
-    2.0:                              [TW_2m_syn,  1s, 10, *K2C, 1]
+    0.05:                             [TW_5cm_syn, 1s, 1, *K2C, 1]
+    2.0:                              [TW_2m_syn,  1s, 1, *K2C, 1]
   012102:
-    0.05:                             [TW_5cm_syn, 1s, 10, *K2C, 2]
-    2.0:                              [TW_2m_syn,  1s, 10, *K2C, 2]
+    0.05:                             [TW_5cm_syn, 1s, 1, *K2C, 2]
+    2.0:                              [TW_2m_syn,  1s, 1, *K2C, 2]
 wetBulbTemperatureAt2M:
-  012005:                             [TW_2m_syn,  1s, 10, *K2C, 1]
+  012005:                             [TW_2m_syn,  1s, 1, *K2C, 1]
 virtualTemperature:
   012007:
-    0.05:                             [TV_5cm_syn, 1s, 10, *K2C, 1]
-    2.0:                              [TV_2m_syn,  1s, 10, *K2C, 1]
+    0.05:                             [TV_5cm_syn, 1s, 1, *K2C, 1]
+    2.0:                              [TV_2m_syn,  1s, 1, *K2C, 1]
   012107:
-    0.05:                             [TV_5cm_syn, 1s, 10, *K2C, 2]
-    2.0:                              [TV_2m_syn,  1s, 10, *K2C, 2]
+    0.05:                             [TV_5cm_syn, 1s, 1, *K2C, 2]
+    2.0:                              [TV_2m_syn,  1s, 1, *K2C, 2]
   #specificHumidity:                   [SH_2m_syn,  1s,  1,    0]
   #mixingRatio:                        [MR_2m_syn,  1s,  1,    0]
   #mixingHeights:                      [MH_syn,     1s,  1,    0]
@@ -188,11 +188,11 @@ nonCoordinatePressure:
   010004:                             [PRES_0m_syn, 1s, 0.01, 0,-1]
 pressureReducedToMeanSeaLevel:
   010051:                             [PRMSL_ms_syn,1s, 0.01, 0,-1]
-nonCoordinateGeopotential:
-  010003:                             [GP_syn,      1s, 0.01, 0,-1]
-  010008:                             [GP_syn,      1s, 0.01, 0, 0]
+#nonCoordinateGeopotential:
+  #010003:                             [GP_0m_syn,      1s, 0.01, 0,-1]
+  #010008:                             [GP_0m_syn,      1s, 0.01, 0, 0]
   #nonCoordinateGeopotentialHeight:
-  #  010009:                             [GPH_syn,     1s, 0.01, 0, 0]
+  #  010009:                             [GPH_0m_syn,     1s, 0.01, 0, 0]
 
 
 ### RADIATION / SUN
@@ -224,81 +224,81 @@ sunshineOverPeriodSpecified:
 
 ### WEATHER / PHENOMENA
 presentWeather:
-  020003:                             [WW_syn,  1min, 1, 0, 0]           # Signifikantes Wetter
+  020003:                             [WW_2m_syn,  1min, 1, 0, 0]           # Signifikantes Wetter
 
   #TODO these keys contain characters (CCITT IA5 code), useful?
   #significantWeather:                 [WWsig_syn,1min, 1, 0, 0]         # Signifikantes Wetter
   #significantRecentWeatherPhenomena:  [WWsig_syn,1min, 1, 0, 0]         # Signifikantes Wetter
 
 pastWeather1:
-  020004:                             [W1_syn,  ~,    1, 0, 0]           # Wetterverlauf (Typ 1)
+  020004:                             [W1_2m_syn,  ~,    1, 0, 0]           # Wetterverlauf (Typ 1)
 
 pastWeather2:
-  020005:                             [W1_syn,  ~,    1, 0, 0]           # Wetterverlauf (Typ 1)
+  020005:                             [W2_2m_syn,  ~,    1, 0, 0]           # Wetterverlauf (Typ 1)
 
 #DWD only!!!
 additionalWeatherPhenomena:
-  020193:                             [natWW,   1min, 1, 0, 0]           # Zusätzliches Wetter (Nationale Meldung)
+  020193:                             [natWW_2m_syn,   1min, 1, 0, 0]           # Zusätzliches Wetter (Nationale Meldung)
   #TODO some interesting BUFR keys, maybe with potential future usefulness?
-  #intensityOfPhenomena:               [PHint, ~, 1, 0]              #
-  #phenomenaOccurrence:                [PHocc, ~, 1, 0]              #
-  #specialPhenomena:                   [PHspc, ~, 1, 0]              #
-  #020063:                             [PHspc, ~, 1, 0, 0]              # 
+  #intensityOfPhenomena:               [PHint_2m_syn, ~, 1, 0]              #
+  #phenomenaOccurrence:                [PHocc_2m_syn, ~, 1, 0]              #
+  #specialPhenomena:                   [PHspc_2m_syn, ~, 1, 0]              #
+  #020063:                             [PHspc_2m_syn, ~, 1, 0, 0]              # 
 
 #DWD only!
 #otherWeatherPhenomena:
-#  020023:                             [PHoth, ~, 1, 0, 0]              #
+#  020023:                             [PHoth_2m_syn, ~, 1, 0, 0]              #
 
 #reason of obscuration
-#020025:                             [OBSC_syn, ~, 1, 0, 0]
+#020025:                             [OBSC_2m_syn, ~, 1, 0, 0]
 
 #TODO check if this matches!
 generalWeatherIndicatorTafOrMetar:
-  020009:                             [WWN_syn, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
+  020009:                             [WWN_2m_met, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
 
 
 ### VISIBILITY
 #TODO which of these visibility/optical range parameters should have priority? how do we order them?
 meteorologicalOpticalRange:
-  015051:                             [VIS_syn,     0s, 0.001, 0, 0]     # Horizontale Sichtweite
-  020237:                             [VIS_syn,     0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
+  015051:                             [VIS_2m_syn,     0s, 0.001, 0, 0]     # Horizontale Sichtweite
+  020237:                             [VIS_2m_syn,     0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
 minimumMeteorologicalOpticalRange:
-  020238:                             [VISmin_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
+  020238:                             [VISmin_2m_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
 maximumMeteorologicalOpticalRange:
-  020239:                             [VISmax_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
+  020239:                             [VISmax_2m_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
 horizontalVisibility:
-  020001:                             [VISsyn,     0s, 0.001, 0,-1]     # Horizontale Sichtweite
+  020001:                             [VIS_2m_syn,     0s, 0.001, 0,-1]     # Horizontale Sichtweite
 minimumHorizontalVisibility:
-  020059:                             [VISmin_syn, 0s, 0.001, 0,-1]     # Horizontale Sichtweite
+  020059:                             [VISmin_2m_syn, 0s, 0.001, 0,-1]     # Horizontale Sichtweite
 prevailingHorizontalVisibility:
-  020060:                             [VISpre_syn, 0s, 0.001, 0,-1]     # Horizontale Sichtweite
+  020060:                             [VISpre_2m_syn, 0s, 0.001, 0,-1]     # Horizontale Sichtweite
 runwayVisualRangeRvr:
-  020061:                             [VISrun_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite
+  020061:                             [VIS_2m_met,    0s, 0.001, 0, 0]     # Horizontale Sichtweite
 visibilitySeawardsFromACoastalStation:
-  020058:                             [VISsea_syn, 0s, 0.001, 0,-1]      # # Horizontale Sichtweite (Küstenstation, Richtung See)
+  020058:                             [VISsea_2m_syn, 0s, 0.001, 0,-1]      # # Horizontale Sichtweite (Küstenstation, Richtung See)
 
 ### TEMPERATURE / GROUND
 stateOfGround:
-  020062:                             [GS_syn,    1min,  1,    0, 0]     # Erdbodenzustand
+  020062:                             [GS_srf_syn,    1min,  1,    0, 0]     # Erdbodenzustand
 soilTemperature:
   012030:
-    -0.05:                            [TMP_n5cm_syn,  1s, 10, *K2C, 1]     # Erdbodentemperatur -5cm
-    -0.1:                             [TMP_n10cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -10cm
-    -0.2:                             [TMP_n20cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -20cm
-    -0.5:                             [TMP_n50cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -50cm
-    -1.0:                             [TMP_n1m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -1m
-    -2.0:                             [TMP_n2m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -2m
+    -0.05:                            [TMP_n5cm_syn,  1s, 1, *K2C, 1]     # Erdbodentemperatur -5cm
+    -0.1:                             [TMP_n10cm_syn, 1s, 1, *K2C, 1]     # Erdbodentemperatur -10cm
+    -0.2:                             [TMP_n20cm_syn, 1s, 1, *K2C, 1]     # Erdbodentemperatur -20cm
+    -0.5:                             [TMP_n50cm_syn, 1s, 1, *K2C, 1]     # Erdbodentemperatur -50cm
+    -1.0:                             [TMP_n1m_syn,   1s, 1, *K2C, 1]     # Erdbodentemperatur -1m
+    -2.0:                             [TMP_n2m_syn,   1s, 1, *K2C, 1]     # Erdbodentemperatur -2m
   012130:
-    -0.05:                            [TMP_n5cm_syn,  1s, 10, *K2C, 1]     # Erdbodentemperatur -5cm
-    -0.1:                             [TMP_n10cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -10cm
-    -0.2:                             [TMP_n20cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -20cm
-    -0.5:                             [TMP_n50cm_syn, 1s, 10, *K2C, 1]     # Erdbodentemperatur -50cm
-    -1.0:                             [TMP_n1m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -1m
-    -2.0:                             [TMP_n2m_syn,   1s, 10, *K2C, 1]     # Erdbodentemperatur -2m
+    -0.05:                            [TMP_n5cm_syn,  1s, 1, *K2C, 1]     # Erdbodentemperatur -5cm
+    -0.1:                             [TMP_n10cm_syn, 1s, 1, *K2C, 1]     # Erdbodentemperatur -10cm
+    -0.2:                             [TMP_n20cm_syn, 1s, 1, *K2C, 1]     # Erdbodentemperatur -20cm
+    -0.5:                             [TMP_n50cm_syn, 1s, 1, *K2C, 1]     # Erdbodentemperatur -50cm
+    -1.0:                             [TMP_n1m_syn,   1s, 1, *K2C, 1]     # Erdbodentemperatur -1m
+    -2.0:                             [TMP_n2m_syn,   1s, 1, *K2C, 1]     # Erdbodentemperatur -2m
 
 groundTemperature:
-  012120:                             [TMP_srf_syn,   1s, 10, *K2C, 2]     # Erdbodentemperatur 0cm
-  012161:                             [TMP_srf_syn,   1s, 10, *K2C, 2]     # Erdbodentemperatur 0cm
+  012120:                             [TMP_srf_syn,   1s, 1, *K2C, 2]     # Erdbodentemperatur 0cm
+  012161:                             [TMP_srf_syn,   1s, 1, *K2C, 2]     # Erdbodentemperatur 0cm
   #TODO interesting parameters
   #groundMinimumTemperature
   #groundMinimumTemperatureOfPrecedingNight
@@ -315,89 +315,89 @@ groundTemperature:
 
 temperature: # in Celsius! 
   012023:
-    0.05:                             [TMP_5cm_syn, 1s, 10, 0, 0]          # 5cm-Lufttemperatur
-    2.0:                              [TMP_2m_syn,  1s, 10, 0, 0]          # 2m-Lufttemperatur
+    0.05:                             [TMP_5cm_syn, 1s, 1, 0, 0]          # 5cm-Lufttemperatur (in °C)
+    2.0:                              [TMP_2m_syn,  1s, 1, 0, 0]          # 2m-Lufttemperatur (in °C)
 
 airTemperature:                     
   012001:
-    0.05:                             [TMP_5cm_syn, 1s, 10, *K2C, 1]       # 5cm-Lufttemperatur
-    2.0:                              [TMP_2m_syn,  1s, 10, *K2C, 1]       # 2m-Lufttemperatur
+    0.05:                             [TMP_5cm_syn, 1s, 1, *K2C, 1]       # 5cm-Lufttemperatur
+    2.0:                              [TMP_2m_syn,  1s, 1, *K2C, 1]       # 2m-Lufttemperatur
   012101:
-    0.05:                             [TMP_5cm_syn, 1s, 10, *K2C, 2]
-    2.0:                              [TMP_2m_syn,  1s, 10, *K2C, 2]
+    0.05:                             [TMP_5cm_syn, 1s, 1, *K2C, 2]
+    2.0:                              [TMP_2m_syn,  1s, 1, *K2C, 2]
 
 airTemperatureAt2M:
-  012004:                             [TMP_2m_syn,  1s, 10, *K2C, 1]       # 2m-Lufttemperatur
-  012104:                             [TMP_2m_syn,  1s, 10, *K2C, 2]
+  012004:                             [TMP_2m_syn,  1s, 1, *K2C, 1]       # 2m-Lufttemperatur
+  012104:                             [TMP_2m_syn,  1s, 1, *K2C, 2]
 
 dewpointTemperature:
   012003:
-    0.05:                             [DPT_5cm_syn, 1s, 10, *K2C, 1]      # 5cm-Taupunktstemperatur
-    2.0:                              [DPT_2m_syn, 1s,  10, *K2C, 1]      # 2m-Taupunktstemperatur
+    0.05:                             [DPT_5cm_syn, 1s, 1, *K2C, 1]      # 5cm-Taupunktstemperatur
+    2.0:                              [DPT_2m_syn, 1s,  1, *K2C, 1]      # 2m-Taupunktstemperatur
   012024:
-    0.05:                             [DPT_5cm_syn, 1s, 10, 1, 0]         # 5cm-Taupunktstemperatur
-    2.0:                              [DPT_2m_syn, 1s,  10, 1, 0]         # 2m-Taupunktstemperatur
+    0.05:                             [DPT_5cm_syn, 1s, 1, 0, 0]         # 5cm-Taupunktstemperatur (in °C)
+    2.0:                              [DPT_2m_syn, 1s,  1, 0, 0]         # 2m-Taupunktstemperatur (in °C)
   012103:
-    0.05:                             [DPT_5cm_syn, 1s, 10, *K2C, 2]      # 5cm-Taupunktstemperatur
-    2.0:                              [DPT_2m_syn, 1s,  10, *K2C, 2]      # 2m-Taupunktstemperatur
+    0.05:                             [DPT_5cm_syn, 1s, 1, *K2C, 2]      # 5cm-Taupunktstemperatur
+    2.0:                              [DPT_2m_syn, 1s,  1, *K2C, 2]      # 2m-Taupunktstemperatur
 
 dewpointTemperatureAt2M:
-  012006:                             [DPT_2m_syn, 1s,  10, *K2C, 1]
-  012106:                             [DPT_2m_syn, 1s,  10, *K2C, 2]
+  012006:                             [DPT_2m_syn, 1s,  1, *K2C, 1]
+  012106:                             [DPT_2m_syn, 1s,  1, *K2C, 2]
 
 maximumTemperatureAt2M:
-  012021:                             [TMAX_2m_syn, 12h,    10, *K2C, 2] # 24h-Maximum der 2m-Lufttemperatur
+  012021:                             [TMAX_2m_syn, 12h,    1, *K2C, 2] # 24h-Maximum der 2m-Lufttemperatur
 
 minimumTemperatureAt2M:
-  012022:                             [TMIN_2m_syn, 12h,    10, *K2C, 2] # 24h-Minimum der 2m-Lufttemperatur
+  012022:                             [TMIN_2m_syn, 12h,    1, *K2C, 2] # 24h-Minimum der 2m-Lufttemperatur
 
 maximumTemperatureAtHeightAndOverPeriodSpecified:
   012011:
-    0.05:                             [TMAX_5cm_syn, 12h,   10, *K2C, 1] # 24h-Maximum der 5cm-Lufttemperatur
-    2.0:                              [TMAX_2m_syn,  12h,   10, *K2C, 1] # 24h-Maximum der 2m-Lufttemperatur
+    0.05:                             [TMAX_5cm_syn, 12h,   1, *K2C, 1] # 24h-Maximum der 5cm-Lufttemperatur
+    2.0:                              [TMAX_2m_syn,  12h,   1, *K2C, 1] # 24h-Maximum der 2m-Lufttemperatur
   012111:
-    0.05:                             [TMAX_5cm_syn, 12h,   10, *K2C, 2] # 24h-Maximum der 5cm-Lufttemperatur
-    2.0:                              [TMAX_2m_syn,  12h,   10, *K2C, 2] # 24h-Maximum der 2m-Lufttemperatur
+    0.05:                             [TMAX_5cm_syn, 12h,   1, *K2C, 2] # 24h-Maximum der 5cm-Lufttemperatur
+    2.0:                              [TMAX_2m_syn,  12h,   1, *K2C, 2] # 24h-Maximum der 2m-Lufttemperatur
 
 minimumTemperatureAtHeightAndOverPeriodSpecified:
   012012:
-    0.05:                             [TMIN_5cm_syn,12h,    10, *K2C, 1] # 24h-Minimum der 5cm-Lufttemperatur
-    0.1:                              [TMIN_10cm_syn,12h,   10, *K2C, 2] # 24h-Minimum der 10cm-Lufttemperatur
-    2.0:                              [TMIN_2m_syn, 12h,    10, *K2C, 1] # 24h-Minimum der 2m-Lufttemperatur
+    0.05:                             [TMIN_5cm_syn,12h,    1, *K2C, 1] # 24h-Minimum der 5cm-Lufttemperatur
+    0.1:                              [TMIN_10cm_syn,12h,   1, *K2C, 2] # 24h-Minimum der 10cm-Lufttemperatur
+    2.0:                              [TMIN_2m_syn, 12h,    1, *K2C, 1] # 24h-Minimum der 2m-Lufttemperatur
   012112:
-    0.05:                             [TMIN_5cm_syn,12h,    10, *K2C, 2] # 24h-Minimum der 5cm-Lufttemperatur
-    0.1:                              [TMIN_10cm_syn,12h,   10, *K2C, 2] # 24h-Minimum der 10cm-Lufttemperatur
-    2.0:                              [TMIN_2m_syn, 12h,    10, *K2C, 2] # 24h-Minimum der 2m-Lufttemperatur
+    0.05:                             [TMIN_5cm_syn,12h,    1, *K2C, 2] # 24h-Minimum der 5cm-Lufttemperatur
+    0.1:                              [TMIN_10cm_syn,12h,   1, *K2C, 2] # 24h-Minimum der 10cm-Lufttemperatur
+    2.0:                              [TMIN_2m_syn, 12h,    1, *K2C, 2] # 24h-Minimum der 2m-Lufttemperatur
 
 maximumTemperatureAt2MPast12Hours:
-  012014:                             [TMAX_2m_syn,   12h,  10, *K2C, 1]
-  012114:                             [TMAX_2m_syn,   12h,  10, *K2C, 2]
+  012014:                             [TMAX_2m_syn,   12h,  1, *K2C, 1]
+  012114:                             [TMAX_2m_syn,   12h,  1, *K2C, 2]
 
 minimumTemperatureAt2MPast12Hours:
-  012015:                             [TMIN_2m_syn,   12h,  10, *K2C, 1]
-  012115:                             [TMIN_2m_syn,   12h,  10, *K2C, 2]
+  012015:                             [TMIN_2m_syn,   12h,  1, *K2C, 1]
+  012115:                             [TMIN_2m_syn,   12h,  1, *K2C, 2]
   
 maximumTemperatureAt2MPast24Hours:
-  012016:                             [TMAX_2m_syn,   24h,  10, *K2C, 1]
-  012116:                             [TMAX_2m_syn,   24h,  10, *K2C, 2]
+  012016:                             [TMAX_2m_syn,   24h,  1, *K2C, 1]
+  012116:                             [TMAX_2m_syn,   24h,  1, *K2C, 2]
   
 minimumTemperatureAt2MPast24Hours:
-  012017:                             [TMIN_2m_syn,   24h,  10, *K2C, 1]
-  012117:                             [TMIN_2m_syn,   24h,  10, *K2C, 2]
+  012017:                             [TMIN_2m_syn,   24h,  1, *K2C, 1]
+  012117:                             [TMIN_2m_syn,   24h,  1, *K2C, 2]
 
 maximumTemperatureAtHeightSpecifiedPast24Hours:
   012118:
-    0.05:                             [TMAX_5cm_syn,  24h,  10, *K2C, 2]
-    2.0:                              [TMAX_2m_syn,   24h,  10, *K2C, 2]
+    0.05:                             [TMAX_5cm_syn,  24h,  1, *K2C, 2]
+    2.0:                              [TMAX_2m_syn,   24h,  1, *K2C, 2]
 
 minimumTemperatureAtHeightSpecifiedPast24Hours:
   012119:
-    0.05:                             [TMIN_5cm_syn,  24h,  10, *K2C, 2]
-    2.0:                              [TMIN_2m_syn,   24h,  10, *K2C, 2]
+    0.05:                             [TMIN_5cm_syn,  24h,  1, *K2C, 2]
+    2.0:                              [TMIN_2m_syn,   24h,  1, *K2C, 2]
 
 oceanographicWaterTemperature:
-  022042:                             [Twater_sst_syn, 1s, 10,  *K2C, 1] # Wassertemperatur sea surface temperature
-  022043:                             [Twater_sst_syn, 1s, 10,  *K2C, 2] # Wassertemperatur sea surface temperature
+  022042:                             [Twater_sst_syn, 1s,  1,  *K2C, 1] # Wassertemperatur sea surface temperature
+  022043:                             [Twater_sst_syn, 1s,  1,  *K2C, 2] # Wassertemperatur sea surface temperature
 
 
 ### WIND
@@ -490,10 +490,10 @@ cloudCoverTotal:
   020010:                             [TCDC_2m_syn, 1s, 0.08, 0, 0]    # Bedeckungsgrad gesamt
 
 heightOfBaseOfCloud:
-  020013:                             [HLC_syn,       1s,*m2m30, 0,-1]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
-  020092:                             [HLC_syn,       1s,*ft2m30,0,-2]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+  020013:                             [HLC_2m_syn,       1s,*m2m30, 0,-1]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+  020092:                             [HLC_2m_syn,       1s,*ft2m30,0,-2]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
   #DWD only! lowest cloud ceiling during last hour (automatic only!)
-  020199:                             [HLC_syn,       1h,*m2m30, 0,-1]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+  020199:                             [HLC_2m_syn,       1h,*m2m30, 0,-1]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
 
 # usually not used by DWD
 amountOfLowClouds:

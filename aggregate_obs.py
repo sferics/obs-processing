@@ -2,12 +2,17 @@
 import os
 import sys
 from datetime import datetime as dt, timedelta as td
-from obs import ObsClass
+#from obs import ObsClass
 from database import DatabaseClass as dc
-from config import ConfigClass
+from config import ConfigClass as cc
 import global_functions as gf
 import global_variables as gv
 
+# main SQL insert statement which will be used at the end of aggregate_obs function
+SQL = "INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, duration = excluded.duration"
+
+# constants
+mins_10 = td(minutes=10)
 
 def aggregate_obs(stations):
     """
@@ -21,7 +26,7 @@ def aggregate_obs(stations):
     -------
 
     """
-    def get_distinct_months(year):
+    def get_distinct_years():
         """
         Parameter:
         ----------
@@ -33,12 +38,27 @@ def aggregate_obs(stations):
         -------
 
         """
-        db_loc.exe((f"SELECT DISTINCT strftime('%m', datetime) FROM obs WHERE element = '{p_old}' "
+        db_loc.exe( f"SELECT DISTINCT strftime('%Y', datetime) FROM obs WHERE element = '{el_old}'" )
+        return db_loc.fetch()
+
+    def get_distinct_months():
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        db_loc.exe((f"SELECT DISTINCT strftime('%m', datetime) FROM obs WHERE element = '{el_old}' "
                         f"AND strftime('%Y', datetime) = '{year}'"))
         return db_loc.fetch()
 
 
-    def get_distinct_days(year, monrh):
+    def get_distinct_days():
         """
         Parameter:
         ----------
@@ -50,12 +70,12 @@ def aggregate_obs(stations):
         -------
 
         """
-        db_loc.exe((f"SELECT DISTINCT strftime('%d', datetime) FROM obs WHERE element='{p_old}' AND "
+        db_loc.exe((f"SELECT DISTINCT strftime('%d', datetime) FROM obs WHERE element='{el_old}' AND "
                         f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{month}'"))
         return db_loc.fetch()
 
 
-    def get_distinct_hours(year, month, day):
+    def get_distinct_hours():
         """
         Parameter:
         ----------
@@ -67,8 +87,38 @@ def aggregate_obs(stations):
         -------
 
         """
-        db_loc.exe((f"SELECT DISTINCT strftime('%H', datetime) FROM obs WHERE element='{p_old}' AND strftime('%Y', "
+        db_loc.exe((f"SELECT DISTINCT strftime('%H', datetime) FROM obs WHERE element='{el_old}' AND strftime('%Y', "
             f"datetime) = '{year}' AND strftime('%m', datetime) = '{month}' AND strftime('%d', datetime) = '{day}'"))
+        return db_loc.fetch()
+
+    def get_copy_vals(year=None, month=None, day=None, offset=0, dur=None):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        sql = f"SELECT * FROM obs WHERE element = '{el_old}' AND duration = '{dur}'"
+         
+        if all((year, month, day, dur)):
+            
+            if "h" in dur:
+                dur_num = int(dur.replace("h",""))
+            else:
+                dur_num = int(dur.replace("min","")) / 60
+
+            dt_start    = dt(int(year), int(month), int(day)) + td(hours=offset)
+            dt_end      = dt_base + td(hours=dur_num) + td(hours=offset)
+            
+            sql += f" AND datetime(datetime) BETWEEN '{dt_start}' AND '{dt_end}'"
+        
+        db_loc.exe(sql)
+        
         return db_loc.fetch()
 
 
@@ -86,206 +136,260 @@ def aggregate_obs(stations):
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
             continue
-      
+        
+        """
         #TODO remove this temporary fix!
-        # delete all aggregated paramters before calculation them again
-        sql = f"DELETE FROM obs WHERE element IN{aggreg_elements}"
+        # delete all aggregated elements before calculating them again
+        sql = f"DELETE FROM obs WHERE element {in_elems}"
         try:    db_loc.exe( sql )
         except Exception as e:
+            print(sql)
             print(e)
             gf.print_trace(e)
+        """
 
-        try: db_loc.exe( f"SELECT DISTINCT strftime('%Y', datetime) FROM obs" )
-        except: continue
-        years_present = db_loc.fetch()
-
-        for p_new in params:
-
-            dur = params[p_new][0] # duration
-            FUN = params[p_new][1] # function
-
-            p_old = p_new.replace( dur + "_", "" )
-     
-            if not FUN: # and dur == "10min"
-                # just take the values of the parameter with the given duration and save into to the new param name
-                db_loc.exe( f"SELECT * FROM obs WHERE element = '{p_old}' AND duration = '{dur}'" )
-                data = db_loc.fetch()
-                if not data: continue
-                for i in data:
-                    sql_values.add( (i[0], i[1], p_new, i[-1]) )
-
-            # get parameter values with a lower time dimensions (h->min, 24h->1h) and aggregate over duration
-            elif dur == "1h":
-
-                # first get all obs which already have 1h duration and copy them with the new parameter name
-                for hh in range(0, 24):
-                    hh = str(hh).rjust(2,"0")
-                    db_loc.exe((f"SELECT * FROM obs WHERE element = '{p_old}' AND duration = '{dur}' "
-                                    f"AND strftime('%H', datetime) = '{hh}' AND strftime('%M', datetime) = '00'"))
-                    data = db_loc.fetch()
-                    if data:
-                        for i in data: sql_values.add( (i[0], i[1], p_new, i[-1]) )
-                        # if we found a 1 h duration value, continue with next hour, no need to check 30 and 10 min
-                        continue
-
-                # then, get all 30min and values and aggregate them with the respective function (min,max,avg)
-                for year in years_present:
-                    
-                    # smartly handle data gaps, use only years, months and days where data is actually present
-                    
-                    months_present = get_distinct_months(year)
-
-                    for month in months_present:
-                        
-                        mm = month.rjust(2,"0")
-
-                        days_present = get_distinct_days(year, month)
-                        
-                        for day in days_present:
-                            
-                            dd = day.rjust(2,"0")
-                            
-                            hours_present = get_distinct_hours(year, month, day)
-
-                            for hour in hours_present:
-                                
-                                hh = int(hour.rjust(2,"0"))
-
-                                # first try 30 min values
-                                sql=(f"SELECT ? FROM obs WHERE element = '{p_old}' AND duration = '30min' AND "
-                                     f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{mm}' AND "
-                                     f"strftime('%d', datetime) = '{dd}' AND ( ( strftime('%H', datetime) = '{hh}' AND "
-                                     f"strftime('%M', datetime) = '30' ) OR ( strftime('%H', datetime) = '{hh+1}' AND "
-                                     f"strftime('%M', datetime) = '00' ) )")
-
-                                # add dataset to make sure the values are really unique and max of count() is 2
-                                try: db_loc.exe( sql.replace("?", "COUNT(value)") )
-                                except Exception as e:
-                                    print(e)
-                                    gf.print_trace(e)
-                                    continue
-
-                                # if we want an average make sure there are exactly two 10min values
-                                if FUN in {"avg","sum"} and db_loc.fetch1() != 2:
-                                    # else continue after else with the 10 min values
-                                    pass
-                                else:
-                                    try: db_loc.exe( sql.replace("?", FUN+"(value)") )
-                                    except Exception as e:
-                                        print(e)
-                                        gf.print_trace(e)
-                                        continue
-
-                                    v_new = db_loc.fetch1()
-
-                                    if v_new is not None:
-                                        dt_new = dt( int(year), int(month), int(day), int(hour) )
-
-                                        if verbose: print(dt_new, dur, p_new, v_new)
-                                        sql_values.add( (dt_new, dur, p_new, v_new) )
-                                        continue
-
-                                # try 10 min values
-                                sql=(f"SELECT ? FROM obs WHERE element = '{p_old}' AND duration = '10min' AND "
-                                     f"strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{mm}' AND "
-                                     f"strftime('%d', datetime) = '{dd}' AND ( ( strftime('%H', datetime) = '{hh}' AND "
-                                     f"strftime('%M', datetime) IN ('10', '20', '30', '40', '50') ) OR ( "
-                                     f"strftime('%H', datetime) = '{hh+1}' AND strftime('%M',datetime) = '00') )")
-                                
-                                #TODO add dataset to make sure the values are really unique and max of count() is 6
-                                try: db_loc.exe( sql.replace("?", "COUNT(value)") )
-                                except Exception as e:
-                                    print(e)
-                                    gf.print_trace(e)
-                                    continue
-
-                                # if we want an average make sure there are exactly six 10min values
-                                if FUN in {"avg","sum"} and db_loc.fetch1() != 6:
-                                    continue
-                               
-                                try: db_loc.exe( sql.replace("?", FUN+"(value)") )
-                                except Exception as e:
-                                    print(e)
-                                    gf.print_trace(e)
-                                    continue
-
-                                v_new = db_loc.fetch1()
-                                
-                                if v_new is not None:
-                                    dt_new = dt( int(year), int(month), int(day), int(hour) )
-                                    
-                                    if verbose: print(dt_new, dur, p_new, v_new)
-                                    sql_values.add( (dt_new, dur, p_new, v_new) )
-
+        for el_old in instant_elems:
             
-            else: # dur in [12h, 24h]
-                # get all 24h, 12h, 6h, 3h, 1h (30min, 10min?) values and aggregate them with the resp. function
-                # start with 24h, then try the shorter timespans
-                
-                offset = params[p_new][2]
-                timespan = int(dur[:2]) # 12 or 24
+            years_present = get_distinct_years()
 
-                # 24h
-                db_loc.exe( f"SELECT * FROM obs WHERE element = '{p_old}' AND duration = '{dur}'" )
-                data = db_loc.fetch()
-                if not data: pass
-                else:
-                    for i in data:
-                        sql_values.add( (i[0], i[1], p_new, i[-1]) )
-                    continue 
+            for year in years_present:
 
-                for year in years_present:
-                    
-                    months_present = get_distinct_months(year)
-                    
-                    for month in months_present:
+                months_present = get_distinct_months()
+
+                for month in months_present:
+
+                    days_present = get_distinct_days()
+
+                    for day in days_present:
+
+                        hours_present = get_distinct_hours()
                         
-                        days_present = get_distinct_days(year, month)
-                        
-                        for day in days_present:
-                            
-                            dt_ts = dt( int(year), int(month), int(day), offset ) + td(hours=timespan)
-                           
-                            #TODO is there a possibility to use 15 or 9 hour data in- or outside of this loop?
-                            for subdur in ( 12, 6, 3, 1, 0.5, 1/6 ): # aggregate 12h,6h 3h,1h,30min,10min durations
+                        for hour in hours_present:
+                            # check whether half-hourly data is present
+                            # if not fill in (the mean) of 1 or 2 +/- 10min vals (when present)
+                            # so if only +10min or -10min value is available, take it
+                            # OR when they both exists, take their average
+                            # actually, both cases are the same because we just use AVG()
+                            for minute in (0,30):
                                 
-                                if subdur >= 1:
-                                    dt0 = dt( int(year), int(month), int(day), offset ) + td(hours=subdur)
-                                    dur = str(subdur) + "h"
-                                else:
-                                    dt0 = dt( int(year), int(month), int(day), offset, int(subdur*60) )
-                                    dur = str(subdur*60) + "min"
-
-                                sql=(f"SELECT ? FROM obs WHERE element = '{p_old}' AND datetime(datetime) BETWEEN "
-                                     f"'{dt0}' AND '{dt_ts}' AND substr(datetime,16,1)='0' AND duration='{dur}'")
+                                dt_base = dt(int(year), int(month), int(day), int(hour), minute)
                                 
+                                sql = f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) = '{dt_base}'"
                                 db_loc.exe( sql.replace("?", "COUNT(value)") )
+                                
+                                # if no value is present
+                                if not db_loc.fetch1():
+                                    
+                                    dt_start    = dt_base - mins_10
+                                    dt_end      = dt_base + mins_10     
+                                    
+                                    sql = f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN '{dt_start}' AND '{dt_end}'"
+                                    db_loc.exe( sql.replace("?", "COUNT(value)") )
+                                     
+                                    # if 1 or 2 value exists
+                                    #TODO test which statement is faster. it should be the current one
+                                    #TODO do we really need to check for 1 or to or just any value? downside: less fail-proofed
+                                    #if db_loc.fetch1() in {1,2}:
+                                    #if db_loc.fetch1() in range(1,3):
+                                    if 1 <= db_loc.fetch1() <= 2:
+                                        
+                                        db_loc.exe( sql.replace("?", "AVG(value)") )
+                                        val = db_loc.fetch1()
+                                        
+                                        sql_values.add( (dt_base, "", el_old, val) )
+                                         
+            
+        for el_old in duration_elems:
 
-                                # if we want an average make sure there are continous values for each sub-duration
-                                if FUN in {"avg","sum"} and int(db_loc.fetch1()) != int(24 // subdur):
-                                    continue
-                                db_loc.exe( sql.replace("?", FUN+"(value)") )
-                                v_new = db_loc.fetch1()
+            years_present = get_distinct_years()
+            if not years_present: continue
 
-                                if v_new is not None:
-                                    if verbose: print(dt_ts, dur, p_new, v_new)
-                                    sql_values.add( (dt_ts, dur, p_new, v_new) )
-                                    break
+            el_old_durs = duration_elems[el_old] # durations
+     
+            for dur in el_old_durs:
+                
+                el_old_dur  = el_old_durs[dur]
+                el_new      = el_old.replace( "_", dur + "_", 1 )
 
-        sql = f"INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, duration = excluded.duration"
-        db_loc.exemany(sql, sql_values)
+                # if the entry for duration is empty (e.g. [10min: ~]) only copy to new element name
+                if not el_old_dur:
+                    # just take the values of the element with the given duration and save into new elem name
+                    data = get_copy_vals(dur=dur)
+                    if not data: continue
+                    for i in data:
+                        sql_values.add( (i[0], i[1], el_new, i[-1]) )
+                    continue
+                
+                subdurs = el_old_dur[0] # sub-durations [12h, 6h, 3h, 1h, 30min, 10min]
+                FUN     = el_old_dur[1] # function      [avg, sum, max, min]
+
+                if len(el_old_dur) >= 3:
+                    replace = el_old_dur[2]
+                    try:    offset = el_old_dur[3]
+                    except: offset = 0
+                else:
+                    replace = None
+                    offset  = 0
+                
+                for year in years_present:
+
+                    months_present = get_distinct_months()
+
+                    for month in months_present:
+
+                        days_present = get_distinct_days()
+
+                        for day in days_present:
+                                   
+                            break_loop = False
+                            
+                            #TODO how does this work with minutes as well? call get_distinct_hours already here?
+                            if "h" in dur:
+                                
+                                dur_h = int( dur.replace("h","") )
+                                
+                                # first try to take the values with the given duration and save into new elem name
+                                data = get_copy_vals(year, month, day, offset, dur)
+                                
+                                if data:
+                                    for i in data:
+                                        sql_values.add( (i[0], i[1], el_new, i[-1]) )
+                                    # if data is complete we can continue
+                                    #TODO how can we smartly omit already present data in next for loop if this is False?
+                                    if len(data) == int( 24 // dur_h ):
+                                        continue
+                                
+                            # if it does not exists we need to aggregate it using sub-durations
+                            for subdur in subdurs:
+                                
+                                if break_loop: break
+                                
+                                elif "h" in subdur:
+
+                                    dur_int     = int( dur.replace("h", "") )
+                                    subdur_int  = int( subdur.replace("h", "") )
+                                    
+                                    dt_base     = dt( int(year), int(month), int(day) )
+                                    dt_start    = dt_base - td(hours=dur_int) + td(hours=subdur_int) + td(hours=offset)
+                                    dt_end      = dt_base + td(hours=offset)
+                                    
+                                    sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN "
+                                        f"'{dt_start}' AND '{dt_end}' AND ")
+                                    
+                                    if FUN in {"MIN","MAX"}:
+                                        if "h" in subdur:
+                                            sql += "REPLACE(duration, 'h', '')"
+                                        else:
+                                            sql += "REPLACE(duration, 'min', '')"
+                                        sql += f" <= '{subdur}'"
+                                    else: sql += "duration='{subdur}'"
+
+                                    db_loc.exe( sql.replace("?", "COUNT(value)") )
+
+                                    # if we want an average make sure there are continous values for each sub-duration
+                                    if FUN in {"AVG","SUM"} and int(db_loc.fetch1()) != int(dur_int // subdur_int):
+                                        continue
+                                    db_loc.exe( sql.replace("?", FUN+"(value)") )
+
+                                    val_new = db_loc.fetch1()
+
+                                    if val_new is not None:
+                                        if verbose: print(dt_base, dur, el_new, val_new)
+                                        sql_values.add( (dt_base, dur, el_new, val_new) )
+                                        # break the loop when a value is first found
+                                        break
+                                    
+                                elif dur in {"1h", "30min"} and "min" in subdur:
+                                    
+                                    for hour in get_distinct_hours():
+                                        
+                                        if dur == "1h": dur_int = 1
+                                        else:           dur_int = 30
+                                        subdur_int              = int( subdur.replace("min", "") )
+
+                                        dt_end = dt( int(year), int(month), int(day), int(hour) )
+                                        
+                                        if dur == "1h":
+                                            dt_start = dt_end - td(hours=dur_int) + td(minutes=subdur_int)
+                                        else:
+                                            dt_start = dt_end - td(minutes=dur_int) + td(minutes=subdur_int)
+                                        
+                                        #TODO use IN instead of BETWEEN to be more explicit and failsave? slower?
+                                        sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN "
+                                            f"'{dt_start}' AND '{dt_end}' AND duration='{subdur}'")
+                                        db_loc.exe( sql.replace("?", "COUNT(value)") )
+                                        
+                                        # convert 1h into 60mins
+                                        if dur == "1h": dur_int *= 60
+
+                                        # if we want an average make sure there are continous values for each sub-duration
+                                        if FUN in {"AVG","SUM"} and int(db_loc.fetch1()) != int(dur_int // subdur_int):
+                                            continue
+
+                                        db_loc.exe( sql.replace("?", FUN+"(value)") )
+                                        
+                                        val_new = db_loc.fetch1()
+                                        
+                                        if val_new is not None:
+                                            if verbose: print(dt_end, dur, el_new, val_new)
+                                            sql_values.add( (dt_end, dur, el_new, val_new) )
+                                            # break the loop when a value is first found
+                                            # and break the outer loop as well
+                                            break_loop = True
+                                            break
+                                
+                                else:
+                                    dur_num = float( dur.replace("h", "") )
+                                    if "h" in subdur:
+                                        subdur_num = float( subdur.replace("h", "") )
+                                    else:
+                                        subdur_num = float( subdur.replace("min", "") )
+                                    
+                                    dt_base     = dt( int(year), int(month), int(day) )
+                                    dt_start    = dt_base - td(hours=dur_int) + td(hours=subdur_num) + td(hours=offset)
+                                    dt_end      = dt_base + td(hours=offset)
+                                    
+                                    #TODO use IN instead of BETWEEN to be more explicit and failsave? slower?
+                                    sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN "
+                                        f"'{dt_start}' AND '{dt_end}' AND ")
+                                    
+                                    if FUN in {"MIN","MAX"}:
+                                        if "h" in subdur:
+                                            sql += "REPLACE(duration, 'h', '')"
+                                        else:
+                                            sql += "REPLACE(duration, 'min', '')"
+                                        sql += f" <= '{subdur}'"
+                                    else: sql += "duration = '{subdur}'"
+                                    
+                                    db_loc.exe( sql.replace("?", "COUNT(value)") )
+
+                                    # if we want an average make sure there are continous values for each sub-duration
+                                    if FUN in {"AVG","SUM"} and int(db_loc.fetch1()) != int(dur_num // subdur_num):
+                                        continue
+                                    db_loc.exe( sql.replace("?", FUN+"(value)") )
+
+                                    val_new = db_loc.fetch1()
+
+                                    if val_new is not None:
+                                        if verbose: print(dt_end, dur, el_new, val_new)
+                                        sql_values.add( (dt_end, dur, el_new, val_new) )
+                                        # break the loop when a value is first found
+                                        break
+                
+        if verbose: print(sql_values) 
+        db_loc.exemany(SQL, sql_values)
         db_loc.close(commit=True)
-    
+         
     return
 
 
 if __name__ == "__main__":
     
     # define program info message (--help, -h)
-    info        = "Aggregate observations over different time periods"
+    info        = "Aggregate observations over different time periods (durations)"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","d","t","P")
-    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
     start_time  = dt.utcnow()
@@ -304,15 +408,16 @@ if __name__ == "__main__":
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
-    params          = cf.script["params"]
+    aggregat_elems  = cf.script["aggregat_elems"]
+    aggregat_elems  = gf.read_yaml(aggregat_elems)
+    duration_elems  = aggregat_elems["duration"]
+    instant_elems   = aggregat_elems["instant"]
+    sql_in_elems    = dc.sql_in( duration_elems )
 
-    obs             = ObsClass( cf, source, stage="forge" )
-    db              = DatabaseClass( config=cf.database, ro=1 )
+    #obs             = ObsClass( cf, source, stage="forge" )
+    db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)
-
-    #TODO remove
-    aggreg_elements = tuple(params.keys())
 
     if processes: # number of processes
         import multiprocessing as mp

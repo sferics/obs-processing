@@ -110,7 +110,7 @@ additionalWeatherPhenomena:         [natWW,   1min, 1, 0]           # Zusätzlic
   #specialPhenomena:                   [PH_spl, ~, 1, 0]              # 
   #otherWeatherPhenomena:              [PH_oth, ~, 1, 0]              # 
 #TODO check if this matches!
-#generalWeatherIndicatorTafOrMetar:  [WWN_syn, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
+#generalWeatherIndicatorTafOrMetar:  [WWN_met, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
 
 ### VISIBILITY
 #TODO which of these visibility/optical range parameters should have priority? how do we order them?

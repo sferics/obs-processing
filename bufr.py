@@ -50,14 +50,14 @@ class BufrClass:
         return location
 
     @staticmethod
-    def get_clear_key(self, key):
+    def get_clear_key(key):
         """
         """
         regex = r"#[0-9]+#"
         return str( re.sub(regex, "". key) )
     
     @staticmethod
-    def get_number(self, key):
+    def get_number(key):
         """
         """
         regex = r"#[A-Za-z0-9]+"
@@ -356,7 +356,7 @@ class BufrClass:
         elif duration is None or key in self.fixed_duration_keys:
             duration = key_db[1]
         # None = null
-        if duration is None: duration = "null"
+        if duration is None: duration = "NULL"
         
         return key_db[0], value, duration, scale
 
@@ -394,7 +394,7 @@ class BufrClass:
         elif duration is None or key in self.fixed_duration_keys:
             duration = key_db[1]
         # None = null
-        if duration is None: duration = "null"
+        if duration is None: duration = "NULL"
 
         return key_db[0], value, duration
 

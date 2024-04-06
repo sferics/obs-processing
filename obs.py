@@ -35,6 +35,26 @@ class ObsClass:
             setattr(self, key, val)
         
         self.log = gf.get_logger( self.__class__.__name__, self.log_level )
+    
+    
+    @classmethod
+    def get_station_db_path(self, loc, output=None, mode=None, stage=None):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if output is None:  output  = self.output
+        if mode is None:    mode    = self.mode
+        if stage is None:   stage   = self.stage
+
+        return f"{output}/{mode}/{stage}/{loc[0]}/{loc}.db"
 
 
     #TODO add update=bool flag (ON CONFLICT DO UPDATE clause on/off)
@@ -72,19 +92,21 @@ class ObsClass:
             case "raw":
                 if scale:
                     sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor,scale,prio) "
-                        f"VALUES ('{source}',?,?,?,?,?,?,?,{prio}) ON CONFLICT DO UPDATE SET "
-                        f"value=excluded.value, file=excluded.file, cor=excluded.cor, reduced=0 WHERE "
-                        f"excluded.cor > obs.cor" ) # AND excluded.file > obs.file AND excluded scale > obs.scale
+                            f"VALUES ('{source}',?,?,?,?,?,?,?,{prio}) ON CONFLICT DO UPDATE SET "
+                            f"value=excluded.value, file=excluded.file, cor=excluded.cor, reduced=0 WHERE "
+                            f"excluded.cor > obs.cor" ) # AND excluded.file > obs.file
+                    if mode == "dev":
+                        sql += " AND excluded scale > obs.scale"
                 else:
                     sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor,prio) "
-                        f"VALUES ('{source}',?,?,?,?,?,?,{prio}) ON CONFLICT DO UPDATE SET "
-                        f"value=excluded.value, file=excluded.file, cor=excluded.cor, reduced=0 WHERE "
-                        f"excluded.cor > obs.cor" ) # AND excluded.file > obs.file
+                            f"VALUES ('{source}',?,?,?,?,?,?,{prio}) ON CONFLICT DO UPDATE SET "
+                            f"value=excluded.value, file=excluded.file, cor=excluded.cor, reduced=0 WHERE "
+                            f"excluded.cor > obs.cor" ) # AND excluded.file > obs.file
             case "forge":
                 sql = ( f"INSERT INTO obs (dataset,datetime,duration,value) VALUES(?,?,?,?) "
                         f"ON CONFLICT DO UPDATE SET value=excluded.value" )
             case "final":
-                sql = ( f"INSERT INTO obs (dataset,datetime,duration,value) VALUES(?,?,?,?) "
+                sql = ( f"INSERT INTO obs (dataset,datetime,value) VALUES(?,?,?) "
                         f"ON CONFLICT DO UPDATE SET value=excluded.value" )
 
         for loc in obs_db:

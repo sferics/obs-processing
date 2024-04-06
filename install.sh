@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#sudo apt install libeccodes*
+sudo apt install python python-dev wget
+
 # create symlink for undecided naming reasons...
 ln -s conclude_obs.py finalize_obs.py
 
@@ -12,5 +15,5 @@ conda env create -f config/obs_env.yml
 # install plbufr package (legacy install method!)
 cd plbufr && python setup.py install
 
-# compile all .py files to speed-up first start
+# compile all .py files to speed-up first run of any script
 python -m compileall
