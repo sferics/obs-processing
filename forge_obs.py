@@ -44,9 +44,9 @@ if __name__ == "__main__":
 
     match mode:
         case "oper":
-            scripts = ["reduce", "aggregate", "derive", "audit"]
-        case "dev":
             scripts = ["reduce", "derive", "aggregate", "derive", "audit"]
+        case "dev":
+            scripts = ["reduce", "aggregate", "derive", "audit"]
         case "test":
             raise NotImplementedError("TODO: TEST MODE")
         case _:
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     if export: scripts.append("export")
     
     # get all provided command line arguments as a list
-    cli_args = sys.argv
+    cli_args = sys.argv[1:]
     
     if export and legacy_output:
         # returns "-L" or "--legacy_output" if either of them are found in cli arguments; else None
@@ -73,12 +73,21 @@ if __name__ == "__main__":
             except: pass
             else:   break
 
+    aggregated = 0
+
     # https://stackoverflow.com/questions/8953119/waiting-for-external-launched-process-finish
 
     for script in scripts:
         # if export is set True we define the -L flag only for the export_obs script
         if script == "export" and export and legacy_output:
             cli_args += ["-L", legacy_output]
+        elif script == "aggregate":
+            aggregated += 1
+        # if derive_obs.py is called after aggregate_obs.py we need to add the -A flag
+        elif script == "derive" and aggregated:
+            cli_args.append("-A")
+        elif "-A" in cli_args:
+            cli_args.remove("-A")
         if cf.args.dry:
             print("python", script+"_obs.py", *cli_args)
         else:

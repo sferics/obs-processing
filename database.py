@@ -1743,14 +1743,14 @@ class DatabaseClass:
         return self.fetch1()
 
 
-    get_station_icao        = lambda self, location : self.get_station_X(location, "ICAO")
-    get_station_name        = lambda self, location : self.get_station_X(location, "name")
-    get_station_longitude   = lambda self, location : self.get_station_X(location, "longitude")
-    get_station_latitude    = lambda self, location : self.get_station_X(location, "latitude")
-    get_station_elevation   = lambda self, location : self.get_station_X(location, "elevation")
-    get_station_baro_elev   = lambda self, location : self.get_station_X(location, "baro_elevation")
-    get_station_cluster     = lambda self, location : self.get_station_X(location, "cluster")
-    get_station_orography   = lambda self, location : self.get_station_X(location, "orography")
+    get_station_icao        = lambda self, location : str( self.get_station_X(location, "ICAO") )
+    get_station_name        = lambda self, location : str( self.get_station_X(location, "name") )
+    get_station_longitude   = lambda self, location : float( self.get_station_X(location, "longitude") )
+    get_station_latitude    = lambda self, location : float( self.get_station_X(location, "latitude") )
+    get_station_elevation   = lambda self, location : float( self.get_station_X(location, "elevation") )
+    get_station_baro_elev   = lambda self, location : float( self.get_station_X(location, "baro_elevation") )
+    get_station_cluster     = lambda self, location : str( self.get_station_X(location, "cluster") )
+    get_station_orography   = lambda self, location : str( self.get_station_X(location, "orography") )
 
 
     def get_station_location( self, name=None, icao=None, cluster=None ):

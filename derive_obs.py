@@ -1,9 +1,11 @@
 #!/usr/bin/env python
-import os
+import os, sqlite3
+from copy import copy
 from collections import defaultdict
 import global_functions as gf
 import global_variables as gv
 import sql_factories as sf
+from datetime import datetime as dt
 from database import DatabaseClass as dc
 from config import ConfigClass as cc
 from obs import ObsClass as oc
@@ -51,7 +53,11 @@ def derive_obs(stations):
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
             continue
-        
+       
+        #TODO implement -A flag (derive only 30min values)
+
+        #TODO implement source specific treatment (process by source?)
+        """
         if source in {"test", "DWD", "dwd_germany"}:
             # in DWD data we need to replace the duration for 9z Tmin/Tmax obs
             sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn','TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09'"
@@ -60,9 +66,10 @@ def derive_obs(stations):
             try:    db_loc.exe(sql)
             except: continue
             else:   db_loc.commit()
-
         """
-        sql1="SELECT datetime,duration,element,value FROM obs WHERE element = '%s'"
+        
+        """
+        sql1=f"SELECT datetime,duration,element,value FROM obs WHERE element = '%s'{dt_30min}"
         sql2="INSERT INTO obs (datetime,duration,element,value) VALUES(?,?,?,?) ON CONFLICT IGNORE"
 
         found = False
@@ -87,7 +94,8 @@ def derive_obs(stations):
         db_loc.exemany(sql2, sql_values)
         """    
     
-        sql = "SELECT datetime,element,round(value) from obs WHERE element IN ('CDC{i}_2m_syn', 'CB{i}_2m_syn') ORDER BY datetime asc, element desc"
+        sql = ("SELECT datetime,element,round(value) from obs WHERE element IN "
+            "('CDC{i}_2m_syn', 'CB{i}_2m_syn'){dt_30min} ORDER BY datetime asc, element desc")
         
         # https://discourse.techart.online/t/python-group-nested-list-by-first-element/3637
 
@@ -95,7 +103,7 @@ def derive_obs(stations):
 
         for i in range(1,5):
             #print(sql.format(i=i))
-            db_loc.exe(sql.format(i=i))
+            db_loc.exe(sql.format(i=i, dt_30min=dt_30min))
             data = db_loc.fetch()
             
             CL              = defaultdict(str)
@@ -131,8 +139,11 @@ def derive_obs(stations):
         db = dc( config=cf.database, ro=1 )
         
         #TODO we should actually prefer the barometer elevation over general elevation because they can differ a lot
-        baro_height = db.get_station_baro_elev(loc)
-        
+        try:
+            baro_height = db.get_station_baro_elev(loc)
+        except sqlite3.OperationalError:
+            baro_height = None
+
         if baro_height is None:
             baro_height     = db.get_station_elevation(loc)
             station_height  = copy(baro_height)
@@ -143,27 +154,30 @@ def derive_obs(stations):
         db.close()
         
         ##TODO MEDIUM priority, could be useful for some sources
-        
+       
+        #TODO do this for all metwatch elements which can be linked to a TR
+        #TODO derive [element, TR] from element and TR
         # derive [PRATE_1m_syn, TR] from PRATETR_1m_syn and TR
         
         # get all datetime where both elements are present and have a NOT NULL value
         
-        sql = ("SELECT DISTINCT datetime FROM obs WHERE element = 'PRATE_1m_syn' AND "
-            "value IS NOT NULL JOIN SELECT DISTINCT datetime FROM obs WHERE element = 'TR' "
-            "AND value IS NOT NULL")
+        sql = (f"SELECT DISTINCT datetime FROM obs WHERE element = 'PRATE_1m_syn' AND "
+            f"value IS NOT NULL{dt_30min} UNION SELECT DISTINCT datetime FROM obs WHERE "
+            f"element = 'TR' AND value IS NOT NULL{dt_30min}")
         db_loc.exe(sql)
         
-        sql_insert  = "INSERT INTO obs datetime,element,value,duration VALUES (?,'PRATE_1m_syn',?,?)"
+        sql_insert  = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,'PRATE_1m_syn',?,?)"
         prate_vals  = set()
 
         for datetime in db_loc.fetch():
-            
+            datetime = datetime[0] 
             sql = (f"SELECT value FROM obs WHERE datetime = '{datetime}' AND element IN "
                 f"('PRATE_1m_syn', 'TR') ORDER BY element")
-            
             db_loc.exe(sql)
             
             for values in db_loc.fetch():
+                if debug: print("VALUES PRATE TR", values)
+                if len(values) < 2: continue
                 prate   = values[0]
                 tr      = values[1]
                 prate_vals.add( (datetime, prate, tr) )
@@ -176,94 +190,117 @@ def derive_obs(stations):
         if baro_height is not None:
             
             db  = dc( config=cf.database, ro=1 )
-            lat = db.get_station_latitude()
+            lat = db.get_station_latitude(loc)
             db.close()
 
             # first get all datetimes where there is no PRMSL recorded but PRES (30min values only)
-
-            sql = (f"SELECT DISTINCT datetime FROM obs WHERE strftime('%M', datetime) IN "
-                f"('00','30') AND element LIKE 'PRES_0m_syn' AND value IS NOT NULL JOIN "
-                f"SELECT DISTINCT datetime FROM obs WHERE strftime('%M', datetime) IN "
-                f"('00','30') AND element LIKE 'PRMSL_ms_%' AND IFNULL(value, '') = ''")
+            # SELECT NULL or EMPTY: https://stackoverflow.com/questions/3620828/sqlite-select-where-empty
+            sql = (f"SELECT DISTINCT datetime FROM obs WHERE  element LIKE 'PRES_0m_syn' AND value"
+                f" IS NOT NULL{dt_30min} UNION SELECT DISTINCT datetime FROM obs WHERE "
+                f"element LIKE 'PRMSL_ms_%' AND IFNULL(value, '') = ''{dt_30min}")
                 #AND value IS NULL OR value = ''
-            
             db_loc.exe(sql)
             
-            datetimes = set( db_loc.fetch() )
+            datetimes = set( i[0] for i in db_loc.fetch() )
            
-            sql_insert  = "INSERT INTO obs datetime,element,value,duration VALUES (?,?,?,1s)"
+            sql_insert  = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,?,?,'1s')"
             prmsl_vals  = set()
 
             # try calculate PRMSL for all datetimes where only PRES is available
-            sql = (f"SELECT datetime,value FROM obs WHERE element = 'PRES_0m_syn'")
-            
+            sql = (f"SELECT datetime,value FROM obs WHERE element = 'PRES_0m_syn' AND value "
+                f"IS NOT NULL{dt_30min}")
             db_loc.exe(sql)
 
             for row in db_loc.fetch():
+                if debug: print("ROW", row)
                 datetime    = row[0]
-                value_PRES  = row[1]
+                value_PRES  = float(row[1])
                 
                 # we prefer to use qff, so try to get all needed elements for it 
                 sql = (f"SELECT value FROM obs WHERE element IN ('TMP_2m_syn', 'DPT_2m_syn', "
                     f"'RH_2m_syn') AND datetime = '{datetime}' ORDER BY element")
-                
                 db_loc.exe(sql)
                 
-                values      = db_loc.fetch()
-                value_DPT   = values[0]
-                value_RH    = values[1]
-                value_TMP   = values[2]
+                values = db_loc.fetch()
                 
+                if len(values) == 3:
+                    value_DPT   = float(values[0][0])
+                    value_RH    = float(values[1][0])
+                    value_TMP   = float(values[2][0])
+                else: continue
+
                 #if station and baro height differ: calculate QFE
                 #if station_height != baro_height:
                 #   qfe = gf.qfe(value_PRES, baro_height-station_height)
                 
+                if debug: print("VALUES DPT RH TPP", values)
+
                 if value_PRES is not None and value_TMP is not None and baro_height <= 350:
                     pr_qnh = gf.qnh( value_PRES, baro_height, value_TMP )
-                    prmsl_vals.add( datetime, "PRMSL_ms_met", pr_qnh )
+                    prmsl_vals.add( (datetime, "PRMSL_ms_met", pr_qnh) )
                     
                     # if dewpoint or relative humidity are present: use DWD reduction method
                     #https://www.dwd.de/DE/leistungen/pbfb_verlag_vub/pdf_einzelbaende/vub_2_binaer_barrierefrei.pdf?__blob=publicationFile&v=4 [page 106]
                     if value_DPT is not None or value_RH is not None and baro_height < 750:
                         
-                        if value_DPT is not None:
+                        if value_RH is None:
                             value_RH = gf.dpt2rh(value_DPT, value_TMP)
                         
-                        pr_qff  = gf.qff( value_PRES, baro_height, value_TMP, value_RH )
-                        prmsl_vals.add( datetime, "PRMSL_ms_syn", pr_qff )
+                        # relative humidity needs to be between 0 and 100 percent
+                        if 0 <= value_RH <= 100:
+                            if debug: print("PPP, h, TMP, RH")
+                            if debug: print(value_PRES, baro_height, value_TMP, value_RH )
+                            pr_qff  = gf.qff_dwd( value_PRES, baro_height, value_TMP, value_RH )
+                            prmsl_vals.add( (datetime, "PRMSL_ms_syn", pr_qff) )
                 
             db_loc.exemany(sql_insert, prmsl_vals)
             
 
-            #TODO calculate derivation of dewpoint temperature here, add unit conversions...
-            """
-            dp = "dewpointTemperature"; dp2 = "dewpointTemperature2m"
-            T = "airTemperature"; T2 = "airTemperatureAt2m"; rh = "relativeHumidity"
-
-            # if we already has the dewpoint temperature at 2m height, skip!
-            if dp2 in obs or (dp in obs and sensor_height[0] == 2):
-                pass
-            elif rh in obs and ( (T in obs and sensor_height[0] == 2) or T2 in obs ):
-                if T in obs: T = obs[T][0]
-                else: T = obs[T2][0]
-                rh = obs[rh][0]
-
-                obs[dp2] = ( gf.rh2dpt( rh, T ), "2s" )
-            """
+            # calculate derivation of dewpoint temperature here, add unit conversions...
+            # first get all datetimes where no dewpoint is present but we have RH and TMP recorded
+            sql = (f"SELECT datetime FROM obs WHERE element = 'RH_2m_syn' AND value IS NOT NULL"
+                f"{dt_30min} UNION SELECT datetime FROM obs WHERE element = 'TMP_2m_syn' AND "
+                f"value IS NOT NULL{dt_30min} UNION SELECT datetime FROM obs WHERE "
+                f"element = 'DPT_2m_syn' AND IFNULL(value, '') = ''{dt_30min}")
+            db_loc.exe(sql)
             
-
-
+            sql_insert  = ("INSERT INTO obs (datetime,element,value,duration) VALUES"
+                "(?,'DPT_2m_syn',?,'1s')")
+            dpt_vals    = set()
+            
+            for datetime in db_loc.fetch():
+                datetime = datetime[0]
+                sql = (f"SELECT value FROM obs WHERE element IN ('RH_2m_syn','TMP_2m_syn') "
+                    f"AND datetime = '{datetime}' AND value IS NOT NULL ORDER BY element")
+                db_loc.exe(sql)
+                
+                values      = db_loc.fetch()[0]
+                if len(values) < 2: continue
+                if debug: print("VALUES", values)
+                value_RH    = float(values[0])
+                
+                # relative humidity needs to be between 0 and 100 percent
+                if 0 <= value_RH <= 100:
+                    value_TMP   = float(values[1])
+                    value_DPT   = gf.rh2dpt(values_RH, value_TMP)
+                     
+                    # dewpoint temperature needs to be smaller than OR equal to temperature
+                    if value_DPT <= value_TMP:
+                        dpt_vals.add( (datetime, value_DPT) )
+                
+            db_loc.exemany(sql_insert, dpt_vals)
+            
+            #TODO derive total sunshine duration in min from % (using astral package; see wetterturnier)
+            import astral 
+            
             ##TODO LOW priority, not really needed at the moment
             
             #TODO take 5m wind as 10m wind if 10m wind not present (are they compareble???)
             
             #TODO derive wind direction from U and V
-            
-            #TODO derive total sunshine duration in min from h
-            #TODO derive total sunshine duration in min from % (using astral package; see wetterturnier)
-            
+             
             #TODO derive precipitation amount from duration and intensity
-            # (might be necessary to aggregate)
+            # (might be necessary to aggregate afterwards...)
             
              
         db_loc.close(commit=True)
@@ -276,7 +313,7 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Derive obs elements from other parameters"
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","C","m","M","o","O","d","t","P")
+    flags       = ("l","v","C","m","M","o","O","d","t","P","A")
     cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
@@ -299,7 +336,11 @@ if __name__ == "__main__":
     replacements    = cf.script["replacements"]
     combinations    = cf.script["combinations"]
 
-    obs             = oc( cf, source, stage="forge" )
+    if cf.script["aggregated"]:
+        dt_30min = " AND strftime('%M', datetime) IN ('00','30')"
+    else: dt_30min = ""
+
+    #obs             = oc( cf, source, stage="forge" )
     db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)

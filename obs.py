@@ -96,7 +96,7 @@ class ObsClass:
                             f"value=excluded.value, file=excluded.file, cor=excluded.cor, reduced=0 WHERE "
                             f"excluded.cor > obs.cor" ) # AND excluded.file > obs.file
                     if mode == "dev":
-                        sql += " AND excluded scale > obs.scale"
+                        sql += " AND excluded.scale > obs.scale"
                 else:
                     sql = ( f"INSERT INTO obs (dataset,file,datetime,duration,element,value,cor,prio) "
                             f"VALUES ('{source}',?,?,?,?,?,?,{prio}) ON CONFLICT DO UPDATE SET "
