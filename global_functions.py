@@ -370,6 +370,10 @@ def read_yaml(file_name="obs", directory="config", ext="yml", typ="safe", pure=T
         construct_function = locals()[f"construct_{tag}"]
         yaml.add_constructor(u'tag:yaml.org,2002:'+tag, construct_function)
 
+    # just ignore all unknown ! and !! tags (inspired by https://github.com/yaml/pyyaml/issues/86)
+    yaml.add_multi_constructor('!', lambda loader, suffix, node: None)
+    yaml.add_multi_constructor('tag:yaml.org,2002', lambda loader, suffix, node: None)
+
     if values:
         # another "borrowing" - I promise to give it back ASAP! https://stackoverflow.com/a/53043084
         def construct_format(loader: loader, node: yaml.Node):

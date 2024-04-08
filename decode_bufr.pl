@@ -41,6 +41,8 @@ use Data::Dumper;
 use DBI;
 use Geo::BUFR;
 
+#TODO implement custom YAML tags (see global_functions/read_yaml)
+#OR just ignore them and define types in script
 my $config = LoadFile('config/obs.yml');
 #print Dumper($config);
 my $config_db 	= $config->{database};
