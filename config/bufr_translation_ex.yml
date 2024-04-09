@@ -252,9 +252,8 @@ additionalWeatherPhenomena:
 #reason of obscuration
 #020025:                             [OBSC_2m_syn, ~, 1, 0, 0]
 
-#TODO check if this matches!
 generalWeatherIndicatorTafOrMetar:
-  020009:                             [WWN_2m_met, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
+  020009:                             [GWI_2m_met, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
 
 
 ### VISIBILITY

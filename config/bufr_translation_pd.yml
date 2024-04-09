@@ -7,9 +7,10 @@ K2C:   &K2C    -273.15             # K to C
 #C2K:   &C2K    273.15              # C to K
 
 # WIND SPEED
-#kn2ms:  &kn2ms  0.5144444444444444  # kn to m/s
+kn2ms:  &kn2ms  0.5144444444444445  # kn to m/s
 ms2kn:  &ms2kn  1.9438444924406046  # m/s to kn
 kh2kn:  &kh2kn  0.5399568034557235  # km/h to kn
+kh2ms:  &kh2ms  0.2777777777777778  # km/h in m/s
 
 # LENGTH
 #m2ft:   &m2ft   3.2808398950131235  # m to ft
@@ -123,8 +124,8 @@ pastWeather2:                       [W2_2m_syn,  ~,    1, 0]           # Wetterv
   #phenomenaOccurrence:                [PHocc_2m_syn, ~, 1, 0]              # 
   #specialPhenomena:                   [PHspl_2m_syn, ~, 1, 0]              # 
   #otherWeatherPhenomena:              [PHoth_2m_syn, ~, 1, 0]              # 
-#this parameter is not equivalent to old METAR parameter
-generalWeatherIndicatorTafOrMetar:      [WWN_2m_met, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
+#this parameter is not equivalent to metwatch METAR parameter (WW_2m_met), does not contain specific significant weather information (like RA, TS or DZ)
+generalWeatherIndicatorTafOrMetar:      [GWI_2m_met, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
 
 ### VISIBILITY
 #TODO which of these visibility/optical range parameters should have priority? how do we order them?
@@ -195,10 +196,10 @@ oceanographicWaterTemperature:      [Twater_sst_syn, 1s, 1,  *K2C] # Wassertempe
 
 
 ### WIND
-u:                                  [u_10m_syn, ~, *ms2kn, 0]
-uAt10M:                             [u_10m_syn, ~, *ms2kn, 0]
-v:                                  [v_10m_syn, ~, *ms2kn, 0]
-vAt10M:                             [v_10m_syn, ~, *ms2kn, 0]
+u:                                  [u_10m_syn, ~, 1, 0]
+uAt10M:                             [u_10m_syn, ~, 1, 0]
+v:                                  [v_10m_syn, ~, 1, 0]
+vAt10M:                             [v_10m_syn, ~, 1, 0]
 
   #TODO how/where is the associated wind speed defined?
   #windDirectionAssociatedWithWindSpeedWhichFollows:                 [DIR_10m_syn, ~, 1, 0]
@@ -206,21 +207,21 @@ windDirection:                      [WDIR_10m_syn, 10min, 1, 0]       # Windrich
 windDirectionAt10M:                 [WDIR_10m_syn, 10min, 1, 0]       # Windrichtung
 windDirectionAt5M:                  [WDIR_5m_syn, 10min, 1, 0]        # Windrichtung
   #maximumWindGustDirection:           [WDIRmax_10m_syn, ~, 1, 0, 0]     # Windrichtung der max Böen
-windSpeed:                          [WIND_10m_syn, 10min, *ms2kn, 0]  # Windgeschwindigkeit 10-Min-Mittel kn
-windSpeedAt10M:                     [WIND_10m_syn, 10min, *ms2kn, 0]  # Mittelwind der letzten Stunde
-windSpeedAt5M:                      [WIND_5m_syn, 10min, *ms2kn, 0]   # Mittelwind der letzten Stunde
-meanWindSpeed:                      [WIND_10m_syn, 10min, *ms2kn, 0]
+windSpeed:                          [WIND_10m_syn, 10min, 1, 0]  # Windgeschwindigkeit 10-Min-Mittel kn
+windSpeedAt10M:                     [WIND_10m_syn, 10min, 1, 0]  # Mittelwind der letzten Stunde
+windSpeedAt5M:                      [WIND_5m_syn, 10min, 1, 0]   # Mittelwind der letzten Stunde
+meanWindSpeed:                      [WIND_10m_syn, 10min, 1, 0]
   #TODO rename to MAXWIND?
-maximumMeanWindSpeed:               [MAXWIND_10m_syn,~, *ms2kn,  0]
+maximumMeanWindSpeed:               [MAXWIND_10m_syn,~, 1,  0]
   #TODO rename to MINWIND?
-  #minimumMeanWindSpeed:               [WINDmin_10m_syn,~, *ms2kn,  0]
-highestGustDuringThe10MinutePeriodPrecedingObservation: [GUST_10m_syn, 10min, *ms2kn, 0]
-meanWindSpeedFrom610minMeasurement: [WIND_10m_syn,    1h, *ms2kn, 0] # Windgeschwindigkeit 10-Min-Mittel kn
-maximumWindGustSpeed:               [GUST_10m_syn,     ~, *ms2kn, 0]
-maximumWindSpeed10MinuteMeanWind:   [MAXWIND_10m_syn, ~, *ms2kn, 0] # Maximales 10min-Mittel im Bezugszeitraum
+  #minimumMeanWindSpeed:               [WINDmin_10m_syn,~, 1,  0]
+highestGustDuringThe10MinutePeriodPrecedingObservation: [GUST_10m_syn, 10min, 1, 0]
+meanWindSpeedFrom610minMeasurement: [WIND_10m_syn,    1h, 1, 0] # Windgeschwindigkeit 10-Min-Mittel kn
+maximumWindGustSpeed:               [GUST_10m_syn,     ~, 1, 0]
+maximumWindSpeed10MinuteMeanWind:   [MAXWIND_10m_syn, ~, 1, 0] # Maximales 10min-Mittel im Bezugszeitraum
   #TODO what are these? how is their duration defined? Different from gust speeds or equal/comparable?
-  #maximumInstantaneousWindSpeed:      [FFmax_10m_syn, ~,  *ms2kn, 0]
-  #maximumInstantaneousWindSpeedOver10Minutes:  [FFmax_10m_syn, 10min, *ms2kn, 0]
+  #maximumInstantaneousWindSpeed:      [FFmax_10m_syn, ~,  1, 0]
+  #maximumInstantaneousWindSpeedOver10Minutes:  [FFmax_10m_syn, 10min, 1, 0]
 
 ### CLOUDS
   #TODO could these keys be useful in future?

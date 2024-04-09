@@ -6,8 +6,10 @@
 K2C:    &K2C    -273.15               # K to C
 
 # WIND SPEED
-ms2kn:  &ms2kn  1.9438444924406046    # m/s to kn
-kh2kn:  &kh2kn  0.5399568034557235    # km/h to kn
+kn2ms:  &kn2ms  0.5144444444444445  # kn to m/s
+ms2kn:  &ms2kn  1.9438444924406046  # m/s to kn
+kh2kn:  &kh2kn  0.5399568034557235  # km/h to kn
+kh2ms:  &kh2ms  0.2777777777777778  # km/h in m/s
 
 # LENGTH
 #m2ft:   &m2ft   3.2808398950131235   # m to ft
@@ -252,9 +254,8 @@ additionalWeatherPhenomena:
 #reason of obscuration
 #020025:                             [OBSC_2m_syn, ~, 1, 0, 0]
 
-#TODO check if this matches!
 generalWeatherIndicatorTafOrMetar:
-  020009:                             [WWN_2m_met, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
+  020009:                             [GWI_2m_met, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
 
 
 ### VISIBILITY
@@ -402,12 +403,12 @@ oceanographicWaterTemperature:
 
 ### WIND
 u:
-  011003:                             [u_10m_syn, ~, *ms2kn, 0, 1] # m/s
+  011003:                             [u_10m_syn, ~, 1, 0, 1] # m/s
 v:
-  011004:                             [v_10m_syn, ~, *ms2kn, 0, 1] # m/s
+  011004:                             [v_10m_syn, ~, 1, 0, 1] # m/s
 w:
   011005:                             [wPa_10m_syn, ~, 1, 0, 1]     # Pa/s - needs conversion!
-  011006:                             [w_10m_syn, ~, *ms2kn, 0, 1]  # m/s
+  011006:                             [w_10m_syn, ~, 1, 0, 1]  # m/s
 
 windDirection:
   011001:                             [WDIR_10m_syn, 10min, 1, 0, 0]       # Windrichtung
@@ -425,34 +426,34 @@ windDirectionAt10M:
 #  011043:                             [WDIRmax_10m_syn, ~, 1, 0, 0] # Windrichtung der max Böen
 
 windSpeed:
-  011002:                             [WIND_10m_syn, 10min, *ms2kn, 0, 1]
-  011083:                             [WIND_10m_syn, 10min, *kh2kn, 0, 0]
-  011084:                             [WIND_10m_syn, 10min, 1,      0, 0]
+  011002:                             [WIND_10m_syn, 10min, 1,      0, 1] # m/s
+  011083:                             [WIND_10m_syn, 10min, *kh2ms, 0, 0] # km/h
+  011084:                             [WIND_10m_syn, 10min, *kn2ms, 0, 0] # kn
   
 windSpeedAt5M:
-  011014:                             [WIND_5m_syn, 10min,  *ms2kn, 0, 1]
+  011014:                             [WIND_5m_syn, 10min,  1, 0, 1]
   
 windSpeedAt10M:
-  011012:                             [WIND_10m_syn, 10min, *ms2kn, 0, 1]
+  011012:                             [WIND_10m_syn, 10min, 1, 0, 1]
 
 #DWD only!!!
 meanWindSpeed:
-  011202:                             [WIND_10m_syn, 1h,    *ms2kn, 0, 1]
+  011202:                             [WIND_10m_syn, 1h,    1, 0, 1]
 
 maximumWindSpeedMeanWind:
-  011040:                             [MAXWIND_10m_syn, ~, *ms2kn, 0, 1] # Maximales 10min-Mittel im Bezugszeitraum
+  011040:                             [MAXWIND_10m_syn, ~, 1, 0, 1] # Maximales 10min-Mittel im Bezugszeitraum
 
 maximumWindGustSpeed:
-  011041:                             [GUST_10m_syn,     ~, *ms2kn, 0, 1] # m/s
-  011085:                             [GUST_10m_syn,     ~, *kh2kn, 0, 0] # km/h
-  011086:                             [GUST_10m_syn,     ~, 1,      0, 0] # kn
+  011041:                             [GUST_10m_syn,     ~, 1,      0, 1] # m/s
+  011085:                             [GUST_10m_syn,     ~, *kh2ms, 0, 0] # km/h
+  011086:                             [GUST_10m_syn,     ~, *kn2ms, 0, 0] # kn
 
 maximumWindSpeed10MinuteMeanWind: #TODO always 1h TR?
-  011042:                             [MAXWIND_10m_syn,1h, *ms2kn, 0, 1] # Maximales 10min-Mittel im Bezugszeitraum
+  011042:                             [MAXWIND_10m_syn,1h, 1, 0, 1] # Maximales 10min-Mittel im Bezugszeitraum
 
   #TODO what are these? how is their duration defined? Different from gust speeds or equal/comparable?
-  #maximumInstantaneousWindSpeed:      [GUSTint_10m_syn, ~,  *ms2kn, 0]
-  #maximumInstantaneousWindSpeedOver10Minutes:  [GUSTint_10m_syn, 10min, *ms2kn, 0]
+  #maximumInstantaneousWindSpeed:      [GUSTint_10m_syn, ~,  1, 0]
+  #maximumInstantaneousWindSpeedOver10Minutes:  [GUSTint_10m_syn, 10min, 1, 0]
 
 
 ### CLOUDS

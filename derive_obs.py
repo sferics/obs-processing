@@ -133,12 +133,10 @@ def derive_obs(stations):
         try:    db_loc.exe(sql)
         except: continue
         
-        #TODO medium priority, nice-to-have...
-
-        #TODO try to calculate QFF and QNH if no reduced pressure is present in obs and we have barometer height instead
+        # try to calculate QFF and QNH if no reduced pressure is present in obs and we have barometer height instead
         db = dc( config=cf.database, ro=1 )
         
-        #TODO we should actually prefer the barometer elevation over general elevation because they can differ a lot
+        # we should actually prefer the barometer elevation over general elevation because they can differ a lot
         try:
             baro_height = db.get_station_baro_elev(loc)
         except sqlite3.OperationalError:
@@ -153,10 +151,8 @@ def derive_obs(stations):
 
         db.close()
         
-        ##TODO MEDIUM priority, could be useful for some sources
-       
-        #TODO do this for all metwatch elements which can be linked to a TR
-        #TODO derive [element, TR] from element and TR
+        # do this for all metwatch elements which can be linked to a TR
+        # derive [element, TR] from element and TR
         # derive [PRATE_1m_syn, TR] from PRATETR_1m_syn and TR
         
         # get all datetime where both elements are present and have a NOT NULL value
@@ -176,11 +172,15 @@ def derive_obs(stations):
             db_loc.exe(sql)
             
             for values in db_loc.fetch():
+                
                 if debug: print("VALUES PRATE TR", values)
                 if len(values) < 2: continue
-                prate   = values[0]
-                tr      = values[1]
-                prate_vals.add( (datetime, prate, tr) )
+                
+                value_PRATE = values[0]
+                tr_code     = int(values[1])
+                duration    = synop_codes["TR"][tr_code]
+                
+                prate_vals.add( (datetime, value_PRATE, duration) )
         
         db_loc.exemany(sql_insert, prate_vals)
         
@@ -290,8 +290,22 @@ def derive_obs(stations):
                 
             db_loc.exemany(sql_insert, dpt_vals)
             
+
+            ##TODO MEDIUM priority, could be useful for some sources
+
             #TODO derive total sunshine duration in min from % (using astral package; see wetterturnier)
             import astral 
+            
+            #TODO derive cloud base in meter from synop hh code
+            synop_hh = synop_codes["hh"]
+
+            #TODO derive 2 digit (SYNOP) ww code from METAR significant weather code
+
+            #TODO derive 2 digit (SYNOP) ww code from 3 digit (BUFR) ww code
+
+            #TODO derive 1 digit (SYNOP) W1W2 code from 2 digit (BUFR) W1W2 code
+
+            #TODO derive 1 digit (SYNOP) ground state cade from 2 digit (BUFR) ground state code
             
             ##TODO LOW priority, not really needed at the moment
             
@@ -344,6 +358,9 @@ if __name__ == "__main__":
     db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)
+    
+    # get synop codes conversion dictionary for converting TR code to proper duration
+    synop_codes     = gf.read_yaml("synop_codes")
 
     if processes: # number of processes
         import multiprocessing as mp
