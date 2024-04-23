@@ -114,7 +114,8 @@ def derive_obs(stations):
                     CL[j[0]]    += str(int(j[-1]))
                     cloud_covers.add(j[0])
                 elif len(CL[j[0]]) == 1 and j[1] == f"CB{i}_2m_syn" and j[0] in cloud_covers:
-                    CL[j[0]]    += str(int(j[-1])).rjust(3,"0")
+                    CB_in_30m   = int(j[-1]/30)
+                    CL[j[0]]    += str(CB_in_30m).rjust(3,"0")
 
             CL = dict(CL)
 
@@ -122,7 +123,7 @@ def derive_obs(stations):
                 if len(CL[k]) == 1:
                     CL[k] += "///"
                 sql_values.add( (k, f"CL{i}_2m_syn", CL[k]) )
-        
+
         # duration is always 1s for cloud observations
         sql = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,?,?,'1s') ON CONFLICT DO UPDATE SET value=excluded.value" #NOTHING"
         try:    db_loc.exemany(sql, sql_values)
@@ -132,7 +133,18 @@ def derive_obs(stations):
         sql = "DELETE FROM obs WHERE length(value) > 4 AND element LIKE 'CL%_2m_syn'"
         try:    db_loc.exe(sql)
         except: continue
-        
+       
+        # derive cloud bases [CB?_2m_syn] and cloud covers in the 4 levels [CDC?_2m_syn]
+        # from cloud levels [CL?_2m_syn] (usually provided by metwatch CSVs)
+        sql = f"SELECT element,valie FROM obs WHERE element REGEXP ('CB%_2m_syn'|'CDC%_2m_syn'){dt_30min} ORDER BY datetime asc, element desc" 
+        db_loc.row_factory = sf.dict_row
+        db_loc.exe(sql)
+        # reset row factory
+        db_loc.row_factory = df.default_row
+
+        data = db_loc.fetch()
+
+
         # try to calculate QFF and QNH if no reduced pressure is present in obs and we have barometer height instead
         db = dc( config=cf.database, ro=1 )
         
@@ -157,33 +169,41 @@ def derive_obs(stations):
         
         # get all datetime where both elements are present and have a NOT NULL value
         
-        sql = (f"SELECT DISTINCT datetime FROM obs WHERE element = 'PRATE_1m_syn' AND "
-            f"value IS NOT NULL{dt_30min} UNION SELECT DISTINCT datetime FROM obs WHERE "
+        sql = (f"SELECT DISTINCT datetime FROM obs WHERE element LIKE '%TR_%' AND "
+            f"value IS NOT NULL{dt_30min} INTERSECT SELECT DISTINCT datetime FROM obs WHERE "
             f"element = 'TR' AND value IS NOT NULL{dt_30min}")
+        db_loc.row_factory = sf.tuple_row
         db_loc.exe(sql)
-        
-        sql_insert  = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,'PRATE_1m_syn',?,?)"
+        # reset row factory
+        db_loc.row_factory = df.default_row
+
+        #sql_insert  = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,'PRATE_1m_syn',?,?)"
+        sql_insert  = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,?,?,?)"
         prate_vals  = set()
+        
+        db_loc.row_factory = sf.dict_row
 
         for datetime in db_loc.fetch():
             datetime = datetime[0] 
-            sql = (f"SELECT value FROM obs WHERE datetime = '{datetime}' AND element IN "
-                f"('PRATE_1m_syn', 'TR') ORDER BY element")
+            sql = (f"SELECT element,value FROM obs WHERE datetime = '{datetime}' AND element "
+                f"LIKE '%TR%' ORDER BY element")
             db_loc.exe(sql)
             
             for values in db_loc.fetch():
                 
                 if debug: print("VALUES PRATE TR", values)
                 if len(values) < 2: continue
-                
+                else:
+                    duration = str(values[-1]) + "h"
                 value_PRATE = values[0]
-                tr_code     = int(values[1])
-                duration    = synop_codes["TR"][tr_code]
-                
+                duration    = str(values[-1]) + "h"
+                 
                 prate_vals.add( (datetime, value_PRATE, duration) )
         
+        # reset row factory
+        db_loc.row_factory = df.default_row
         db_loc.exemany(sql_insert, prate_vals)
-        
+
 
         # derive reduced pressure (QFF or QNH?) if only station pressure was reported
          
@@ -192,11 +212,11 @@ def derive_obs(stations):
             db  = dc( config=cf.database, ro=1 )
             lat = db.get_station_latitude(loc)
             db.close()
-
+            
             # first get all datetimes where there is no PRMSL recorded but PRES (30min values only)
             # SELECT NULL or EMPTY: https://stackoverflow.com/questions/3620828/sqlite-select-where-empty
             sql = (f"SELECT DISTINCT datetime FROM obs WHERE  element LIKE 'PRES_0m_syn' AND value"
-                f" IS NOT NULL{dt_30min} UNION SELECT DISTINCT datetime FROM obs WHERE "
+                f" IS NOT NULL{dt_30min} INTERSECT SELECT DISTINCT datetime FROM obs WHERE "
                 f"element LIKE 'PRMSL_ms_%' AND IFNULL(value, '') = ''{dt_30min}")
                 #AND value IS NULL OR value = ''
             db_loc.exe(sql)
@@ -259,8 +279,8 @@ def derive_obs(stations):
             # calculate derivation of dewpoint temperature here, add unit conversions...
             # first get all datetimes where no dewpoint is present but we have RH and TMP recorded
             sql = (f"SELECT datetime FROM obs WHERE element = 'RH_2m_syn' AND value IS NOT NULL"
-                f"{dt_30min} UNION SELECT datetime FROM obs WHERE element = 'TMP_2m_syn' AND "
-                f"value IS NOT NULL{dt_30min} UNION SELECT datetime FROM obs WHERE "
+                f"{dt_30min} INTERSECT SELECT datetime FROM obs WHERE element = 'TMP_2m_syn' AND "
+                f"value IS NOT NULL{dt_30min} INTERSECT SELECT datetime FROM obs WHERE "
                 f"element = 'DPT_2m_syn' AND IFNULL(value, '') = ''{dt_30min}")
             db_loc.exe(sql)
             
@@ -296,11 +316,8 @@ def derive_obs(stations):
             #TODO derive total sunshine duration in min from % (using astral package; see wetterturnier)
             import astral 
             
-            #TODO derive cloud base in meter from synop hh code
-            synop_hh = synop_codes["hh"]
-
             #TODO derive 2 digit (SYNOP) ww code from METAR significant weather code
-
+            
             #TODO derive 2 digit (SYNOP) ww code from 3 digit (BUFR) ww code
 
             #TODO derive 1 digit (SYNOP) W1W2 code from 2 digit (BUFR) W1W2 code
@@ -311,10 +328,10 @@ def derive_obs(stations):
             
             #TODO take 5m wind as 10m wind if 10m wind not present (are they compareble???)
             
-            #TODO derive wind direction from U and V
+            #TODO derive wind direction from U and V components
              
             #TODO derive precipitation amount from duration and intensity
-            # (might be necessary to aggregate afterwards...)
+            # (might be necessary to aggregate again afterwards...)
             
              
         db_loc.close(commit=True)
@@ -359,8 +376,8 @@ if __name__ == "__main__":
     stations        = db.get_stations( clusters )
     db.close(commit=False)
     
-    # get synop codes conversion dictionary for converting TR code to proper duration
-    synop_codes     = gf.read_yaml("synop_codes")
+    # get synop codes conversion dictionary to decode synop codes
+    #synop_codes     = gf.read_yaml("synop_codes")
 
     if processes: # number of processes
         import multiprocessing as mp

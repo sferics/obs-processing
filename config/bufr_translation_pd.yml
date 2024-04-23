@@ -20,10 +20,10 @@ ft2m30: &ft2m30 0.01016             # ft to m/30
 
 # helper key, not part of BUFR tables
 cloudBase:
-  1:                                [CB1_2m_syn,     1s, *m2m30, 0]
-  2:                                [CB2_2m_syn,     1s, *m2m30, 0]
-  3:                                [CB3_2m_syn,     1s, *m2m30, 0]
-  4:                                [CB4_2m_syn,     1s, *m2m30, 0]
+  1:                                [CB1_2m_syn,     1s, 1, 0]
+  2:                                [CB2_2m_syn,     1s, 1, 0]
+  3:                                [CB3_2m_syn,     1s, 1, 0]
+  4:                                [CB4_2m_syn,     1s, 1, 0]
   #TODO see obs.cfg for cloud level thresholds
 
 timePeriod:
@@ -239,7 +239,7 @@ maximumWindSpeed10MinuteMeanWind:   [MAXWIND_10m_syn, ~, 1, 0] # Maximales 10min
 
 cloudAmount:
   0:                                [TCDC_2m_syn,   1s,   1,  0]    # Bedeckungsgrad gesamt
-  C:                                [LCDC_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der niedrigsten Schicht (DWD meldet immer 9) TODO OR rename "NCDC"
+  C:                                [LCDC_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der niedrigsten Schicht (DWD meldet immer 9) TODO rename "NCDC" or "CCDC" (for Nh/ceiling)
   L:                                [CDCL_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der niedrigen Wolken
   M:                                [CDCM_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der mitteleren Wolken
   H:                                [CDCH_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der hohen Wolken
@@ -250,7 +250,7 @@ cloudAmount:
 
 cloudCoverTotal:                    [TCDC_2m_syn, 1s, 0.08, 0]    # Bedeckungsgrad gesamt
 
-heightOfBaseOfCloud:                [HLC_2m_syn,       1s,*m2m30, 0]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+heightOfBaseOfCloud:                [HLC_2m_syn,       1s,1, 0]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
 
 # usually not used by DWD
 amountOfLowClouds:                  [CDCL_2m_syn,    1s,   1,   0]   # Bedeckungsgrad der niedrigen Wolken

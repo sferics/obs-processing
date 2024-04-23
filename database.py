@@ -1,6 +1,7 @@
 import sys, re, inspect, sqlite3 # sqlite connector python base module
 import global_functions as gf
 import global_variables as gv
+#import sql_factories as sf
 
 class DatabaseClass:
     
@@ -59,6 +60,10 @@ class DatabaseClass:
         # shorthand for lastrowid
         self.lastid = self.cur.lastrowid
 
+        # make row and text factory accessible after initiating database object\
+        self.row_factory    = self.con.row_factory
+        self.text_factory   = self.con.text_factory
+
         # apply all PRAGMA settings from the settings dictionary
         if "settings" in config:
             settings = config["settings"]
@@ -78,7 +83,7 @@ class DatabaseClass:
     exescr  = lambda self, *param : self.cur.executescript(*param)
     attach  = lambda self, DB, AS : self.exe( f"ATTACH DATABASE '{DB}' as '{AS}'" )
     detach  = lambda self, DB     : self.exe( f"DETACH DATABASE '{DB}'" )
-
+    
 
     def attach_station_db(loc, output, mode="dev", stage="forge"):
         """

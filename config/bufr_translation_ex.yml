@@ -11,9 +11,9 @@ kh2kn:  &kh2kn  0.5399568034557235    # km/h to kn
 
 # LENGTH
 #m2ft:   &m2ft   3.2808398950131235   # m to ft
-#ft2m:   &ft2m   0.3048
-m2m30:  &m2m30  0.03333333333333333   # m  to m/30 
-ft2m30: &ft2m30 0.01016               # ft to m/30
+ft2m:   &ft2m   0.3048
+#m2m30:  &m2m30  0.03333333333333333   # m  to m/30 
+#ft2m30: &ft2m30 0.01016               # ft to m/30
 
 # TIME
 #min2h: &min2h   0.016666666666666666  # min to h
@@ -69,10 +69,10 @@ timePeriod:
 # another helper key, not part of BUFR tables
 helpers:
   cloudBase:
-    1:                                [CB1_2m_syn,     1s, *m2m30, 0, 0]
-    2:                                [CB2_2m_syn,     1s, *m2m30, 0, 0]
-    3:                                [CB3_2m_syn,     1s, *m2m30, 0, 0]
-    4:                                [CB4_2m_syn,     1s, *m2m30, 0, 0]
+    1:                                [CB1_2m_syn,     1s, 1, 0, 0]
+    2:                                [CB2_2m_syn,     1s, 1, 0, 0]
+    3:                                [CB3_2m_syn,     1s, 1, 0, 0]
+    4:                                [CB4_2m_syn,     1s, 1, 0, 0]
     #TODO see obs.cfg for cloud level thresholds
 
 #TODO seperate between keys which can have different UNIT and/or SCALE - and the ones which always have the same
@@ -489,10 +489,10 @@ cloudCoverTotal:
   020010:                             [TCDC_2m_syn, 1s, 0.08, 0, 0]    # Bedeckungsgrad gesamt
 
 heightOfBaseOfCloud:
-  020013:                             [HLC_2m_syn,       1s,*m2m30, 0,-1]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
-  020092:                             [HLC_2m_syn,       1s,*ft2m30,0,-2]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+  020013:                             [HLC_2m_syn,       1s,    1,  0,-1]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+  020092:                             [HLC_2m_syn,       1s,*ft2m,  0,-2]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
   #DWD only! lowest cloud ceiling during last hour (automatic only!)
-  020199:                             [HLC_2m_syn,       1h,*m2m30, 0,-1]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
+  020199:                             [HLC_2m_syn,       1h,    1,  0,-1]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
 
 # usually not used by DWD
 amountOfLowClouds:

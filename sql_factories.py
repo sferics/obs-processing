@@ -90,7 +90,7 @@ def pl2timestamp_text(value):
     """
     if type(value) == pl.Datetime:
         return int(value.dt.timestamp("ms"))
-    else: return valu
+    else: return value
 
 # convert all datetime objects to integer timestamps (seconds since UNIX)
 def datetime2timestamp_text(value):
@@ -123,3 +123,9 @@ def ascii_text(value, errors="ignore"):
     """
     """
     return value.decode("ascii", errors=errors)
+
+# sqlite3 default (if you ever want to reset your connection to default)
+def default_text(value):
+    """
+    """
+    return value

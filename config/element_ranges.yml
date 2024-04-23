@@ -69,12 +69,12 @@ NEWSNOD24h_srf_syn:   [    0,             240,            [0],                ~ 
 SUNDUR30min_srf_syn:  [    0,              30,            [0],                ~       ]
 SUNDUR1h_srf_syn:     [    0,              60,            [0],                ~       ]
 SUNDUR24h_srf_syn:    [    0,            1440,            [0],                ~       ]
-GLRAD30min_srf_syn:   [    0,             500,            [0],                ~       ]
-GLRAD1h_srf_syn:      [    0,            1000,            [0],                ~       ]
-DIFFRAD30min_srf_syn: [    0,             500,            [0],                ~       ]
-DIFFRAD1h_srf_syn:    [    0,            1000,            [0],                ~       ]
-LONGRAD30min_srf_syn: [    0,             500,            [0],                ~       ]
-LONGRAD1h_srf_syn:    [    0,            1000,            [0],                ~       ]
+GLRAD30min_srf_syn:   [    0,            4000,            [0],                ~       ]
+GLRAD1h_srf_syn:      [    0,            8000,            [0],                ~       ]
+DIFFRAD30min_srf_syn: [    0,            4000,            [0],                ~       ]
+DIFFRAD1h_srf_syn:    [    0,            4000,            [0],                ~       ]
+LONGRAD30min_srf_syn: [    0,            2000,            [0],                ~       ]
+LONGRAD1h_srf_syn:    [    0,            4000,            [0],                ~       ]
 
 
 #TODO proposals:
