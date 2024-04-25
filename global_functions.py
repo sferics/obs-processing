@@ -1,7 +1,7 @@
 #!/home/dev/bin/miniconda3/envs/test39/bin/python
 
 from pathlib import Path
-from datetime import datetime as dt, timezone as tz
+from datetime import datetime as dt, timedelta as td, timezone as tz
 import numpy as np
 import os
 from psutil import pid_exists, Process
@@ -328,12 +328,20 @@ def read_yaml(file_name="obs", directory="config", ext="yml", typ="safe", pure=T
             else: raise TypeError("node.value needs to be a scalar (of type str)")
         else: raise TypeError("node.value needs to be a scalar")
 
-    def yield_sequence(sequence, call = None):
+    def yield_sequence(sequence, call = lambda x : x):
         for el in sequence.value:
-            if call:    yield call(el.value)
-            else:       yield el.value
+            yield call(el.value)
 
-    def construct_frozenset(loader: loader, node: yaml.Node):
+    def mapping_to_dict(sequence, call = lambda x : x):
+        """
+        dic = {} 
+        for key, val in sequence.value:
+            dic[key.value] = call(val.value)
+        return dic
+        """
+        return { key.value : call(val.value) for key, val in sequence.value }
+
+    def construct_fset(loader: loader, node: yaml.Node):
         if isinstance(node, yaml.SequenceNode):
             return frozenset(yield_sequence(node))
         else: raise TypeError("node.value needs to be a sequence")
@@ -365,8 +373,40 @@ def read_yaml(file_name="obs", directory="config", ext="yml", typ="safe", pure=T
                 return range(*elements)
             else: raise TypeError("node.value needs to be a sequence (of length 1-3)")
         else: raise TypeError("node.value needs to be a sequence")
+    
+    def construct_date(loader: loader, node: yaml.Node):
+        from datetime import date
+        if isinstance(node, yaml.ScalarNode):
+            return date.fromisoformat(node.value)
+        elif isinstance(node, yaml.MappingNode):
+            return date( **mapping_to_dict(node, call=int) )
+        elif isinstance(node, yaml.SequenceNode):
+            return date( *yield_sequence(node, call=int) )
+        else: raise TypeError("node.value needs to be a scalar, mapping or sequence")
 
-    for tag in ("bool", "eval", "frozenset", "set", "tuple", "list", "iter", "range"):
+    def construct_dt(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.ScalarNode):
+            return dt.fromisoformat(node.value)
+        elif isinstance(node, yaml.MappingNode):
+            return dt( **mapping_to_dict(node, call=int) )
+        elif isinstance(node, yaml.SequenceNode):
+            return dt( *yield_sequence(node, call=int) )
+        else: raise TypeError("node.value needs to be a scalar, mapping or sequence")
+    
+    def construct_td(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.ScalarNode):
+            # use pandas module to interpret string (https://stackoverflow.com/a/68686625/12935487)
+            import pandas as pd
+            return pd.Timedelta(node.value).to_pytimedelta()
+        elif isinstance(node, yaml.MappingNode):
+            return td( **mapping_to_dict(node, call=int) )
+        elif isinstance(node, yaml.SequenceNode):
+            return td( *yield_sequence(node, call=int) )
+        else: raise TypeError("node.value needs to be a scalar, mapping or sequence")
+
+    tags = ("bool", "eval", "fset", "set", "tuple", "list", "iter", "range", "date", "dt", "td")
+
+    for tag in tags:
         construct_function = locals()[f"construct_{tag}"]
         yaml.add_constructor(u'tag:yaml.org,2002:'+tag, construct_function)
 
