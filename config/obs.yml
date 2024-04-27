@@ -99,7 +99,7 @@ scripts:
     mandatory_keys:   !!set   [stationOrSiteName, latitude, longitude]
     additional_keys:  !!set   [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
 
-  decode_bufr.py: # can use any approach below TODO
+  decode_bufr.py: # can use any approach
     conda_env:        !!str   obs
     pid_file:         !!int   0  # create and use pid file
     verbose:          !!int   0 # verbose output
@@ -113,162 +113,15 @@ scripts:
     max_retries:      !!int   1000 # retries when using set_file_statuses (and writing to station databases)
     max_files:        !!int   5395 #6225 #5046 # zero means no maximum #15: 5395
     sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
+    sort_method:      !!eval  ~ # sort method (callable to use as sorting algorithm)
     stations:         !!set   [wmo]
     clusters:         !!set   [germany]
     mode:             !!str   dev
     output:           !!str   /home/juri/data/stations
-    bufr_translation: !!str   "bufr_translation_{approach}"
-    bufr_flags:       !!str   bufr_flags           # code flag table conversions
-    convert_datetime: !!bool  0
-
-  decode_bufr_pd.py: # uses pdbufr
-    conda_env:        !!str   obs
-    pid_file:         !!bool  0 # create and use pid file
-    verbose:          !!bool  0 # verbose output
-    profiler:         !!bool  0 # use profiler  TODO
-    log_level:        !!str   INFO
-    debug:            !!bool  0
-    traceback:        !!bool  0 # enable traceback prints
-    timeout:          !!int   3 # timeout for station databases
-    processes:        !!int   15 # if > 0 use processes, number of worker processes TODO
-    min_ram:          !!int   2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_retries:      !!int   1000 # retries when using set_file_statuses (and writing to station databases)
-    max_files:        !!int   5395 #6225 #5046 # zero means no maximum #15: 5395
-    sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    stations:         !!set   [wmo]
-    clusters:         !!set   [germany]
-    mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations
-    bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
-    bufr_flags:       !!str   bufr_flags           # code flag table conversions
-    shift_datetime:   !!bool  0
-    convert_datetime: !!bool  0
-    scale_info:       !!bool  0
-
-  decode_bufr_pl.py: # uses plbufr
-    conda_env:        !!str   obs
-    pid_file:         !!bool  0 # create and use pid file
-    verbose:          !!bool  0 # verbose output
-    profiler:         !!bool  0 # use profiler  TODO
-    log_level:        !!str   INFO
-    debug:            !!bool  0
-    traceback:        !!bool  0 # enable traceback prints
-    timeout:          !!int   3 # timeout for station databases
-    processes:        !!int   15 # if > 0 use processes, number of worker processes TODO
-    min_ram:          !!int   2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_retries:      !!int   1000 # retries when using set_file_statuses (and writing to station databases)
-    max_files:        !!int   5395 #6225 #5046 # zero means no maximum #15: 5395
-    sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    stations:         !!set   [wmo]
-    clusters:         !!set   [germany]
-    mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations
-    bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
-    bufr_flags:       !!str   bufr_flags           # code flag table conversions
-    shift_datetime:   !!bool  0
-    convert_datetime: !!bool  0
-    scale_info:       !!bool  0
- 
-  decode_bufr_gt.py: # uses plbufr
-    conda_env:        !!str   obs
-    pid_file:         !!bool  0 # create and use pid file
-    verbose:          !!bool  0 # verbose output
-    profiler:         !!bool  0 # use profiler  TODO
-    log_level:        !!str   INFO
-    debug:            !!bool  0
-    traceback:        !!bool  0 # enable traceback prints
-    timeout:          !!int   3 # timeout for station databases
-    processes:        !!int   15 # if > 0 use processes, number of worker processes TODO
-    min_ram:          !!int   2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_retries:      !!int   1000 # retries when using set_file_statuses (and writing to station databases)
-    max_files:        !!int   5395 #6225 #5046 # zero means no maximum #15: 5395
-    sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    stations:         !!set   [wmo]
-    clusters:         !!set   [germany]
-    mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations
-    bufr_translation: !!str   bufr_translation_pd  # TODO might be useful in future to define this by source?
-    bufr_flags:       !!str   bufr_flags           # code flag table conversions
-    shift_datetime:   !!bool  0
-    convert_datetime: !!bool  0
-    scale_info:       !!bool  0
-
-  decode_bufr_mv.py:
-    conda_env:        !!str   metview
-    pid_file:         !!bool  0 # create and use pid file
-    verbose:          !!bool  0 # verbose output
-    profiler:         !!bool  0 # use profiler  TODO
-    log_level:        !!str   INFO
-    debug:            !!bool  0
-    traceback:        !!bool  1 # enable traceback prints
-    timeout:          !!int   3 # timeout for station databases
-    processes:        !!int   15 # if > 0 use processes, number of worker processes TODO
-    min_ram:          !!int   2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_files:        !!int   5046 # zero means no maximum #15: 5395
-    max_retries:      !!int   1200 # max retries when writing into databases 
-    sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations
-    bufr_translation: !!str   bufr_translation_mv # TODO might be useful in future to define this by source?
-    bufr_flags:       !!str   bufr_flags_mv #TODO not used at the moment, for cloud levels it could be useful though
-    shift_datetime:   !!bool  0
-    convert_datetime: !!bool  0
-
-  decode_bufr_ex.py:
-    conda_env:        !!str   obs #eccodes #cforge #obs # uses system eccodes instead of conda-forge version
-    pid_file:         !!bool  0 # create and use pid file
-    verbose:          !!bool  0 # verbose output
-    profiler:         !!bool  0 # use profiler  TODO
-    log_level:        !!str   INFO
-    debug:            !!bool  0
-    traceback:        !!bool  1 # enable traceback prints
-    timeout:          !!int   3 # timeout for station databases
-    processes:        !!int   15 # if > 0 use processes, number of worker processes TODO
-    min_ram:          !!int   2048 # minimum amount of RAM the script leaves free, if value reached: restart
-    max_files:        !!int   0 #5046 # zero means no maximum #15: 5395
-    max_retries:      !!int   1200 # max retries when writing into databases 
-    sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by timestamp, recognize CCA/RRA COR
-    skip_function:    !!bool  0
-    skip_computed:    !!bool  0
-    skip_duplicates:  !!bool  0
-    mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations
-    bufr_translation: !!str   bufr_translation_us # TODO might be useful in future to define this by source?
-    bufr_flags:       !!str   bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
-    bufr_sequences:   !!str   bufr_sequences
-    stations:         !!set   [wmo,dwd]
-    clusters:         !!set   [germany]
-    shift_datetime:   !!bool  0
-    convert_datetime: !!bool  0
-    scale_info:       !!bool  1
-
-  decode_bufr_us.py:
-    conda_env:        !!str   obs
-    pid_file:         !!bool  0 # create and use pid file
-    verbose:          !!bool  0 # verbose output
-    profiler:         !!bool  0 # use profiler  TODO
-    log_level:        !!str   INFO
-    debug:            !!bool  0
-    traceback:        !!bool  1 # enable traceback prints
-    timeout:          !!int   3 # timeout for station databases
-    processes:        !!int   15 # if > 0 use processes, number of worker processes TODO
-    min_ram:          !!int   2048 # minimum amount of RAM the script should leave free, if the value is reached: restart
-    max_files:        !!int   5046 # zero means no maximum #15: 5395
-    max_retries:      !!int   1200 # max retries when writing into databases 
-    sort_files:       !!bool  1 # sort files alpha-numerically TODO sort by file timestamp, recognize CCA, RRA
-    mode:             !!str   dev
-    output:           !!str   /home/juri/data/stations
-    bufr_translation: !!str   bufr_translation_us # TODO might be useful in future to define this by source?
-    bufr_flags:       !!str   bufr_flags_us #TODO not used at the moment, for cloud levels it could be useful though
-    extract_subsets:  !!bool  0
-    skip_function:    !!bool  0
-    skip_computed:    !!bool  0
-    skip_duplicates:  !!bool  0
-    stations:         !!set   [wmo,dwd]
-    clusters:         !!set   [germany]
-    shift_datetime:   !!bool  1
-    convert_datetime: !!bool  0
-    scale_info:       !!bool  1
+    approach:         !!str   gt
+    convert_datetime: !!set   [pd]    # approaches where we need pandas to python dt conversion
+    shift_datetime:   !!set   [us]    # approaches where it is necessary to shift some datetimes
+    scale_info:       !!set   [us,ex] # approaches which deliver scale info
 
   decode_synop.py:    #TODO
     conda_env:        !!str   obs
@@ -459,7 +312,11 @@ sources:
     netcdf:
       ext:  nc
       url:  https://dataplatform.knmi.nl/dataset/access/actuele10mindataknmistations-2
-  
+    api:
+      url:  https://api.dataplatform.knmi.nl/open-data
+      ver:  v1
+      key:  eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjA2MTU4MDU3YmM2MDRkMjA5OTExN2ZjOWJkY2IyZThiIiwiaCI6Im11cm11cjEyOCJ9
+
   COD: # College of DuPage
     bufr:
       ext:  bufr

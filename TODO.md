@@ -1,3 +1,4 @@
+- use dict.get(key) instead of always checking first whether key is in dict
 - find out all units and conversion from metwatch.cfg and match units in amalthea/config/lookup.yml:metwatch and config/bufr\_translation_??.yml
 - unit of HLC\_2m\_syn ???
 - double-check and define all UNITS and store them in element\_table (add [unit, factor, offset] columns)

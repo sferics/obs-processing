@@ -217,7 +217,7 @@ maximumMeanWindSpeed:               [MAXWIND_10m_syn,~, 1,  0]
   #minimumMeanWindSpeed:               [WINDmin_10m_syn,~, 1,  0]
 highestGustDuringThe10MinutePeriodPrecedingObservation: [GUST_10m_syn, 10min, 1, 0]
 meanWindSpeedFrom610minMeasurement: [WIND_10m_syn,    1h, 1, 0] # Windgeschwindigkeit 10-Min-Mittel kn
-maximumWindGustSpeed:               [GUST_10m_syn,     ~, 1, 0]
+maximumWindGustSpeed:               [GUST_10m_syn,    ~, 1, 0]
 maximumWindSpeed10MinuteMeanWind:   [MAXWIND_10m_syn, ~, 1, 0] # Maximales 10min-Mittel im Bezugszeitraum
   #TODO what are these? how is their duration defined? Different from gust speeds or equal/comparable?
   #maximumInstantaneousWindSpeed:      [FFmax_10m_syn, ~,  1, 0]

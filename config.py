@@ -26,11 +26,16 @@ class ToIter(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, iter(values))
 
+class ToRange(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, range(values))
+
 split_set       = lambda values : set(values.split(","))
 split_frozenset = lambda values : frozenset(values.split(","))
 split_tuple     = lambda values : tuple(values.split(","))
 split_list      = lambda values : values.split(",")
 split_iter      = lambda values : iter(values.split(","))
+split_range     = lambda values : range(values.split(","))
 
 
 class ConfigClass:
@@ -68,23 +73,17 @@ class ConfigClass:
             # overwrite config file name (default: obs[.yml])
             config_file = self.args.config_file
         
-        self.config     = gf.read_yaml(config_file)
+        self.config         = gf.read_yaml(config_file)
+        self.script_name    = script_name
         
-        #TODO remove this rather ugly workaround; there should be only one config for decode_bufr.py
-        if hasattr(self.args, "approach") and self.args.approach:
-            script_name = script_name.replace(".", f"_{self.args.approach}.")
-        
-        self.script_name = script_name
-
         # make all keys of config dict into class attributes for easier access
         for key, dic in self.config.items():
             setattr(self, key, dic)
-
+        
         # take script name as argument & combine config_general+config_script (script has priority)
         self.script_raw = self.scripts[script_name]
         self.script     = self.general | self.script_raw
-
+        
         # command line arguments overwrite settings in script config OR can even add new keys
-        #TODO rewrite as dict comprehension?
         for key, val in self.args.__dict__.items():
             if val is not None: self.script[key] = val

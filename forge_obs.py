@@ -9,17 +9,19 @@ from config import ConfigClass
 from datetime import datetime as dt
 from subprocess import Popen, PIPE
 
-# 1 reduce_obs.py (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
-#   copy all remaining elements from raw to forge databases [datetime,duration,element,value]
-# -in forge databases do:
-# 2 audit_obs.py        -> check each obs, delete bad data like NaN, unknown value or out-of-range
-#   OR instead(?): move bad data to seperate databases, e.g. in "/dev/oper/bad" directory (dev mode)
-# 3 derive_obs.py       -> compute derived elements like RH+T=TD; cloud levels; reduced pressure...
-# 4 aggregate_obs.py    -> aggregate over time periods (1,3,6,12,24h) (and create new elements???)
-# 5 conclude_obs.py (alias/symlink finalize_obs.py or some other better fitting name???)
-#   copy all relevant obs elements (main database element_table) from forge to dev or oper database,
-#   depending on operation mode; if this action is complete, maybe do some last checks? afterwards:
-#   clear all forge databases (they are just temporary and will be rebuilt in every chain cycle)
+"""
+1 reduce_obs.py (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
+  copy all remaining elements from raw to forge databases [datetime,duration,element,value]
+-in forge databases do:
+2 audit_obs.py      ->  check each obs, delete bad data like NaN, unknown value or out-of-range
+2 derive_obs.py     ->  compute derived elements like RH+TMP=DPT; cloud levels; reduced pressure...
+3 aggregate_obs.py  ->  aggregate over time periods (1,3,6,12,24h) and create new elements with _dur
+4 derive_obs.py -A  ->  compute derived elements again, but only 30min values (--aggregated)
+5 audit_obs.py      ->  check each obs, delete bad data like NaN, unknown value or out-of-range
+                        move good data in file databases e.g. "/oper/final" (oper mode)
+                        move bad data to seperate databases, e.g. "/dev/bad" directory (dev mode)
+6 empty_obs.py      ->  clear forge databases (they are temporary and get rebuilt every chain cycle)
+"""
 
 
 if __name__ == "__main__":
@@ -27,7 +29,7 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Run the complete obs post-processing chain"
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","C","m","M","o","O","L","d","D","t","e")
+    flags       = ("l","v","C","m","M","o","O","L","d","b","t","e")
     cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
@@ -44,9 +46,9 @@ if __name__ == "__main__":
 
     match mode:
         case "oper":
-            scripts = ["reduce", "derive", "aggregate", "derive", "audit"]
+            scripts = ["reduce", "derive", "aggregate", "derive", "audit", "empty"]
         case "dev":
-            scripts = ["reduce", "aggregate", "derive", "audit"]
+            scripts = ["reduce", "aggregate", "derive", "audit", "empty"]
         case "test":
             raise NotImplementedError("TODO: TEST MODE")
         case _:
@@ -88,7 +90,7 @@ if __name__ == "__main__":
             cli_args.append("-A")
         elif "-A" in cli_args:
             cli_args.remove("-A")
-        if cf.args.dry:
+        if cf.args.bare:
             print("python", script+"_obs.py", *cli_args)
         else:
             try:

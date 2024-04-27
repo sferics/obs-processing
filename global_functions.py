@@ -323,9 +323,10 @@ def read_yaml(file_name="obs", directory="config", ext="yml", typ="safe", pure=T
 
     def construct_eval(loader: loader, node: yaml.Node):
         if isinstance(node, yaml.ScalarNode):
-            if type(node.value) == str:
+            try:
                 return eval(node.value)
-            else: raise TypeError("node.value needs to be a scalar (of type str)")
+            except Exception as e:
+                return None
         else: raise TypeError("node.value needs to be a scalar")
 
     def yield_sequence(sequence, call = lambda x : x):
@@ -397,6 +398,7 @@ def read_yaml(file_name="obs", directory="config", ext="yml", typ="safe", pure=T
         if isinstance(node, yaml.ScalarNode):
             # use pandas module to interpret string (https://stackoverflow.com/a/68686625/12935487)
             import pandas as pd
+            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timedelta.html
             return pd.Timedelta(node.value).to_pytimedelta()
         elif isinstance(node, yaml.MappingNode):
             return td( **mapping_to_dict(node, call=int) )
@@ -549,21 +551,21 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
         else:
             from glob import glob
             files_in_dir   = { os.path.basename(i) for i in glob( source_dir + glob_ext ) }
-
+            
             if redo:    skip_files  = db.get_files_with_status( r"locked_%", source )
             else:       skip_files  = db.get_files_with_status( gv.skip_status, source )
-
+            
             files_to_parse = list( files_in_dir - skip_files )
-
+            
             #TODO special sort functions for CCA, RRA and stuff in case we dont have sequence key
             #TODO implement order by datetime (via sort_method callable)
             if sort_files: files_to_parse = sort_method(files_to_parse)
             if max_files:  files_to_parse = files_to_parse[:max_files]
-
+            
             if verbose:
                 print("#FILES in DIR:  ",   len(files_in_dir))
                 print("#FILES to skip: ",   len(skip_files))
-
+        
         if verbose: print("#FILES to parse:",   len(files_to_parse))
 
         for file_name in files_to_parse:
@@ -588,7 +590,8 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
         #see https://superfastpython.com/restart-a-process-in-python/
 
     else: raise TypeError("Either source+config_source or input_files args have to be provided!")
-
+    
+    if verbose: print(files_dict)
     return files_dict
 
 

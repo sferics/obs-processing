@@ -54,19 +54,14 @@ def derive_obs(stations):
             if traceback:   gf.print_trace(e)
             continue
        
-        #TODO implement -A flag (derive only 30min values)
-
-        #TODO implement source specific treatment (process by source?)
-        """
-        if source in {"test", "DWD", "dwd_germany"}:
+        #TODO implement source specific treatment (process by source?) OR keep source information
+        if not dt_30min:
             # in DWD data we need to replace the duration for 9z Tmin/Tmax obs
-            sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn','TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09'"
-            #sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element LIKE 'CB%_2m_syn'"
-            #sql = "UPDATE OR IGNORE obs SET element='TCC_1C_syn' WHERE element='TCC_ceiling_syn'"
+            sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn','TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09'"# AND dataset IN('test','DWD','dwd_germany')"
+            sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element LIKE 'CB%_2m_syn'"
             try:    db_loc.exe(sql)
             except: continue
             else:   db_loc.commit()
-        """
         
         """
         sql1=f"SELECT datetime,duration,element,value FROM obs WHERE element = '%s'{dt_30min}"
@@ -145,7 +140,7 @@ def derive_obs(stations):
         data = db_loc.fetch()
 
 
-        # try to calculate QFF and QNH if no reduced pressure is present in obs and we have barometer height instead
+        # try to calculate QFF+QNH if no reduced pressure is present in obs and we have barometer height instead
         db = dc( config=cf.database, ro=1 )
         
         # we should actually prefer the barometer elevation over general elevation because they can differ a lot
@@ -314,24 +309,25 @@ def derive_obs(stations):
             ##TODO MEDIUM priority, could be useful for some sources
 
             #TODO derive total sunshine duration in min from % (using astral package; see wetterturnier)
-            import astral 
+            #import astral 
             
-            #TODO derive 2 digit (SYNOP) ww code from METAR significant weather code
+            #TODO derive 2 digit (SYNOP) ww code from METAR significant weather code?
             
-            #TODO derive 2 digit (SYNOP) ww code from 3 digit (BUFR) ww code
+            #TODO derive 2 digit (SYNOP) ww code from 3 digit (BUFR) ww code?
 
-            #TODO derive 1 digit (SYNOP) W1W2 code from 2 digit (BUFR) W1W2 code
+            #TODO derive 1 digit (SYNOP) W1W2 code from 2 digit (BUFR) W1W2 code?
 
-            #TODO derive 1 digit (SYNOP) ground state cade from 2 digit (BUFR) ground state code
+            #TODO derive 1 digit (SYNOP) ground state code from 2 digit (BUFR) ground state code?
             
+
             ##TODO LOW priority, not really needed at the moment
             
             #TODO take 5m wind as 10m wind if 10m wind not present (are they compareble???)
             
             #TODO derive wind direction from U and V components
              
-            #TODO derive precipitation amount from duration and intensity
-            # (might be necessary to aggregate again afterwards...)
+            #TODO derive precipitation amount from duration and intensity (only if missing)
+            # -> then it might be necessary to aggregate again afterwards...
             
              
         db_loc.close(commit=True)

@@ -90,21 +90,18 @@ class BufrClass:
                 return ec.codes_get(msg, key)
 
 
-    def __init__(self, cf: ConfigClass, source: str="extra", script: str="us", approach: str=""):
+    def __init__(self, cf: ConfigClass, source: str="extra", approach: str="gt"):
         """
         Parameter:
         ----------
 
         Notes:
         ------
-        script is a deprecated alias for approach
 
         Return:
         -------
 
         """
-        #TODO remove this after renaming
-        if not approach: approach = script
         self.source = source
 
         # initialize bufr class (contains all bufr specifics contants and settings)
@@ -127,7 +124,7 @@ class BufrClass:
         self.config = config
 
         # check for mandatory class attributes
-        mandatory = ("bufr_translation", "bufr_flags", "mode", "output")
+        mandatory = ("mode", "output", "approach")
         for attr in mandatory:
             assert( hasattr(self, attr) )
 
@@ -177,8 +174,8 @@ class BufrClass:
         self.skip_status        = {"locked_.", "error", "empty", "parsed"}
 
         # parse the BUFR translation and bufr flags files into dictionaries
-        self.bufr_translation   = gf.read_yaml( self.bufr_translation )
-        self.bufr_flags         = gf.read_yaml( self.bufr_flags )
+        self.bufr_translation   = gf.read_yaml( "bufr_translation_" + self.approach )
+        self.bufr_flags         = gf.read_yaml( "bufr_flags_" + self.approach )
 
         # remove unit translations (first 5 keys)
         self.bufr_translation_keys  = tuple(self.bufr_translation)[5:]

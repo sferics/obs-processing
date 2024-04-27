@@ -200,6 +200,8 @@ def aggregate_obs(stations):
                                          
             
         for el_old in duration_elems:
+            
+            #TODO implement fallback elements from aggregation_elements.yml
 
             years_present = get_distinct_years()
             if not years_present: continue

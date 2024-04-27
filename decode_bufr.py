@@ -121,11 +121,11 @@ if __name__ == "__main__":
 
     from config import ConfigClass as cc
 
-    info = """" Decode one or more BUFR files and insert relevant observation data into station databases.
+    info = """  Decode one or more BUFR files and insert relevant observation data into station databases.
                 NOTE: Setting a command line flag or option always overwrites settings from the config file!"""
 
     script_name = gf.get_script_name(__file__)
-    flags       = ("a","l","i","E","f","F","S","v","p","c","C","t","k","m","M","n","s","o","O","L","d","r","R","w")
+    flags       = ("a","l","i","E","f","F","D","v","p","c","C","t","k","m","M","n","s","o","O","L","d","r","R","w")
     cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=False)
     # get the right script name by adding approach suffix
     script_name = cf.script_name
@@ -156,9 +156,9 @@ if __name__ == "__main__":
     traceback   = cf.script["traceback"]
     debug       = cf.script["debug"]
     pid_file    = cf.script["pid_file"]
-    scale_info  = cf.script["scale_info"]
-    shift_dt    = cf.script["shift_datetime"]
-    convert_dt  = cf.script["convert_datetime"]
+    scale_info  = True if approach in cf.script["scale_info"]       else False
+    shift_dt    = True if approach in cf.script["shift_datetime"]   else False
+    convert_dt  = True if approach in cf.script["convert_datetime"] else False
 
     if args.no_warnings:
         import warnings
@@ -189,7 +189,8 @@ if __name__ == "__main__":
             #    import re
             #    input_files = re.split(args.sep, args.file)
             #else: input_files = args.files
-            input_files_dict = gf.get_input_files_dict( cf.database, input_files, PID=PID, redo=args.redo )
+            input_files_dict = gf.get_input_files_dict( cf.database, input_files, PID=PID,
+                    redo=args.redo, verbose=verbose )
        
         if debug: print(input_files_dict)
         decode_bufr( cf, input_files_dict, cf.args.extra, approach, pid_file, verbose=verbose )
@@ -214,7 +215,7 @@ if __name__ == "__main__":
             else: continue
             
             input_files_dict = gf.get_input_files_dict( cf.database, source=SOURCE,
-                    config_source=config_source, PID=PID )
+                    config_source=config_source, PID=PID, verbose=verbose )
             decode_bufr( cf, input_files_dict, SOURCE, approach, pid_file, verbose=verbose )
 
     stop_time = dt.utcnow()

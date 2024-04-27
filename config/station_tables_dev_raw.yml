@@ -1,5 +1,5 @@
 obs:
-  dataset:  text NOT NULL # raw tables only!
+  dataset:  text NOT NULL
   file:     int DEFAULT 0 # file ID from file_table (main database)
   datetime: datetime NOT NULL
   duration: text

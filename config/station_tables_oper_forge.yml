@@ -1,4 +1,5 @@
 obs:
+  dataset:  text NOT NULL
   datetime: datetime NOT NULL
   duration: text
   element:  text NOT NULL

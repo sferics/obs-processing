@@ -7,7 +7,7 @@ from config import ConfigClass
 import global_functions as gf
 
 
-def conclude_obs(stations):
+def export_obs(stations):
     """
     Parameter:
     ----------
@@ -20,6 +20,7 @@ def conclude_obs(stations):
 
     """
     for loc in stations:
+        
         db_file = f"{output_path}/forge/{loc[0]}/{loc}.db"
         try: db_loc = DatabaseClass( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
         except Exception as e:
@@ -27,23 +28,8 @@ def conclude_obs(stations):
             if traceback:   gf.print_trace(e)
             if debug:       pdb.set_trace()
             continue
-
-        #OBS = obs(loc, {"output_path":output_path, "typ":"forge", "verbose":verbose})
-        #OBS.create_station_tables( loc, verbose=verbose )
-        gf.create_dir( f"{output_path}/final/{loc[0]}" )
-
-        sql = [f"ATTACH DATABASE '{output_path}/final/{loc[0]}/{loc}.db' AS final"]
-        #sql.append(f"CREATE TABLE final.obs AS SELECT DISTINCT datetime,duration,element,value FROM main.obs WHERE element IN{elements} AND strftime('%M', datetime) IN ('00','30')")
-        # convert datetime to timestamp (seconds after UNIX), inspired by: https://stackoverflow.com/questions/27545543/how-can-i-convert-a-datetime-string-to-a-unix-timestamp-in-sqlite3
-        sql.append(f"CREATE TABLE final.obs AS SELECT DISTINCT CAST(strftime('%s', strftime('%Y-%m-%dT00:00:00+00:00', datetime), 'unixepoch') AS datetime), duration, element, value FROM main.obs WHERE element IN{elements} AND strftime('%M', datetime) IN ('00','30')")
-        #sql.append("CREATE UNIQUE INDEX unique_obs ON dev.obs(datetime,duration,element)") 
-        sql.append("DETACH dev")
         
-        for sql in sql:
-            if verbose: print(sql)
-            try: db_loc.exe(sql)
-            except Exception as e:
-                if verbose: print(e)
+
 
         db_loc.close()
     
@@ -53,7 +39,7 @@ def conclude_obs(stations):
 if __name__ == "__main__":
     
     # define program info message (--help, -h)
-    info        = "Finish forging and save remaining obs to 'final' databases"
+    info        = "Export (latest) observations from databases to legacy output format (metwatch csv)"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","d","t","P")
     cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
@@ -93,7 +79,7 @@ if __name__ == "__main__":
         station_groups = np.array_split(stations, processes)
 
         for station_group in station_groups:
-            p = mp.Process(target=conclude_obs, args=(station_group,))
+            p = mp.Process(target=export_obs, args=(station_group,))
             p.start()
 
     else: conclude_obs(stations)

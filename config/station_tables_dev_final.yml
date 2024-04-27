@@ -8,6 +8,7 @@ model:
   UNIQUE:     (timestamp, element, model)
 
 obs:
+  #dataset:    text NOT NULL
   #datetime:   datetime NOT NULL
   timestamp:  integer NOT NULL
   element:    text NOT NULL
@@ -16,19 +17,20 @@ obs:
   UNIQUE:     (timestamp, element)
 
 obs_bad:
-  #datetime: datetime NOT NULL
-  timestamp: integer NOT NULL
-  element:  text NOT NULL
-  value:    text NOT NULL
-  UNIQUE:   (timestamp, element)
+  #dataset:    text NOT NULL 
+  #datetime:   datetime NOT NULL
+  timestamp:  integer NOT NULL
+  element:    text NOT NULL
+  value:      text NOT NULL
+  UNIQUE:     (timestamp, element)
 
 stats:
-  RMSE:     real
-  average:  real
-  cases:    integer
-  el:       text
-  location: text
-  maximum:  real
-  minimum:  real
-  valid:    text
-  UNIQUE:   (el, location, valid)
+  RMSE:       real
+  average:    real
+  cases:      integer
+  el:         text
+  location:   text
+  maximum:    real
+  minimum:    real
+  valid:      text
+  UNIQUE:     (el, location, valid)

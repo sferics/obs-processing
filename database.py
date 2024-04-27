@@ -101,6 +101,22 @@ class DatabaseClass:
         self.attach(station_db_path, stage)
 
 
+    def detach_station_db(loc, output, mode="dev", stage="forge"):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        ------
+        """
+        from obs import ObsClass as oc
+        station_db_path = oc.get_station_db_path(loc, output, mode, stage)
+        self.detach(station_db_path, stage)
+
+
     def close(self, commit=True, verbose=False ):
         """
         Parameter:

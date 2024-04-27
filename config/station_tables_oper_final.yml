@@ -7,6 +7,7 @@ model:
   UNIQUE:   (datetime, element, model)
 
 obs:
+  #dataset:  text NOT NULL
   #datetime: datetime NOT NULL
   datetime: integer NOT NULL
   element:  text NOT NULL
@@ -15,6 +16,7 @@ obs:
   UNIQUE:   (datetime, element)
 
 obs_bad:
+  #dataset:  text NOT NULL
   #datetime: datetime NOT NULL
   datetime: integer NOT NULL
   element:  text NOT NULL

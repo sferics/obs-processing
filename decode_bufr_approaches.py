@@ -178,12 +178,12 @@ def decode_bufr_pd(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
         warnings.filterwarnings("ignore", module="pdbufr")
         warnings.filterwarnings("ignore", module="ecmwflibs")
     import pdbufr
+    import pandas as pd
 
     obs_bufr = {}
     file_status = "empty"
 
     PATH = DIR + FILE
-    if verbose: print(PATH)
 
     df = pdbufr.read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys)
 
@@ -301,10 +301,10 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
         file_status = "empty"
 
         iterid = ec.codes_bufr_keys_iterator_new(msg)
-
-        if bf.config["skip_computed"]:      ec.codes_skip_computed(iterid)
-        if bf.config["skip_function"]:      ec.codes_skip_function(iterid)
-        if bf.config["skip_duplicates"]:    ec.codes_skip_duplicates(iterid)
+        
+        ec.codes_skip_computed(iterid)
+        ec.codes_skip_function(iterid)
+        ec.codes_skip_duplicates(iterid)
 
         meta, typical   = {}, {}
         valid_obs       = False
@@ -359,8 +359,9 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                         code        = ec.codes_get_long( msg, key + "->code" )
                         obs_data    = ( code, value )
 
-                        #TODO use a defaultdict instead
-                        #TODO find out which is faster (should be try/except in this case)
+                        #TODO use a defaultdict instead? https://realpython.com/python-defaultdict
+                        #obs_bufr = defaultdict(lambda:dict())
+                        #TODO find out which way is faster (dict, defaultdict, if/else or try/except)
                         """
                         if datetime not in stations[location]:
                             stations[location][datetime] = []
