@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import re
 from datetime import datetime as dt, timedelta as td
 from database import DatabaseClass
 from config import ConfigClass
@@ -38,42 +39,50 @@ def audit_obs(stations):
         
         #sql = ""
         sql_good    = "INSERT INTO obs.final (timestamp,element,value) VALUES (?,?,?)"
-        sq_bad      = "INSERT INTO obs_bad.final (timestamp,element,value,reason) VALUES (?,?,?,?)"
+        sql_bad     = "INSERT INTO obs_bad.final (timestamp,element,value,reason) VALUES (?,?,?,?)"
         values_good, values_bad = set(), set()
 
         for element in elements:
-            
-            # get all 30-min data for this element
+            # element properties and range
+            element_info_el                 = element_info[element]
+            lower, upper, extra, exclude    = ( element_info_el[i] for i in range(3) )
+            element_range                   = range(lower, upper)
+
+            # 1 get all 30-min data for this element
             data = db_loc.exe((f"SELECT datetime,element,value FROM obs WHERE element='{element}' "
-            #    f"AND substr(datetime,15,2) IN ('00','30')"))
                 f"AND strftime('%M', datetime) IN ('00','30')"))
             # 2 check for bad (out-of-range) values
             
             for row in data:
-                
-                # element properties and range
-                element_info    = element_info[element]
-                element_range   = range(er_element[0], er_element[1])
                 #sql = ""
                 
-                if (row[2] in element_range or row[2] in element_info[2]) and row[2] != element_info[3]:
-                    #TODO 3a round value to significant digits (defined by scale) ???
-                    # insert good data into obs table of final database
+                datetime, element, val = row[0], row[1], row[2]
+                
+                if (val in element_range or val in extra) and val != exclude:
+                    # 3b insert good data into obs table of final database
                     #sql += f"INSERT INTO obs.final (timestamp,element,value) VALUES ({row[0]},{row[1]},{row[2]})\n"
-                    row[0] = int( row[0].timestamp() )
+                    datetime = int( datetime.timestamp() )
                     values_good.add(row)
                 else:
-                    reason = "out_of_range"
+                    try:
+                        # if the value does match the exclude pattern it gets excluded
+                        if re.match(exclude, str(val)):
+                            reason = "excluded"
+                        elif val < lower:
+                            reason = "too_low"
+                        elif val > upper:
+                            reason = "too_high"
+                        # if it is neither to low nor to high it must be also not an extra value
+                        else: #elif val not in extra:
+                            reason = "not_extra"
+                    except TypeError:
+                        # TypeError can occur while comparing str with float / int using "<" or ">"
+                        reason = "not_numeric"
                     
-                    if row[3] < lower:
-                        reason = "to_low"
-                    elif row[3] > upper:
-                        reason = "to_high"
-                    
-                    # insert bad data into obs_bad table of final database
+                    # 3b insert bad data into obs_bad table of final database
                     #sql += f"INSERT INTO obs_bad.final (timestamp,duration,element,value,reason) VALUES ({row[0]},{row[1]},{row[2]},{reason})\n"
-                    timestamp = int( row[0].timestamp() )
-                    values_bad.add((timestamp, row[1], row[2], reason))
+                    timestamp = int( datetime.timestamp() )
+                    values_bad.add((timestamp, element, val, reason))
                         
             
         db_loc.exemany(sql_good, values_good)

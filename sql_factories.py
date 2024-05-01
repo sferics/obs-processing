@@ -58,11 +58,11 @@ default_row         = lambda cursor, row : row # datatype will be tuple (implici
 
 ### TEXT FACTORIES
 
-# convert all pandas Timestamp objects to python datetime
+# convert all pandas Datetime objects to python datetime
 def pd2datetime_text(value):
     """
     """
-    if type(value) == pd.Timestamp:
+    if type(value) == pd.Datetime:
         return value.to_pydatetime()
     else: return value
 
@@ -74,25 +74,7 @@ def pd2timestamp_text(value):
         return int(pydatetime.timestamp())
     else: return value
 
-# convert all polars Datetime objects to python datetime
-#TODO make functional, test
-def pl2datetime_text(value):
-    """
-    """
-    if type(value) == pl.Datetime:
-        return value.dt.datetime()
-    else: return value
-
-# convert all polars Datetime objects to integer timestmps (seconds since UNIX)
-#TODO make functional, test
-def pl2timestamp_text(value):
-    """
-    """
-    if type(value) == pl.Datetime:
-        return int(value.dt.timestamp("ms"))
-    else: return value
-
-# convert all datetime objects to integer timestamps (seconds since UNIX)
+# convert all datetime/date/time objects to integer timestamps (seconds since UNIX)
 def datetime2timestamp_text(value):
     """
     """

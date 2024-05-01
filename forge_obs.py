@@ -15,7 +15,7 @@ from subprocess import Popen, PIPE
 -in forge databases do:
 2 audit_obs.py      ->  check each obs, delete bad data like NaN, unknown value or out-of-range
 2 derive_obs.py     ->  compute derived elements like RH+TMP=DPT; cloud levels; reduced pressure...
-3 aggregate_obs.py  ->  aggregate over time periods (1,3,6,12,24h) and create new elements with _dur
+3 aggregate_obs.py  ->  aggregate over time periods (1,3,6,12,24h) and create new elements with _DUR
 4 derive_obs.py -A  ->  compute derived elements again, but only 30min values (--aggregated)
 5 audit_obs.py      ->  check each obs, delete bad data like NaN, unknown value or out-of-range
                         move good data in file databases e.g. "/oper/final" (oper mode)

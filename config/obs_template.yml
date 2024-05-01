@@ -180,7 +180,7 @@ scripts:
     conda_env:        !!str   obs
     pid_file:         !!bool  0 # create and use pid file
     output:           !!str   /home/juri/data/stations
-    element_ranges:   !!str   element_ranges
+    element_info:     !!str   element_info
 
   delete_duplicate_obs.py:
     conda_env:        !!str   obs
