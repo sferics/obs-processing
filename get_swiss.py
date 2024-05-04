@@ -209,7 +209,7 @@ for outfile in outfiles:
     if not db.file_exists( file_name, path ):
         file_date = ts2dt( Path(outfile).stat().st_mtime )
         #set file status = locked and get rowid (FILE ID)
-        try: ID = db.register_file(file_name, path, "SWISS", status="locked", date=file_date)
+        try: ID = db.register_file(file_name, path, "SWISS", status="locked", creation_date=file_date)
         except Exception as e:
             if verbose: print(e)
             continue

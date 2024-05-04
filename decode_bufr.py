@@ -167,13 +167,7 @@ if __name__ == "__main__":
     # get the right decode_bufr_?? function according to -a/--approach setting as decoder_approach
     #decoder_approach = getattr(decode_bufr_approaches, f"decode_bufr_{approach}")
     decoder_approach = gf.import_from("decode_bufr_approaches", f"decode_bufr_{approach}", globals(), locals())
-
-    # add files table (file_table) to main database if not exists
-    #TODO this should be done during initial system setup, file_table should be added there
-    db = dc(config=cf.database)
-    db.cur.execute( gf.read_file( "file_table.sql" ) )
-    db.close()
-    
+     
     config_sources = None
     
     if args.file or args.files:

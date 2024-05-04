@@ -90,6 +90,7 @@ class BufrClass:
                 return ec.codes_get(msg, key)
 
 
+    @classmethod
     def __init__(self, cf: ConfigClass, source: str="extra", approach: str="gt"):
         """
         Parameter:

@@ -73,7 +73,7 @@ def add_new_station( meta ):
     db.close(commit=True)
 
 
-def scan_all_BUFRs_for_stations( source, known_stations, pid_file=None ):
+def scan_all_BUFRs_for_stations( source="", input_files={}, pid_file=None ):
     #TODO
     """
     Parameter:
@@ -93,23 +93,9 @@ def scan_all_BUFRs_for_stations( source, known_stations, pid_file=None ):
     -------
     None
     """ 
-    config_source   = config_sources[source]
-    config_general  = config_source["general"]
-    config_bufr     = config_source["bufr"]
-    bufr_dir        = config_bufr["dir"] + "/"
-    ext             = config_bufr["ext"]
-
-    if "glob" in config_bufr and config_bufr["glob"]:   ext = f"{config_bufr['glob']}.{ext}"
-    else:                                               ext = f"*.{ext}" #TODO add multiple extensions (list)
-    
-    files_to_parse  = { os.path.basename(i) for i in glob( bufr_dir + ext ) }
-
-    gf.create_dir( bufr_dir )
-
-    station_types = config_general["stations"]
     if verbose: stations = set()
 
-    for FILE in files_to_parse:
+    for FILE in input_files:
 
         with open(bufr_dir + FILE, "rb") as f:
             try:
@@ -119,6 +105,7 @@ def scan_all_BUFRs_for_stations( source, known_stations, pid_file=None ):
                     continue
                 ec.codes_set(bufr, "skipExtraKeyAttributes", 1) # we dont need units and so on for this purpose
                 ec.codes_set(bufr, "unpack", 1)
+                # force processing of all subsets
                 subsets = ec.codes_get_long( bufr, "numberOfSubsets" )
                 if subsets > 0:
                     ec.codes_set(bufr, "extractSubsetIntervalStart", 1);
@@ -210,7 +197,7 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Add stations found in BUFR file(s) to the database, with all meta information"
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","C","m","M","o","O","d","t","P")
+    flags       = ("f","F","l","v","C","m","M","o","O","d","t","P")
     cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
@@ -220,6 +207,7 @@ if __name__ == "__main__":
     log.info(started_str)
 
     # define some shorthands from script config
+    pid_file        = cf.script["pid_file"]
     verbose         = cf.script["verbose"]
     debug           = cf.script["debug"]
     traceback       = cf.script["traceback"]
@@ -228,10 +216,12 @@ if __name__ == "__main__":
     mode            = cf.script["mode"]
     output          = cf.script["output"] + "/" + mode
     stations        = cf.script["stations"]
+    source          = cf.script["source"]
+    args            = cf.args
 
     obs             = ObsClass( cf, source, stage="forge" )
     db              = DatabaseClass( config=cf.database, ro=1 )
-    stations        = db.get_stations( clusters )
+    stations        = db.get_stations()
     db.close(commit=False)
 
     null_vals = { ec.CODES_MISSING_LONG, ec.CODES_MISSING_DOUBLE } # (2147483647, -1e+100)
@@ -267,7 +257,7 @@ if __name__ == "__main__":
             for s in sources:
                 config_sources[s] = cf.sources[s]
 
-        else: config_sources = { args.source : cf.sources[args.source] }
+        else: config_sources = { args.source[0] : cf.sources[args.source[0]] }
 
     else: config_sources = cf.sources
 

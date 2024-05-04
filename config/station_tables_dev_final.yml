@@ -18,11 +18,13 @@ obs:
 
 obs_bad:
   #dataset:    text NOT NULL 
-  #datetime:   datetime NOT NULL
-  timestamp:  integer NOT NULL
+  datetime:   datetime NOT NULL
+  #timestamp:  integer NOT NULL
   element:    text NOT NULL
   value:      text NOT NULL
-  UNIQUE:     (timestamp, element)
+  reason:     text NOT NULL
+  #UNIQUE:     (timestamp, element)
+  UNIQUE:     (datetime, element)
 
 stats:
   RMSE:       real

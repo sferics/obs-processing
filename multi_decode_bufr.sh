@@ -8,7 +8,7 @@ then
     a=$2
 else
     N=15
-    a=gt
+    a=pl
 fi
 
 python -m compileall

@@ -17,3 +17,6 @@ cd plbufr && python setup.py install
 
 # compile all .py files to speed-up first run of any script
 python -m compileall
+
+# execute sql script which creates file_table in main database
+sqlite3 main.db < sql/file_table.sql

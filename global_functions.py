@@ -205,13 +205,13 @@ def read_file(file_name):
     return Path( file_name ).read_text()
 
 
-def read_yaml(file_name="obs", directory="config", ext="yml", typ="safe", pure=True,
+def read_yaml(file_name="obs", file_dir="config", ext="yml", typ="safe", pure=True,
         duplicate_keys=False, values={}, autoformat=False):
     """
     Parameter:
     ----------
     file_name : name of the yaml file we want to parse
-    directory : dir (or path without file_name) of the file
+    file_dir : dir (or path without file_name) of the file
     typ : input for ruamel.yaml.YAML() can be [ safe, rt, jinja2 ]
     pure : bool, see https://stackoverflow.com/questions/51316491/ruamel-yaml-clarification-on-typ-and-pure-true
     duplicate_keys : allow duplicate keys (which violate the yaml specification, so be careful!)
@@ -428,7 +428,7 @@ def read_yaml(file_name="obs", directory="config", ext="yml", typ="safe", pure=T
 
 
     # this is the important part; load the file read-only with the chosen method and return it as dict
-    with open( directory + "/" + file_name + "." + ext, "rt" ) as file_handle:
+    with open( file_dir + "/" + file_name + "." + ext, "rt" ) as file_handle:
         
         # if typ == pypyr: use the features from pypyr package and return dictitems a dictionary
         if typ == "pypyr":
@@ -440,7 +440,7 @@ def read_yaml(file_name="obs", directory="config", ext="yml", typ="safe", pure=T
         else: return yaml.load(file_handle)
 
 
-def get_file_path( FILE, string=True ):
+def get_file_dir( FILE, string=True ):
     #TODO
     """
     Parameter:
@@ -453,10 +453,10 @@ def get_file_path( FILE, string=True ):
     -------
     file path as str
     """ 
-    PATH = Path( FILE ).resolve().parent
+    DIR = Path( FILE ).resolve().parent
     if string:
         return str( PATH )
-    return PATH
+    return DIR
 
 
 def get_file_date( file_path, datetime=True ):
@@ -507,7 +507,7 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
             
             file_name   = file_path.split("/")[-1]
             file_date   = get_file_date(file_path)
-            file_dir    = "/".join(file_path.split("/")[:-1])
+            file_dir    = get_file_dir(file_paht) #"/".join(file_path.split("/")[:-1])
             ID          = db.get_file_id(file_name, file_dir)
             
             if ID:
@@ -516,7 +516,7 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
                         continue
                     else: db.set_file_status(ID, status_locked)
             else:
-                ID = db.register_file(file_name, file_path, source, status_locked, file_date, 0, 0)
+                ID = db.register_file(file_name, file_dir, source, status_locked, file_date, verbose=verbose)
                 if not ID:
                     print(f"REGISTERING FILE '{file_path}' FAILED!")
                     if log: log.error(f"REGISTERING FILE '{file_path}' FAILED!")
@@ -570,14 +570,13 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
 
         for file_name in files_to_parse:
 
-            file_path = get_file_path( source_dir + file_name )
-            file_date = get_file_date( file_path )
+            file_date = get_file_date( source_dir + "/" + file_name )
 
-            ID = db.get_file_id(file_name, file_path)
+            ID = db.get_file_id(file_name, source_dir)
             if not ID:
                 if PID: status_locked = f"locked_{PID}"
                 else:   status_locked = "locked"
-                ID = db.register_file(file_name, file_path, source, status_locked, file_date, verbose=verbose)
+                ID = db.register_file(file_name, source_dir, source, status_locked, file_date, verbose=verbose)
                 if not ID:
                     if log: log.error(f"REGISTERING FILE '{file_path}' FAILED!")
                     continue

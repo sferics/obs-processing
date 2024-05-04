@@ -7,6 +7,7 @@ import global_variables as gv
 
 
 class ObsClass:
+    @classmethod
     def __init__(self, cf: ConfigClass, source: str="extra", stage: str="raw", verbose: bool=False):
         """
         Parameter:
@@ -22,10 +23,9 @@ class ObsClass:
         assert( stage in {"raw", "forge", "final"} )
         
         # in this merge we are adding only already present keys; while again overwriting them
-        config      = gf.merge_list_of_dicts([cf.obs, cf.script], add_keys=False)
+        config      = gf.merge_list_of_dicts([cf.obs, cf.script], add_keys=True)
         # make config and important definitions accessible as class objects
         self.config = config
-        self.mode   = config["mode"]
         self.source = source
         self.stage  = stage
         self.scale  = True
@@ -53,7 +53,7 @@ class ObsClass:
         if output is None:  output  = self.output
         if mode is None:    mode    = self.mode
         if stage is None:   stage   = self.stage
-
+        
         return f"{output}/{mode}/{stage}/{loc[0]}/{loc}.db"
 
 

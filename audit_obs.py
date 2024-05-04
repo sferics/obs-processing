@@ -34,18 +34,18 @@ def audit_obs(stations):
             if debug:       pdb.set_trace()
             continue
         
-        obs.create_station_tables(mode=mode, stage="final")
+        obs.create_station_tables(loc, mode=mode, stage="final")
         db_loc.attach_station_db(loc, output, mode=mode, stage="final")
         
         #sql = ""
-        sql_good    = "INSERT INTO obs.final (timestamp,element,value) VALUES (?,?,?)"
-        sql_bad     = "INSERT INTO obs_bad.final (timestamp,element,value,reason) VALUES (?,?,?,?)"
+        sql_good    = "INSERT OR IGNORE INTO final.obs (timestamp,element,value) VALUES (?,?,?)"
+        sql_bad     = "INSERT OR IGNORE INTO final.obs_bad (datetime,element,value,reason) VALUES (?,?,?,?)"
         values_good, values_bad = set(), set()
 
         for element in elements:
             # element properties and range
             element_info_el                 = element_info[element]
-            lower, upper, extra, exclude    = ( element_info_el[i] for i in range(3) )
+            lower, upper, extra, exclude    = ( element_info_el[i] for i in range(4) )
             element_range                   = range(lower, upper)
 
             # 1 get all 30-min data for this element
@@ -56,17 +56,25 @@ def audit_obs(stations):
             for row in data:
                 #sql = ""
                 
-                datetime, element, val = row[0], row[1], row[2]
+                datetime, element, val = dt.fromisoformat(row[0]), str(row[1]), row[2]
                 
-                if (val in element_range or val in extra) and val != exclude:
+                # if the value does match the exclude pattern it gets excluded
+                excluded = re.match(exclude, str(val))
+                
+                #try:    val_in_range = ( int(np.round(val)) in element_range )
+                try:    val_in_range = (lower <= float(val) <= upper)
+                except: val_in_range = True
+                
+                if not excluded and (val_in_range or val in extra):
                     # 3b insert good data into obs table of final database
                     #sql += f"INSERT INTO obs.final (timestamp,element,value) VALUES ({row[0]},{row[1]},{row[2]})\n"
-                    datetime = int( datetime.timestamp() )
+                    timestamp = int( datetime.timestamp() )
+                    row = (timestamp, row[1], row[2]) 
                     values_good.add(row)
                 else:
                     try:
-                        # if the value does match the exclude pattern it gets excluded
-                        if re.match(exclude, str(val)):
+                        val = float(val)
+                        if excluded:
                             reason = "excluded"
                         elif val < lower:
                             reason = "too_low"
@@ -84,8 +92,7 @@ def audit_obs(stations):
                      
                     # 3b insert bad data into obs_bad table of final database
                     #sql += f"INSERT INTO obs_bad.final (timestamp,duration,element,value,reason) VALUES ({row[0]},{row[1]},{row[2]},{reason})\n"
-                    timestamp = int( datetime.timestamp() )
-                    values_bad.add((timestamp, element, val, reason))
+                    values_bad.add((datetime, element, val, reason))
                         
             
         db_loc.exemany(sql_good, values_good)
@@ -114,18 +121,21 @@ if __name__ == "__main__":
     timeout         = cf.script["timeout"]
     max_retries     = cf.script["max_retries"]
     mode            = cf.script["mode"]
-    output          = cf.script["output"] + "/" + mode
+    output          = cf.script["output"]
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
-
-    obs             = ObsClass( cf, source, stage="forge" )
-    db              = DatabaseClass( config=cf.database, ro=1 )
-    stations        = db.get_stations( clusters )
-    db.close(commit=False)
-
-    elements        = tuple(f'{element}' for element in db.get_elements())
+    
     element_info    = gf.read_yaml(cf.script["element_info"])
+    elements        = tuple( element_info.keys() )
+
+    obs             = ObsClass( cf, source="", stage="forge", verbose=verbose )
+    db              = DatabaseClass( config=cf.database, ro=1 )
+
+    stations        = db.get_stations( clusters )
+    #elements        = tuple(f'{element}' for element in db.get_elements())
+    
+    db.close(commit=False)
 
     if processes: # number of processes
         import multiprocessing as mp

@@ -1,10 +1,12 @@
 import sys, re, inspect, sqlite3 # sqlite connector python base module
 import global_functions as gf
 import global_variables as gv
+from datetime import datetime as dt
 #import sql_factories as sf
 
 class DatabaseClass:
     
+    #@classmethod
     def __init__(self, db_file="main.db", config={ "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
         """
         """
@@ -85,7 +87,7 @@ class DatabaseClass:
     detach  = lambda self, DB     : self.exe( f"DETACH DATABASE '{DB}'" )
     
 
-    def attach_station_db(loc, output, mode="dev", stage="forge"):
+    def attach_station_db(self, loc, output, mode="dev", stage="forge"):
         """
         Parameter:
         ----------
@@ -101,7 +103,7 @@ class DatabaseClass:
         self.attach(station_db_path, stage)
 
 
-    def detach_station_db(loc, output, mode="dev", stage="forge"):
+    def detach_station_db(self, loc, output, mode="dev", stage="forge"):
         """
         Parameter:
         ----------
@@ -1458,7 +1460,7 @@ class DatabaseClass:
     #TODO from here on move to getter_settter.py as soon as it uses the database class?
 
 
-    def register_file( self, name, path, source, status="locked", date="NULL", verbose=None, traceback=None ):
+    def register_file( self, file_name, file_dir, source, status="locked", creation_date="NULL", addition_date=dt.utcnow(), verbose=None, traceback=None ):
         #TODO
         """
         Parameter:
@@ -1474,8 +1476,8 @@ class DatabaseClass:
         if verbose is None: verbose = self.verbose
         if traceback is None: traceback = self.traceback
 
-        values = f"VALUES ('{name}','{path}','{source}','{status}','{date}')"
-        sql = f"INSERT INTO file_table (name,path,source,status,date) {values} ON CONFLICT DO NOTHING"
+        values = f"VALUES ('{file_name}','{file_dir}','{source}','{status}','{creation_date}','{addition_date}')"
+        sql = f"INSERT INTO file_table (name,dir,source,status,created,added) {values} ON CONFLICT DO NOTHING"
         try:
             self.exe( sql )
             return self.cur.lastrowid
@@ -1484,7 +1486,7 @@ class DatabaseClass:
             return False
 
     
-    def register_files(self, names, paths, sources, statuses, dates, verbose=None):
+    def register_files(self, names, dirs, sources, statuses, dates, verbose=None):
         #TODO
         """
         Parameter:
@@ -1501,8 +1503,8 @@ class DatabaseClass:
         
         N = len(names)
         
-        if type(paths) == str:
-            paths = [paths] * N
+        if type(dirs) == str:
+            dirs = [dirs] * N
         if type(sources) == str:
             sources = [source] * N
         if type(statuses) == str:
@@ -1511,7 +1513,7 @@ class DatabaseClass:
         values = set()
 
         for i in range(N):
-            values.add( (names[i], paths[i], sources[i], statuses[i], dates[i]) )
+            values.add( (names[i], dirs[i], sources[i], statuses[i], dates[i]) )
 
         sql = f"INSERT INTO file_table (?,?,?,?,?) ON CONFLICT DO NOTHING"
         try:
@@ -1522,7 +1524,7 @@ class DatabaseClass:
             return False
 
 
-    def file_exists( self, name, path ):
+    def file_exists( self, file_name, file_dir ):
         #TODO
         """
         Parameter:
@@ -1535,12 +1537,12 @@ class DatabaseClass:
         -------
 
         """
-        sql = f"SELECT COUNT(*) FROM file_table WHERE name = '{name}' AND path = '{path}'"
+        sql = f"SELECT COUNT(*) FROM file_table WHERE name = '{file_name}' AND dir = '{file_dir}'"
         self.exe( sql )
         return self.fetch1()
 
 
-    def get_file_id( self, name, path ):
+    def get_file_id( self, file_name, file_dir ):
         #TODO
         """
         Parameter:
@@ -1553,7 +1555,7 @@ class DatabaseClass:
         -------
 
         """
-        sql = f"SELECT rowid FROM file_table WHERE name = '{name}' AND path = '{path}'"
+        sql = f"SELECT rowid FROM file_table WHERE name = '{file_name}' AND dir = '{file_dir}'"
         self.exe( sql )
         return self.fetch1()
 
@@ -1577,7 +1579,7 @@ class DatabaseClass:
 
 
     get_file_name   = lambda self, ID : self.get_file_X( ID, "name" )
-    get_file_path   = lambda self, ID : self.get_file_X( ID, "path" )
+    get_file_dir    = lambda self, ID : self.get_file_X( ID, "dir" )
     get_file_date   = lambda self, ID : self.get_file_X( ID, "date" )
     get_file_source = lambda self, ID : self.get_file_X( ID, "source" )
     get_file_status = lambda self, ID : self.get_file_X( ID, "status" )
@@ -1603,9 +1605,9 @@ class DatabaseClass:
         else: return True
 
 
-    set_file_name   = lambda self, ID, name     : self.set_file_X( ID, "name", name )
-    set_file_path   = lambda self, ID, path     : self.set_file_X( ID, "path", path )
-    set_file_source = lambda self, ID, source   : self.set_file_X( ID, "source", source  )
+    set_file_name   = lambda self, ID, file_name    : self.set_file_X( ID, "name", file_name )
+    set_file_dir    = lambda self, ID, file_dir     : self.set_file_X( ID, "dir", file_dir )
+    set_file_source = lambda self, ID, source       : self.set_file_X( ID, "source", source )
     
 
     def set_file_date( self, ID, date, verbose=None ):
