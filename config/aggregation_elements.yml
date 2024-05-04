@@ -1,18 +1,18 @@
 duration:
   WIND_10m_syn:
+    #TODO use WIND_5m_syn as fallback element?
     10min:                  ~
     30min:                  [[10min],                         AVG]
     1h:                     [[30min, 10min],                  AVG]
   GUST_10m_syn:
-    10min:                  ~
     30min:                  [[10min],                         MAX]
     1h:                     [[30min, 10min],                  MAX]
     6h:                     [[3h, 1h, 30min, 10min],          MAX]
   MAXWIND_10m_syn:
-    #TODO implement fallback element [WIND_10m_syn, 10min]
-    30min:                  [[],                              MAX, [WIND_10m_syn, 10min ]     ]
-    1h:                     [[30min],                         MAX, [WIND_10m_syn, 10min ]     ]
-    6h:                     [[3h, 1h, 30min],                 MAX, [WIND_10m_syn, 10min ]     ]
+    #TODO implement fallback element WIND_10m_syn
+    30min:                  [[10min],                         MAX]
+    1h:                     [[30min, 10min],                  MAX]
+    6h:                     [[3h, 1h, 30min, 10min],          MAX, WIND_10m_syn, 0  ]
   PRATE_srf_syn:
     30min:                  [[10min],                         SUM]
     1h:                     [[1h, 30min, 10min],              SUM]
@@ -40,17 +40,17 @@ duration:
     1h:                     [[30min, 10min],                  SUM]
     24h:                    [[12h, 6h, 3h, 1h, 30min, 10min], SUM]
   TMIN_5cm_syn:
-    #TODO implement fallback element [TMP_5cm_syn, ~]
-    12h:                    [[12h, 6h, 3h, 1h],               MIN, [TMP_5cm_syn,  ~     ], -6   ]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],          MIN, [TMP_5cm_syn,  ~     ]       ]
+    #TODO implement fallback element TMP_5cm_syn
+    12h:                    [[12h, 6h, 3h, 1h],               MIN, TMP_5cm_syn, -6  ]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],          MIN, TMP_5cm_syn, 0   ]
   TMIN_2m_syn:
-    #TODO implement fallback element [TMP_2m_syn, ~]
-    12h:                    [[12h, 6h, 3h, 1h],               MIN, [TMP_2m_syn,   ~     ], -6   ]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],          MIN, [TMP_2m_syn,   ~     ]       ]
+    #TODO implement fallback element TMP_2m_syn
+    12h:                    [[12h, 6h, 3h, 1h],               MIN, TMP_2m_syn,  -6  ]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],          MIN, TMP_2m_syn,  0   ]
   TMAX_2m_syn:
-    #TODO implement fallback element [TMP_2m_syn, ~]
-    12h:                    [[12h, 6h, 3h, 1h],               MAX, [TMP_2m_syn,   ~     ], 6    ]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],          MAX, [TMP_2m_syn,   ~     ]       ]
+    #TODO implement fallback element TMP_2m_syn
+    12h:                    [[12h, 6h, 3h, 1h],               MAX, TMP_2m_syn,  6   ]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],          MAX, TMP_2m_syn,  0   ]
 
 instant:
   # instantaneous / fixed duration values

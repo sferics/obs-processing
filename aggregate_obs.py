@@ -121,6 +121,27 @@ def aggregate_obs(stations):
         
         return db_loc.fetch()
 
+    def get_duration(FUN, dur, subdur):
+        """
+        Parameter:
+        ----------
+
+        Notes:
+        ------
+
+        Return:
+        -------
+
+        """
+        if FUN in {"MIN","MAX"}:
+            if "h" in subdur:
+                sql = "REPLACE(duration, 'h', '')"
+            else:
+                sql = "REPLACE(duration, 'min', '')"
+            sql += f" <= '{subdur}'"
+        else: sql = "duration='{subdur}'"
+
+        return sql
 
     #TODO this function should make sure that in the forge stage we only have 30 min data resolution
     # that means if there are missing 0min or 30min values, we should replace them with the closest values, e.g.
@@ -197,22 +218,20 @@ def aggregate_obs(stations):
                                         val = db_loc.fetch1()
                                         
                                         sql_values.add( (dt_base, "", el_old, val) )
-                                         
-            
+        
+
         for el_old in duration_elems:
             
-            #TODO implement fallback elements from aggregation_elements.yml
-
             years_present = get_distinct_years()
             if not years_present: continue
-
+            
             el_old_durs = duration_elems[el_old] # durations
-     
+            
             for dur in el_old_durs:
                 
                 el_old_dur  = el_old_durs[dur]
-                el_new      = el_old.replace( "_", dur + "_", 1 )
-
+                el_new      = el_old.replace( "_", dur+"_", 1 )
+                
                 # if the entry for duration is empty (e.g. [10min: ~]) only copy to new element name
                 if not el_old_dur:
                     # just take the values of the element with the given duration and save into new elem name
@@ -225,14 +244,13 @@ def aggregate_obs(stations):
                 subdurs = el_old_dur[0] # sub-durations [12h, 6h, 3h, 1h, 30min, 10min]
                 FUN     = el_old_dur[1] # function      [avg, sum, max, min]
 
-                if len(el_old_dur) >= 3:
-                    replace = el_old_dur[2]
-                    try:    offset = el_old_dur[3]
-                    except: offset = 0
+                if len(el_old_dur) == 4:
+                    el_fallback = el_old_dur[2]
+                    offset      = el_old_dur[3]
                 else:
-                    replace = None
-                    offset  = 0
-                
+                    el_fallback = None
+                    offset      = 0
+
                 for year in years_present:
 
                     months_present = get_distinct_months()
@@ -245,7 +263,7 @@ def aggregate_obs(stations):
                                    
                             break_loop = False
                             
-                            #TODO how does this work with minutes as well? call get_distinct_hours already here?
+                            #TODO how would this work with minutes as well? call get_distinct_hours already here?
                             if "h" in dur:
                                 
                                 dur_h = int( dur.replace("h","") )
@@ -278,14 +296,9 @@ def aggregate_obs(stations):
                                     sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN "
                                         f"'{dt_start}' AND '{dt_end}' AND ")
                                     
-                                    if FUN in {"MIN","MAX"}:
-                                        if "h" in subdur:
-                                            sql += "REPLACE(duration, 'h', '')"
-                                        else:
-                                            sql += "REPLACE(duration, 'min', '')"
-                                        sql += f" <= '{subdur}'"
-                                    else: sql += "duration='{subdur}'"
+                                    sql_add = get_duration(FUN, dur, subdur)
 
+                                    sql += sql_add
                                     db_loc.exe( sql.replace("?", "COUNT(value)") )
 
                                     # if we want an average make sure there are continous values for each sub-duration
@@ -300,7 +313,22 @@ def aggregate_obs(stations):
                                         sql_values.add( (dt_base, dur, el_new, val_new) )
                                         # break the loop when a value is first found
                                         break
-                                    
+                                    # only for MIN/MAX and when a fallback element is present, try again
+                                    elif FUN in {"MIN","MAX"} and el_fallback:
+                                        
+                                        sql=(f"SELECT {FUN}(value) FROM obs WHERE element = '{el_fallback}' "
+                                            f"AND datetime(datetime) BETWEEN '{dt_start}' AND "
+                                            f"'{dt_end}' AND {sql_add}")
+                                        
+                                        db_loc.exe( sql )
+                                        val_new = db_loc.fetch1()
+                                        
+                                        if val_new is not None:
+                                            if verbose: print(dt_base, dur, el_new, val_new)
+                                            sql_values.add( (dt_base, dur, el_new, val_new) )
+                                            # break the loop when a value is first found
+                                            break
+
                                 elif dur in {"1h", "30min"} and "min" in subdur:
                                     
                                     for hour in get_distinct_hours():
@@ -340,7 +368,7 @@ def aggregate_obs(stations):
                                             break_loop = True
                                             break
                                 
-                                else:
+                                else: # if dur not in {"1h", "30"} or "h" in subdur
                                     dur_num = float( dur.replace("h", "") )
                                     if "h" in subdur:
                                         subdur_num = float( subdur.replace("h", "") )
@@ -355,14 +383,9 @@ def aggregate_obs(stations):
                                     sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN "
                                         f"'{dt_start}' AND '{dt_end}' AND ")
                                     
-                                    if FUN in {"MIN","MAX"}:
-                                        if "h" in subdur:
-                                            sql += "REPLACE(duration, 'h', '')"
-                                        else:
-                                            sql += "REPLACE(duration, 'min', '')"
-                                        sql += f" <= '{subdur}'"
-                                    else: sql += "duration = '{subdur}'"
+                                    sql_add = get_duration(FUN, dur, subdur)
                                     
+                                    sql += sql_add
                                     db_loc.exe( sql.replace("?", "COUNT(value)") )
 
                                     # if we want an average make sure there are continous values for each sub-duration
@@ -377,6 +400,21 @@ def aggregate_obs(stations):
                                         sql_values.add( (dt_end, dur, el_new, val_new) )
                                         # break the loop when a value is first found
                                         break
+                                    # only for MIN/MAX and when a fallback element is present, try again
+                                    elif FUN in {"MIN","MAX"} and el_fallback:
+
+                                        sql=(f"SELECT {FUN}(value) FROM obs WHERE element = '{el_fallback}' "
+                                            f"AND datetime(datetime) BETWEEN '{dt_start}' AND "
+                                            f"'{dt_end}' AND {sql_add}")
+                                        
+                                        db_loc.exe( sql )
+                                        val_new = db_loc.fetch1()
+                                        
+                                        if val_new is not None:
+                                            if verbose: print(dt_base, dur, el_new, val_new)
+                                            sql_values.add( (dt_base, dur, el_new, val_new) )
+                                            # break the loop when a value is first found
+                                            break
                 
         if verbose: print(sql_values) 
         db_loc.exemany(SQL, sql_values)

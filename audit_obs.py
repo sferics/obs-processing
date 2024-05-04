@@ -78,7 +78,10 @@ def audit_obs(stations):
                     except TypeError:
                         # TypeError can occur while comparing str with float / int using "<" or ">"
                         reason = "not_numeric"
-                    
+                    except Exception as e:
+                        # all other exceptions (which should never occur) will be handled seperately
+                        reason = f"exception_{e}"
+                     
                     # 3b insert bad data into obs_bad table of final database
                     #sql += f"INSERT INTO obs_bad.final (timestamp,duration,element,value,reason) VALUES ({row[0]},{row[1]},{row[2]},{reason})\n"
                     timestamp = int( datetime.timestamp() )
