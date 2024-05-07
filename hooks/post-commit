@@ -1,3 +1,4 @@
 #!/bin/bash
 echo TEST
+pwd
 #python -m pip install --editable package
