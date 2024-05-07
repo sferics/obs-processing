@@ -1,0 +1,3 @@
+#!/bin/sh
+ls
+#python -m pip install --editable package

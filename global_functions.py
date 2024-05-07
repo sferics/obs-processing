@@ -18,6 +18,22 @@ to_datetime         = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hou
 to_datetime_hour    = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"])
 
 
+def cleanup_file_objects_and_descriptor(PID, log):
+    """
+    Notes:
+    ------
+    try to cleanup file objects and descriptors (see https://stackoverflow.com/a/33334183)
+    """
+    import psutil
+    try:
+        p = psutil.Process(PID)
+        for handler in p.open_files() + p.connections():
+            os.close(handler.fd)
+    except Exception as e:
+        log.error(e)
+        return False
+    else: return True
+
 def import_from(module_or_file, obj, globs, locs):
     """
     Notes:
@@ -746,7 +762,6 @@ def already_running2():
 
 # meteorological functions
 def rh2dpt( rh, tmp, perc=True, C_in=True, C_out=True ):
-    #TODO
     """
     Parameter:
     ----------
@@ -856,7 +871,7 @@ def qff_dwd( ppp, h, tmp, rh, C_in=True ):
 
 #source for this pressure reductions: https://www.metpod.co.uk/calculators/pressure/
 def qff_smhi( ppp, h, tmp, lat, C_in=True ):
-    #TODO lat to phi, doctring
+    #TODO lat to phi, complete doctring
     """
     Parameter:
     ----------

@@ -16,6 +16,9 @@ cd plbufr && python setup.py install
 # install packaged files for easier imports
 #python -m pip install --editable package
 
+# change path of git hooks in local git config to .githooks
+git config --local core.hooksPath .githooks/
+
 # compile all .py files to speed-up first run of any script
 python -m compileall
 
