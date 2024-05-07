@@ -1,10 +1,8 @@
 #!/bin/bash
 
+# installing eccodes from apt sources is not necessary when using conda
 #sudo apt install libeccodes*
 sudo apt install python python-dev wget
-
-# create symlink for undecided naming reasons...
-ln -s conclude_obs.py finalize_obs.py
 
 # clone plbufr repository (fork of pdbufr using polars instead of pandas)
 git clone https://github.com/sferics/plbufr/
@@ -15,8 +13,12 @@ conda env create -f config/obs_env.yml
 # install plbufr package (legacy install method!)
 cd plbufr && python setup.py install
 
+# install packaged files for easier imports
+#python -m pip install --editable package
+
 # compile all .py files to speed-up first run of any script
 python -m compileall
 
-# execute sql script which creates file_table in main database
+# execute sql scripts creating file_table in main database and altering station table (baro_height)
 sqlite3 main.db < sql/file_table.sql
+sqlite3 main.db < sql/station_table.sql
