@@ -23,7 +23,7 @@ class ObsClass:
         assert( stage in {"raw", "forge", "final"} )
         
         # in this merge we are adding only already present keys; while again overwriting them
-        config      = gf.merge_list_of_dicts([cf.obs, cf.script], add_keys=True)
+        config      = gf.merge_list_of_dicts([cf.obs, cf.script], add_keys=False)
         # make config and important definitions accessible as class objects
         self.config = config
         self.source = source
@@ -31,7 +31,7 @@ class ObsClass:
         self.scale  = True
 
         for key, val in config.items():
-            if verbose: print(key, val)
+            #if verbose: print(key, val)
             setattr(self, key, val)
         
         self.log = gf.get_logger( self.__class__.__name__, self.log_level )
@@ -85,7 +85,7 @@ class ObsClass:
         if traceback is None:   tracback    = self.traceback
         if verbose is None:     verbose     = self.verbose
         if settings is {}:      settings    = self.settings
-
+        
         # insert values or update value if we have a newer cor, then set parsed = 0 as well
         # statements for different stages
         match stage:
@@ -108,7 +108,7 @@ class ObsClass:
             case "final":
                 sql = ( f"INSERT INTO obs (dataset,datetime,value) VALUES(?,?,?) "
                         f"ON CONFLICT DO UPDATE SET value=excluded.value" )
-
+        
         for loc in obs_db:
             created = self.create_station_tables(loc, output, mode, stage, max_retries, 1, 1, verbose=verbose)
             
