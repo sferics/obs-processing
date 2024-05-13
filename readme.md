@@ -1,6 +1,6 @@
 # What is OBS processing?
 This repository contains all tools needed to processes and store synoptical observation from a variety of sources.
-<br/>
+<br/><br/>
 
 # How to install OBS processing
 - run install.sh like this:\
@@ -23,7 +23,7 @@ All python scripts offer a -h/--help option which shows their command line argum
 All command line arguments are defined in "config/parser\_args.yml" and they are the same across all scripts. The only difference lies in their availability.
 For more details on adding/changing/removing command line arguments, please read the respective section about the YAML configuration file (parser\_args.yml).\
 IMPORTANT TO REMEMBER: Settings defined by command line arguments always overwrite settings defined in the script's configuration!
-<br/>
+<br/><br/>
  
 #### Common command line arguments
 
@@ -63,13 +63,13 @@ IMPORTANT TO REMEMBER: Settings defined by command line arguments always overwri
 - use multiprocessing if -P > 1; defines number of processes to use
 ##### -T/--translation $TRANSLATION\_FILE
 - define name of custom (BUFR) translation file (can be necessary for providers which use special encoding or error treatment)
-
+<br/>
   
 ### decode\_bufr.py
 This script decodes one or several BUFR files and inserts all relevant observations into the raw databases.\
 It can also process intire source/dataset directories which can be provided by the source name as arguments or via the configuration file's "source:" section.\
 By default, the configuration file's name is defined as "obs.yml". So before the first usage, you need to make sure to create it by copying the "obs\_template.yml" in "config/" and adding your desired configurations/sources.
-<br/>
+<br/><br/>
 
 #### Unique command line arguments
 
@@ -116,7 +116,7 @@ You may use 5 different approaches to decode the files:
   
 ### forge\_obs.py
 This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed if -e/--export is set.
-<br/>
+<br/><br/>
 
 #### Unique command line arguments
 ##### -b/--bare
@@ -129,7 +129,7 @@ This is a chain script which runs the following scripts in the order of occurren
 
 #### Example usage
 `python forge_obs.py -e -L /legacy/output/path -l INFO`
-<br/>
+<br/><br/>
   
 ### reduce\_obs.py
 (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
@@ -138,7 +138,7 @@ Copy all remaining elements from raw to forge databases [dataset,datetime,durati
 #### Example usage
 ##### Use 12 processes:
 `python reduce_obs.py -P 12`
-<br/>
+<br/><br/>
   
 ### derive\_obs.py
 Compute derived elements like relative humidity, cloud levels or reduced pressure.
@@ -150,7 +150,7 @@ Compute derived elements again, but only considering 30min-values.
 #### Example usage
 ##### Only derive observations from a single station:
 `python derive_obs.py -k 10381`
-<br/>
+<br/><br/>
   
 ### aggregate\_obs.py
 Aggregate over certain time periods (like 30min,1h,3h,6h,12,24h) and create new elements with "\_DUR" suffix.
@@ -167,7 +167,7 @@ Check all obs in forge databases, delete bad data like NaN, unknown value or out
 #### Example usage
 #### Run in debugging mode with debug prints and stop points
 `python audit_obs.py -d`
-<br/>
+<br/><br/>
   
 ### empty\_obs.py
 Clear forge databases (they are temporary and get rebuilt every chain cycle).
@@ -178,7 +178,7 @@ Clear forge databases (they are temporary and get rebuilt every chain cycle).
 #### Example usage
 ##### Use the above option and show no warnings
 `python empty_obs.py -B -w`
-<br/>
+<br/><br/>
   
 ### export\_obs.py
 Export observations from final databases into the old/legacy metwatch csv format.
@@ -189,10 +189,10 @@ Export observations from final databases into the old/legacy metwatch csv format
 ##### Example usage
 ###### Define a custom directory for the legacy output
 `python export_obs.py -l /legacy/output/directory`
-<br/>
+<br/><br/>
 
   
-## Configuration YAML files/structure in "config/" directory
+## Description of YAML files and structure in "config/" directory
 
 ### codes/
 > #### bufr/
