@@ -1,6 +1,6 @@
 # What is OBS processing?
 This repository contains everything needed to process and store synoptic observations from a variety of sources. Out-of-the box it supports DWD, KNMI and IMGW Open Data services and can parse BUFR files from many other providers.
-It is easily extendable via configuration (YAML) files and by adding your own scripts which use the existing framework.
+It is easily extendable via configuration (YAML) files and by adding your own scripts which make use of the existing framework.
 <br/><br/>
 
 # How to install OBS processing
@@ -73,9 +73,11 @@ By default, the configuration file's name is defined as "obs.yml". So before the
 
 #### Unique command line arguments
 
-##### source (first and only positional argument, can take several)
+##### source
+- first and only positional argument
+- can take several sources, seperated by spaces
 
-##### -a/--approach
+##### -a/--approach $APPROACH
 You may use 5 different approaches to decode the files:
 - pd: Using pdbufr package officially provided by ECMWF (very slow because it uses pandas)
 - pl: Using plbufr package forked from pdbufr by sferics (faster because it uses polars instead)
