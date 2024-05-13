@@ -143,7 +143,7 @@ TODO
 5 audit\_obs.py      ->  check each obs, delete bad data like NaN, unknown value or out-of-range
                         move good data in file databases e.g. "/oper/final" (oper mode)
                         move bad data to seperate databases, e.g. "/dev/bad" directory (dev mode)
-6 empty\_obs.py      ->  clear forge databases (they are temporary and get rebuilt every chain cycle)
+6 empty\_obs.py      ->  clear forge databases (they are temporary and get rebuilt every chain cycle)\
 
 ## Configuration YAML files/structure in "config/" directory
 
@@ -171,19 +171,19 @@ TODO
 ##### obs\_template.yml
 \- main configuration file template with the following sections:
 
-> ###### general:
+> **general:**\
 > \- most general settings which will be overwritten by the script's config
-> ###### database:
+> **database:**\
 > \- TODO
-> ###### bufr:
+> **bufr:**\
 > \- TODO
-> ###### obs:
+> **obs:**\
 > \- TODO
-> ###### scripts:
+> **scripts:**\
 > \- TODO
-> ###### clusters:
+> **clusters:**\
 > \- TODO
-> ###### sources:
+> **sources:**\
 > \- TODO
 
 ### translations/
@@ -200,7 +200,7 @@ TODO
 ##### parser\_args.yml
 \- TODO
 ##### station\_tables/
-> ##### {mode}\_{stage}.yml\
+> ##### {mode}\_{stage}.yml
 > \- TODO
 
 ## Bash scripts in "scripts/" directory
