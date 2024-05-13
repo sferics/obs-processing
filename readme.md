@@ -1,8 +1,8 @@
 # How to install OBS processing
-run install.sh like this:\
-$ chmod +x install.sh && ./install.sh\
-or if the permissions cannot be set / changed:\
-$ bash install.sh\
+- run install.sh like this:\
+`chmod +x install.sh && ./install.sh\`
+- or if the permissions cannot be set / changed:\
+`bash install.sh\`
 \
 The install.sh script will install miniconda if not present, create an environment with all necessary packages and install the plbufr package from github as well as the local directory "package" using "python setup.py install".\
 It then defines ".githook" as the directory for git hooks. There is currently only one git hook which automatically installs the directory "package" as a package after each commit, so syntax errors can be easily avoided and exports the conda environment information to "config/environment.yml".\
