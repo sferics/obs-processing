@@ -1,5 +1,5 @@
 # What is OBS processing?
-This repository contains all tools needed to process and store synoptical observation from a variety of sources. Out-of-the box it supports DWD, KNMI and IMGW Open Data services and can parse BUFR files from many other providers.
+This repository contains everything needed to process and store synoptic observations from a variety of sources. Out-of-the box it supports DWD, KNMI and IMGW Open Data services and can parse BUFR files from many other providers.
 It is easily extendable via configuration (YAML) files and by adding your own scripts which use the existing framework.
 <br/><br/>
 
