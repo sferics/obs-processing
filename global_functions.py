@@ -572,8 +572,8 @@ def get_input_files_dict( config_database, input_files=[], source="extra", confi
             #TODO special sort functions for CCA, RRA and stuff in case we dont have sequence key
             #TODO implement order by datetime (via sort_method callable)
             if sort_files:
-                if callable(config_source.get("sort_method")):
-                    sort_method = config_source["sort_method"]
+                if callable(config_source.get("how")):
+                    sort_method = config_source["how"]
                 else: sort_method = sorted
                 files_to_parse = sort_method(files_to_parse)
             

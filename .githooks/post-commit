@@ -4,7 +4,7 @@ ls
 #conda init && conda activate obs || exit
 
 # export environment information without prefix and variables sections
-#bash scripts/export_conda_env.sh
+#bash scripts/export_conda_environment.sh
 
 # install all files in package directory with pip install to detect syntax error
 #python -m pip install --editable package
