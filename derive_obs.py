@@ -382,7 +382,7 @@ if __name__ == "__main__":
     db.close(commit=False)
     
     # get synop codes conversion dictionary to decode synop codes
-    #synop_codes     = gf.read_yaml("synop_codes")
+    #synop_codes     = gf.read_yaml("codes/synop")
 
     if processes: # number of processes
         import multiprocessing as mp

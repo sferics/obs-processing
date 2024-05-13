@@ -75,7 +75,7 @@ if __name__ == "__main__":
         sys.exit(error_message)
 
     obs         = ObsClass(cf, "imgw", stage="raw")
-    translation = gf.read_yaml("imgw_translation")
+    translation = gf.read_yaml("translations/imgw")
     elements    = translation["elements"]
 
     meta, obs_db = {}, {}

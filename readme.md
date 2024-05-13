@@ -36,24 +36,24 @@ Please note: Settings defined by command line arguments always overwrite setting
 - define logging level (choose one of the following: {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET} )
 ##### -C/--config\_file $FILE\_NAME
 - define a custom config file (has to be within "config/" directory)
-##### -k/--known\_stations
-
-##### -c/--clusters
-
-##### -m/--max\_retries
-
-##### -n/--max\_files
-
-##### -m/--mode
-
-##### -s/--stage
-
-##### -o/--timeout
-
-##### -O/--output
-
-##### -P/--processes
-
+##### -k/--known\_stations $LIST\_OF\_STATIONS
+- comma-seperated list of stations to consider
+##### -c/--clusters $LIST\_OF\_CLUSTERS
+- comma-seperated list of clusters to consider
+##### -m/--max\_retries $RETRIES
+- maximal number of retries when writing to station databases
+##### -n/--max\_files $NUMBER\_OF\_FILES
+- maximal number of files to process (usually per source)
+##### -m/--mode $MODE
+- operation mode (can be "dev" or "oper")
+##### -s/--stage $STAGE
+- stage of forging (can be "raw","forge","bad" or "final")
+##### -o/--timeout $TIMEOUT
+- timeout in seconds when trying to write to station databases
+##### -O/--output $OUTPUT\_PATH
+- define custom output path
+##### -P/--processes $NUMBER\_OF\_PROCESSES
+- use multiprocessing if -P > 1; defines number of processes to use
 ##### -T/--translation $TRANSLATION\_FILE
 - define name of custom (BUFR) translation file
 
@@ -64,9 +64,9 @@ It can also process intire source/dataset directories which can be provided by t
 By default, the configuration file's name is defined as "obs.yml". So before the first usage, you need to make sure to create it by copying the "obs\_template.yml" in "config/" and adding your desired configurations/sources.
 
 
-#### Unique command line arguments explained in detail
+#### Unique command line arguments
 
-##### source
+##### source (first and only positional argument, can take several)
 
 ##### -a/--approach
 You may use 5 different approaches to decode the files:
@@ -75,14 +75,18 @@ You may use 5 different approaches to decode the files:
 - gt: Also using plbufr bufr but instead of creating a dataframe it uses a generator (equally fast)
 - us: Fastest decoding method using bufr keys from ECCODES but lacking some observations like soil temperatures
 - ex: Slower than "us" method but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files, still lacking some information from DWD Open Data BUFR files
-
-##### -D/--divider
-
+##### -f/--file $FILE\_PATH
+- process single file by file path
+##### -F/--FILES $FILES
+- process several files, given by file paths, seperated by divider character (default: ";")
+##### -D/--divider $DIVIDER
+- define a custom divider/seperator character for -F
 ##### -r/--redo
-
+- process file(s) again even if they have been processed already
 ##### -R/--restart
-
+- usually only used automatically by the script if the RAM is full, so it knows which files are still left to process
 ##### -s/--sort\_files
+- sort files by sorting algorithm (sorted() by default)
 
 #### Example usages
 
@@ -103,35 +107,35 @@ You may use 5 different approaches to decode the files:
 
 ### forge\_obs.py
 This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed if -e/--export is set.
-#### Unique command line arguments explained in detail
+#### Unique command line arguments
 
 ### reduce\_obs.py
 TODO
-#### Unique command line arguments explained in detail
+#### Unique command line arguments
 
 ### derive\_obs.py
 TODO
-#### Unique command line arguments explained in detail
+#### Unique command line arguments
 
 ### aggregate\_obs.py
 TODO
-#### Unique command line arguments explained in detail
+#### Unique command line arguments
 
 ### derive\_obs.py -A
 TODO
-#### Unique command line arguments explained in detail
+#### Unique command line arguments
 
 ### audit\_obs.py
 TODO
-#### Unique command line arguments explained in detail
+#### Unique command line arguments
 
 ### empty\_obs.py
 TODO
-#### Unique command line arguments explained in detail
+#### Unique command line arguments
 
 ### export\_obs.py
 TODO
-#### Unique command line arguments explained in detail
+#### Unique command line arguments
 
 1 reduce\_obs.py (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
   copy all remaining elements from raw to forge databases [datetime,duration,element,value]
@@ -172,7 +176,8 @@ TODO
 \- main configuration file template with the following sections:
 
 > **general:**\
-> \- mos general settings which will be overwritten by the script's config\
+> \- most general settings which will be overwritten by all following configs\
+> \- order: general -> class -> script -> command line arguments\
 > **database:**\
 > \- TODO\
 > **bufr:**\
@@ -213,3 +218,8 @@ TODO
 - TODO
 ### multi\_decode\_bufr.sh
 - TODO
+#### Command line arguments
+##### $1
+- approach
+##### $2
+- number of processes to use (start decode\_bufr.py N times)
