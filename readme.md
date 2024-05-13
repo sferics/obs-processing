@@ -69,7 +69,6 @@ IMPORTANT TO REMEMBER: Settings defined by command line arguments always overwri
 This script decodes one or several BUFR files and inserts all relevant observations into the raw databases.\
 It can also process intire source/dataset directories which can be provided by the source name as arguments or via the configuration file's "source:" section.\
 By default, the configuration file's name is defined as "obs.yml". So before the first usage, you need to make sure to create it by copying the "obs\_template.yml" in "config/" and adding your desired configurations/sources.
-<br/><br/>
 
 #### Unique command line arguments
 
@@ -113,10 +112,10 @@ You may use 5 different approaches to decode the files:
 
 ##### custom config file, process all sources which are defined there and use custom output directory:
 `decode_bufr.py -C obs_custom.yml -O /custom/output/directory`
-  
+<br/><br/>
+ 
 ### forge\_obs.py
 This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed if -e/--export is set.
-<br/><br/>
 
 #### Unique command line arguments
 ##### -b/--bare
@@ -128,9 +127,10 @@ This is a chain script which runs the following scripts in the order of occurren
 - define old/legacy metwatch csv output directory for export\_obs.py
 
 #### Example usage
+##### Define custum output path and set log level to "INFO"
 `python forge_obs.py -e -L /legacy/output/path -l INFO`
 <br/><br/>
-  
+
 ### reduce\_obs.py
 (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
 Copy all remaining elements from raw to forge databases [dataset,datetime,duration,element,value]
@@ -139,7 +139,7 @@ Copy all remaining elements from raw to forge databases [dataset,datetime,durati
 ##### Use 12 processes:
 `python reduce_obs.py -P 12`
 <br/><br/>
-  
+
 ### derive\_obs.py
 Compute derived elements like relative humidity, cloud levels or reduced pressure.
 
@@ -151,14 +151,15 @@ Compute derived elements again, but only considering 30min-values.
 ##### Only derive observations from a single station:
 `python derive_obs.py -k 10381`
 <br/><br/>
-  
+
 ### aggregate\_obs.py
 Aggregate over certain time periods (like 30min,1h,3h,6h,12,24h) and create new elements with "\_DUR" suffix.
 
 #### Example usage
 ##### Enable traceback prints
 `python aggregate_obs.py -t`
-  
+<br/><br/>
+ 
 ### audit\_obs.py
 Check all obs in forge databases, delete bad data like NaN, unknown value or out-of-range
 - move good data in file databases e.g. "/oper/final" (oper mode)
@@ -168,7 +169,7 @@ Check all obs in forge databases, delete bad data like NaN, unknown value or out
 #### Run in debugging mode with debug prints and stop points
 `python audit_obs.py -d`
 <br/><br/>
-  
+ 
 ### empty\_obs.py
 Clear forge databases (they are temporary and get rebuilt every chain cycle).
 
@@ -179,7 +180,7 @@ Clear forge databases (they are temporary and get rebuilt every chain cycle).
 ##### Use the above option and show no warnings
 `python empty_obs.py -B -w`
 <br/><br/>
-  
+
 ### export\_obs.py
 Export observations from final databases into the old/legacy metwatch csv format.
 
