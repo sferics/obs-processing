@@ -3,10 +3,9 @@
 `chmod +x install.sh && ./install.sh`
 - or if the permissions cannot be set / changed:\
 `bash install.sh`
-\
-- The install.sh script will install miniconda if not present, create an environment with all necessary packages and install the plbufr package from github as well as the local directory "package" using "python setup.py install".\
-- It then defines ".githook" as the directory for git hooks. There is currently only one git hook which automatically installs the directory "package" as a package after each commit, so syntax errors can be easily avoided and exports the conda environment information to "config/environment.yml".\
-- Afterwards, it will compile all .py files in the directory in order to speed-up the first run of each script.\
+- The install.sh script will install miniconda if not present, create an environment with all necessary packages and install the plbufr package from github as well as the local directory "package" using "python setup.py install".
+- It then defines ".githook" as the directory for git hooks. There is currently only one git hook which automatically installs the directory "package" as a package after each commit, so syntax errors can be easily avoided and exports the conda environment information to "config/environment.yml".
+- Afterwards, it will compile all .py files in the directory in order to speed-up the first run of each script.
 - Lastly, it executes 2 .sql files which add some essential tables and columns to the main database. These changes should be implemented in amalthea/main for a better integration.
 
 # How to use OBS processing
@@ -32,22 +31,22 @@ It may use 5 different approaches ("-a", "--approach") to decode the files:
 #### Example usages
 
 ##### single file, redo even if already processed:
-`decode\_bufr.py -a pl -f example\_file.bufr -r`
+`decode_bufr.py -a pl -f example_file.bufr -r`
 
 ##### multiple files, use "," as divider character, show verbose output:
-`decode\_bufr.py -a ex -F example\_file1.bin,example\_file2.bin,example\_file3.bin -D "," -v`
+`decode_bufr.py -a ex -F example_file1.bin,example_file2.bin,example_file3.bin -D "," -v`
 
 ##### single source, consider only specific stations:
-`decode\_bufr.py DWD -a gt -k 10381,10382,10384,10385`
+`decode_bufr.py DWD -a gt -k 10381,10382,10384,10385`
 
 ##### multiple sources, process a maximum of 100 files per source:
-`decode\_bufr.py DWD KNMI RMI -a gt -n 100`
+`decode_bufr.py DWD KNMI RMI -a gt -n 100`
 
 ##### custom config file, process all sources which are defined there and use custom output directory:
-`decode\_bufr.py -C obs\_custom.yml -O /custom/output/directory`
+`decode_bufr.py -C obs_custom.yml -O /custom/output/directory`
 
 ### forge\_obs.py
-This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed when -e/--export is set.
+- This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed when -e/--export is set.
 ### reduce\_obs.py
 - TODO
 ### derive\_obs.py
