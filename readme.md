@@ -1,14 +1,15 @@
 **How to install OBS processing**
-run install.sh\
-$ ./install.sh\
-or if the permissions are not set\
+run install.sh like this:\
+$ chmod +x install.sh && ./install.sh\
+or if the permissions cannot be set / changed:\
 $ bash install.sh\
 \
 \
-The install.sh script will install conda if not present, create and environment with all necessary packages, install the plbufr package from github as well as the local directory "package" using "python setup.py install".\
+The install.sh script will install automatically conda if not present, create an environment with all necessary packages, install the plbufr package from github as well as the local directory "package" using "python setup.py install".\
 It then defines ".githook" as the directory for git hooks. There is currently only one git hook which automatically installs the directory "package" as a package after each commit, so syntax errors can be easily avoided.\
 Afterwards, it will compile all .py files in the directory in order to speed-up the first run of each script.\
 Lastly, it executes 2 .sql files which add some essential tables and columns to the main database. These changes should be implemented in amalthea/main for a better integration.\
+\
 \
 **How to use OBS processing**
 \
@@ -17,12 +18,12 @@ Lastly, it executes 2 .sql files which add some essential tables and columns to 
 This script decodes one or several BUFR files and inserts all relevant observations into the raw databases.\
 It can also process intire source/dataset directories which can be provided by the source name as arguments or via the configuration file's "source:" section.\
 \
-It may use 5 different approaches ("-a", "--approach") to decode the files:\
-- pd: Using pdbufr package officially provided by ECMWF (very slow because it uses pandas)\
-- pl: Using plbufr package forked from pdbufr by sferics (faster because it uses polars instead)\
-- gt: Also using plbufr bufr but instead of creating a dataframe it uses a generator (equally fast)\
-- us: Fastest decoding method using bufr keys from ECCODES but lacking some observations like soil temperatures\
-- ex: Slower than "us" method but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files, still lacking some information from DWD Open Data BUFR files\
+It may use 5 different approaches ("-a", "--approach") to decode the files:
+- pd: Using pdbufr package officially provided by ECMWF (very slow because it uses pandas)
+- pl: Using plbufr package forked from pdbufr by sferics (faster because it uses polars instead)
+- gt: Also using plbufr bufr but instead of creating a dataframe it uses a generator (equally fast)
+- us: Fastest decoding method using bufr keys from ECCODES but lacking some observations like soil temperatures
+- ex: Slower than "us" method but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files, still lacking some information from DWD Open Data BUFR files
 \
 **Example usages:**
 \
@@ -42,7 +43,7 @@ custom config file, process all sources which are defined there and use custom o
 decode\_bufr.py -C obs\_custom.yml -O /custom/output/directory\
 \
 **forge_obs.py**
-This is a chain script\
+This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed when -e/--export is set.\
 \
 **reduce_obs.py**
 \
@@ -56,8 +57,19 @@ This is a chain script\
 \
 **export_obs.py**
 \
+1 reduce\_obs.py (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
+  copy all remaining elements from raw to forge databases [datetime,duration,element,value]
+-in forge databases do:
+2 audit\_obs.py      ->  check each obs, delete bad data like NaN, unknown value or out-of-range
+2 derive\_obs.py     ->  compute derived elements like RH+TMP=DPT; cloud levels; reduced pressure...
+3 aggregate\_obs.py  ->  aggregate over time periods (1,3,6,12,24h) and create new elements with "\_DUR" suffix
+4 derive\_obs.py -A  ->  compute derived elements again, but only 30min values (--aggregated)
+5 audit\_obs.py      ->  check each obs, delete bad data like NaN, unknown value or out-of-range
+                        move good data in file databases e.g. "/oper/final" (oper mode)
+                        move bad data to seperate databases, e.g. "/dev/bad" directory (dev mode)
+6 empty\_obs.py      ->  clear forge databases (they are temporary and get rebuilt every chain cycle)
 \
-**Description of the configuration YAML files/structure in config/ directory**
+**Description of the configuration YAML files/structure in "config/" directory**
 \
 codes/\
         bufr/\
@@ -71,25 +83,25 @@ element\_aggregation.yml\
 element\_info.yml\
 \
 environment.yml\
-- conda environment information (packages to install)\
+- conda environment information (packages to install)
 \
 obs\_template.yml\
-- main configuration file template with the following sections\
+- main configuration file template with the following sections
 \
 	general:\
-	  - \
+	  - TODO
 	database:\
-	  - \
+	  - TODO
 	bufr:\
-	  - \
+	  - TODO
 	obs:\
-	  - \
+	  - TODO
 	scripts:\
-	  - \
+	  - TODO
 	clusters:\
-	  - \
+	  - TODO
 	sources:\
-	  - \
+	  - TODO
 \
 translations/\
 	bufr/\
