@@ -150,13 +150,13 @@ TODO
 ### codes/
 > bufr/
 >> flags_{approach}.yml
->> - TODO
+>> \- TODO
 >> sequences.yml
->> - TODO
+>> \- TODO
 > ### synop.yml
-> - TODO
+> \- TODO
 > ### metar.yml
-> - TODO
+> \- TODO
 
 ### element\_aggregation.yml
 - TODO
@@ -172,36 +172,36 @@ TODO
 - main configuration file template with the following sections:
 
 > #### general:
-> - most general settings which will be overwritten by the script's config
+> \- most general settings which will be overwritten by the script's config
 > #### database:
-> - TODO
+> \- TODO
 > #### bufr:
-> - TODO
+> \- TODO
 > #### obs:
-> - TODO
+> \- TODO
 > #### scripts:
-> - TODO
+> \- TODO
 > #### clusters:
-> - TODO
+> \- TODO
 > #### sources:
-> - TODO
+> \- TODO
 
 ### translations/
 > bufr/
 >> {approach}.yml
->> - BUFR key translations for the different approaches
+>> \- BUFR key translations for the different approaches
 > metwatch.yml
-> - translation for the legacy metwatch element names
+> \- translation for the legacy metwatch element names
 > imgw.yml
-> - translation for element names of Polish weather service Open Data
+> \- translation for element names of Polish weather service Open Data
 > {other\_source}.yml
-> - use this naming scheme if you want to add your own custom source translation files
+> \- use this naming scheme if you want to add your own custom source translation files
 
 ### parser\_args.yml
 - TODO
 ### station\_tables/
 > {mode}\_{stage}.yml
-> - TODO
+> \- TODO
 
 ## Bash scripts in "scripts/" directory
 
