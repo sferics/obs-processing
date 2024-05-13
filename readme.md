@@ -282,4 +282,4 @@ NOTE: You have to calculate manually how many files to process for each instance
 
 #### Example usage
 ##### Start 14 instances of decode\_bufr.py using "ex" approach and 2 seconds sleep time
-`./multi_decode_bufr.sh 14 ex 2 
+`./multi_decode_bufr.sh 14 ex 2` 
