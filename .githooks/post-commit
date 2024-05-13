@@ -4,7 +4,7 @@ ls
 #conda init && conda activate obs || exit
 
 # export environment information without prefix and variables sections
-#conda env export | grep -v "^prefix:$" | sed -e '/^variables:$/,$d' > config/environment.yml
+#bash scripts/export_conda_env.sh
 
 # install all files in package directory with pip install
 #python -m pip install --editable package

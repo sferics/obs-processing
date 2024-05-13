@@ -7,7 +7,7 @@ sudo apt install python python-dev wget
 # clone plbufr repository (fork of pdbufr using polars instead of pandas)
 git clone https://github.com/sferics/plbufr/
 
-#TODO automize conda install
+#TODO automize miniconda install
 
 # create new conda environment, using package list
 conda env create -f config/environment.yml
