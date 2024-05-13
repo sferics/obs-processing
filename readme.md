@@ -1,6 +1,7 @@
 # What is OBS processing?
 This repository contains all tools needed to processes and store synoptical observation from a variety of sources.
-###
+<br/>
+
 # How to install OBS processing
 - run install.sh like this:\
 `chmod +x install.sh && ./install.sh`
@@ -10,7 +11,8 @@ This repository contains all tools needed to processes and store synoptical obse
 - It then defines ".githook/" as the directory for git hooks. There is currently only one git hook which automatically installs the directory "package" as a package after each commit, so syntax errors can be easily avoided and exports the conda environment information to "config/environment.yml".
 - Afterwards, it will compile all .py files in the directory in order to speed-up the first run of each script.
 - Lastly, it executes 2 .sql files which add some essential tables and columns to the main database. These changes should be implemented in amalthea/main for a better integration.
-###
+<br/>
+
 # How to use OBS processing
 
 ## Python scripts
@@ -21,7 +23,7 @@ All python scripts offer a -h/--help option which shows their command line argum
 All command line arguments are defined in "config/parser\_args.yml" and they are the same across all scripts. The only difference lies in their availability.
 For more details on adding/changing/removing command line arguments, please read the respective section about the YAML configuration file (parser\_args.yml).\
 IMPORTANT TO REMEMBER: Settings defined by command line arguments always overwrite settings defined in the script's configuration!
-### 
+<br/>
  
 #### Common command line arguments
 
@@ -67,7 +69,7 @@ IMPORTANT TO REMEMBER: Settings defined by command line arguments always overwri
 This script decodes one or several BUFR files and inserts all relevant observations into the raw databases.\
 It can also process intire source/dataset directories which can be provided by the source name as arguments or via the configuration file's "source:" section.\
 By default, the configuration file's name is defined as "obs.yml". So before the first usage, you need to make sure to create it by copying the "obs\_template.yml" in "config/" and adding your desired configurations/sources.
-###
+<br/>
 
 #### Unique command line arguments
 
@@ -114,7 +116,7 @@ You may use 5 different approaches to decode the files:
   
 ### forge\_obs.py
 This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed if -e/--export is set.
-###
+<br/>
 
 #### Unique command line arguments
 ##### -b/--bare
@@ -127,7 +129,7 @@ This is a chain script which runs the following scripts in the order of occurren
 
 #### Example usage
 `python forge_obs.py -e -L /legacy/output/path -l INFO`
-###
+<br/>
   
 ### reduce\_obs.py
 (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
@@ -136,7 +138,7 @@ Copy all remaining elements from raw to forge databases [dataset,datetime,durati
 #### Example usage
 ##### Use 12 processes:
 `python reduce_obs.py -P 12`
-###
+<br/>
   
 ### derive\_obs.py
 Compute derived elements like relative humidity, cloud levels or reduced pressure.
@@ -148,7 +150,7 @@ Compute derived elements again, but only considering 30min-values.
 #### Example usage
 ##### Only derive observations from a single station:
 `python derive_obs.py -k 10381`
-###
+<br/>
   
 ### aggregate\_obs.py
 Aggregate over certain time periods (like 30min,1h,3h,6h,12,24h) and create new elements with "\_DUR" suffix.
@@ -165,7 +167,7 @@ Check all obs in forge databases, delete bad data like NaN, unknown value or out
 #### Example usage
 #### Run in debugging mode with debug prints and stop points
 `python audit_obs.py -d`
-###
+<br/>
   
 ### empty\_obs.py
 Clear forge databases (they are temporary and get rebuilt every chain cycle).
@@ -176,7 +178,7 @@ Clear forge databases (they are temporary and get rebuilt every chain cycle).
 #### Example usage
 ##### Use the above option and show no warnings
 `python empty_obs.py -B -w`
-###
+<br/>
   
 ### export\_obs.py
 Export observations from final databases into the old/legacy metwatch csv format.
@@ -187,7 +189,7 @@ Export observations from final databases into the old/legacy metwatch csv format
 ##### Example usage
 ###### Define a custom directory for the legacy output
 `python export_obs.py -l /legacy/output/directory`
-###
+<br/>
 
   
 ## Configuration YAML files/structure in "config/" directory
@@ -248,26 +250,26 @@ Export observations from final databases into the old/legacy metwatch csv format
 ##### station\_tables/
 > ##### {mode}\_{stage}.yml
 > \- TODO
-###  
+<br/>
 
 ## Bash scripts in "scripts/" directory
 
 ### export\_bufr\_tables.sh
 - TODO
-###
+<br/>
 
 ### export\_conda\_env.sh
 - TODO
-###
+<br/>
 
 ### install.sh
 - TODO
-###
+<br/>
 
 ### multi\_decode\_bufr.sh
 This scripts starts the decode\_bufr.py script multiple times, so you can process a large number of files much faster.\
 NOTE: You have to calculate manually how many files to process for each instance of the script and define max\_files accordingly in the script config's "decode\_by.py:" section.
-###
+<br/>
 
 #### Command line arguments
 ##### $1
