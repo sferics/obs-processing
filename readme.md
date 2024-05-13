@@ -192,7 +192,7 @@ Export observations from final databases into the old/legacy metwatch csv format
 `python export_obs.py -l /legacy/output/directory`
 <br/><br/>
 
-  
+
 ## Description of YAML files and structure in "config/" directory
 
 ### codes/
