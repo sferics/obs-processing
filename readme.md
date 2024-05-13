@@ -1,6 +1,6 @@
 # What is OBS processing?
 This repository contains all tools needed to processes and store synoptical observation from a variety of sources.
-#
+###
 # How to install OBS processing
 - run install.sh like this:\
 `chmod +x install.sh && ./install.sh`
@@ -10,7 +10,7 @@ This repository contains all tools needed to processes and store synoptical obse
 - It then defines ".githook/" as the directory for git hooks. There is currently only one git hook which automatically installs the directory "package" as a package after each commit, so syntax errors can be easily avoided and exports the conda environment information to "config/environment.yml".
 - Afterwards, it will compile all .py files in the directory in order to speed-up the first run of each script.
 - Lastly, it executes 2 .sql files which add some essential tables and columns to the main database. These changes should be implemented in amalthea/main for a better integration.
-#  
+###
 # How to use OBS processing
 
 ## Python scripts
@@ -21,7 +21,8 @@ All python scripts offer a -h/--help option which shows their command line argum
 All command line arguments are defined in "config/parser\_args.yml" and they are the same across all scripts. The only difference lies in their availability.
 For more details on adding/changing/removing command line arguments, please read the respective section about the YAML configuration file (parser\_args.yml).\
 IMPORTANT TO REMEMBER: Settings defined by command line arguments always overwrite settings defined in the script's configuration!
-###  
+### 
+ 
 #### Common command line arguments
 
 ##### -h/--help
@@ -247,7 +248,7 @@ Export observations from final databases into the old/legacy metwatch csv format
 ##### station\_tables/
 > ##### {mode}\_{stage}.yml
 > \- TODO
-##  
+###  
 
 ## Bash scripts in "scripts/" directory
 
