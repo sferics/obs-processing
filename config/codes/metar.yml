@@ -1,0 +1,40 @@
+#https://www.weather.gov/media/wrh/mesowest/metar_decode_key.pdf
+
+weather:
+  HZ: 10 #haze
+  FZ: #freezing
+  SQ: #squalls
+  FC: 19 #funnel cloud
+  FU: #smoke
+  DS: #dust storn
+  DU: #widespread dust
+  PO: #dust/sand whirls (dust devils)
+  VA: 30 #volcanic ash
+  SA: 30 #sand
+  SS: 30 #sand storm
+  BR: 40 #mist
+  FG: 40 #fog
+  DZ: 50 #drizzle
+  PY: 50 #spray
+  RA: 60 #rain
+  UP: 60 #unknown precipitation
+  SN: 70 #snow
+  SG: 70 #snow grains
+  SP: 70 #snow pellets
+  SH: 80 #showers
+  SW: 80 #snow shower
+  TS: 90 #thunderstorm
+  IC: 90 #ice crystals, in-cloud lightning
+  CA: 90 #cloud-air lightning
+  CC: 90 #cloud-cloud lightning
+  CG: 90 #cloud-ground lightning
+  CB: #90? #cumulonimbus cloud
+  GS: 85 #small hail and/or snow pellets 
+  GR: 88 #hail
+  PL: #ice pellets
+
+clouds:
+  CLR: 0
+  FEW: 2
+  BKN: 4
+  OVC: 8
