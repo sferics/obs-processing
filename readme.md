@@ -163,7 +163,7 @@ Clear forge databases (they are temporary and get rebuilt every chain cycle).
 #### Unique command line arguments
 ##### -B/--bad\_obs
 - clear bad obs as well
-#### Example usage
+##### Example usage
 `python empty_obs.py -d`
 
 ### export\_obs.py
@@ -172,7 +172,7 @@ Export observations from final databases into the old/legacy metwatch csv format
 #### Unique command line arguments
 ##### -L/--legacy\_output $LEGACY\_OUTPUT
 - define old/legacy metwatch csv output directory
-#### Example usage
+##### Example usage
 `python export_obs.py -d`
 
 
