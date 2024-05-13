@@ -437,11 +437,11 @@ def read_yaml(file_name="obs", file_dir="config", ext="yml", typ="safe", pure=Tr
     def construct_slice(loader: loader, node: yaml.Node):
         if isinstance(node, yaml.SequenceNode):
             return slice( *yield_sequence(node, call=int) )
-        else: raise TypeError("node.value needs to be a scalar")
+        else: raise TypeError("node.value needs to be a sequence")
 
-    tags =("bool","eval","fset","set","tuple","list","iter","range","date","dt","td","path","slice")
-
-    for tag in tags:
+    tgs = ("bool","eval","fset","set","tuple","list","iter","range","date","dt","td","path","slice")
+    
+    for tag in tgs:
         construct_function = locals()[f"construct_{tag}"]
         yaml.add_constructor(u'tag:yaml.org,2002:'+tag, construct_function)
 
