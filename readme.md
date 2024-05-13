@@ -165,25 +165,25 @@ TODO
 \- TODO
 
 ##### environment.yml
-\- conda environment information (environment name, packages to install, conda settings)
+\- conda environment information (environment name, packages to install, conda settings)\
 \- does not contain prefix and variables because they are system-dependent
 
 ##### obs\_template.yml
 \- main configuration file template with the following sections:
 
-> #### general:
+> ###### general:
 > \- most general settings which will be overwritten by the script's config
-> #### database:
+> ###### database:
 > \- TODO
-> #### bufr:
+> ###### bufr:
 > \- TODO
-> #### obs:
+> ###### obs:
 > \- TODO
-> #### scripts:
+> ###### scripts:
 > \- TODO
-> #### clusters:
+> ###### clusters:
 > \- TODO
-> #### sources:
+> ###### sources:
 > \- TODO
 
 ### translations/
@@ -194,7 +194,7 @@ TODO
 > \- translation for the legacy metwatch element names\
 > ##### imgw.yml
 > \- translation for element names of Polish weather service Open Data\
-> ##### {other\_source}.yml\
+> ##### {other\_source}.yml
 > \- use this naming scheme if you want to add your own custom source translation files\
 
 ##### parser\_args.yml
