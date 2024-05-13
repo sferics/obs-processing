@@ -18,8 +18,8 @@ All python scripts offer a -h/--help option which shows their command line argum
 
 ### Note on command line arguments
 
-All command line arguments are defined in "config/parser\_args" and they are the same across all scripts. The only difference lies in their availability.
-For more details on adding/changing/removing command line arguments, please read the respective section about the YAML configuration files.\
+All command line arguments are defined in "config/parser\_args.yml" and they are the same across all scripts. The only difference lies in their availability.
+For more details on adding/changing/removing command line arguments, please read the respective section about the YAML configuration file (parser\_args.yml).\
 IMPORTANT TO REMEMBER: Settings defined by command line arguments always overwrite settings defined in the script's configuration!
 
 #### Common command line arguments
@@ -78,21 +78,21 @@ You may use 5 different approaches to decode the files:
 - pl: Using plbufr package forked from pdbufr by sferics (faster because it uses polars instead)
 - gt: Also using plbufr bufr but instead of creating a dataframe it uses a generator (equally fast)
 - us: Fastest decoding method using bufr keys from ECCODES but lacking some observations like soil temperatures
-- ex: Slower than "us" method but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files, still lacking some information from DWD Open Data BUFR files
+- ex: Slower than "us" method but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files and lacking some information from DWD Open Data files
 ##### -f/--file $FILE\_PATH
-- process single file by file path
+- process a single file, given by its file path
 ##### -F/--FILES $LIST\_OF\_FILES
-- process several files, given by file paths, seperated by divider character (default: ";")
+- process several files, given by their file paths, seperated by divider character (default: ";")
 ##### -D/--divider $DIVIDER
 - define a custom divider/seperator character for -F
 ##### -r/--redo
-- process file(s) again even if they have been processed already
+- process file(s) again, even if they have been processed already
 ##### -R/--restart
 - usually only used automatically by the script if the RAM is full, so it knows which files are still left to process
 ##### -s/--sort\_files
 - sort files with sorting algorithm (sorted() by default)
 ##### -H/--how
-- define sorting algorithm for the above option (has to be a python callable and will be evaluated by eval()
+- define sorting algorithm for the above option (has to be a python callable and will be evaluated by eval() method)
 
 #### Example usages
 
@@ -131,7 +131,8 @@ This is a chain script which runs the following scripts in the order of occurren
 Copy all remaining elements from raw to forge databases [dataset,datetime,duration,element,value]
 
 #### Example usage
-`python reduce_obs.py -d`
+##### Use 12 processes:
+`python reduce_obs.py -P 12`
 
 ### derive\_obs.py
 Compute derived elements like relative humidity, cloud levels or reduced pressure.
@@ -141,13 +142,15 @@ Compute derived elements like relative humidity, cloud levels or reduced pressur
 Compute derived elements again, but only considering 30min-values.
 
 #### Example usage
-`python derive_obs.py -d`
+##### Only derive observations from a single station:
+`python derive_obs.py -k 10381`
 
 ### aggregate\_obs.py
 Aggregate over certain time periods (like 30min,1h,3h,6h,12,24h) and create new elements with "\_DUR" suffix.
 
 #### Example usage
-`python aggregate_obs.py -d`
+##### Enable traceback prints
+`python aggregate_obs.py -t`
 
 ### audit\_obs.py
 Check all obs in forge databases, delete bad data like NaN, unknown value or out-of-range
@@ -155,6 +158,7 @@ Check all obs in forge databases, delete bad data like NaN, unknown value or out
 - move bad data to seperate databases, e.g. "/dev/bad" directory (dev mode)
 
 #### Example usage
+#### Run in debugging mode with debug prints and stop points
 `python audit_obs.py -d`
 
 ### empty\_obs.py
@@ -163,8 +167,9 @@ Clear forge databases (they are temporary and get rebuilt every chain cycle).
 #### Unique command line arguments
 ##### -B/--bad\_obs
 - clear bad obs as well
-##### Example usage
-`python empty_obs.py -d`
+#### Example usage
+##### Use the above option and show no warnings
+`python empty_obs.py -B -w`
 
 ### export\_obs.py
 Export observations from final databases into the old/legacy metwatch csv format.
@@ -173,7 +178,8 @@ Export observations from final databases into the old/legacy metwatch csv format
 ##### -L/--legacy\_output $LEGACY\_OUTPUT
 - define old/legacy metwatch csv output directory
 ##### Example usage
-`python export_obs.py -d`
+###### Define a custom directory for the legacy output
+`python export_obs.py -l /legacy/output/directory`
 
 
 ## Configuration YAML files/structure in "config/" directory
