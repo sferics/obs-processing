@@ -4,26 +4,23 @@ $ chmod +x install.sh && ./install.sh\
 or if the permissions cannot be set / changed:\
 $ bash install.sh\
 \
-\
 The install.sh script will install miniconda if not present, create an environment with all necessary packages and install the plbufr package from github as well as the local directory "package" using "python setup.py install".\
 It then defines ".githook" as the directory for git hooks. There is currently only one git hook which automatically installs the directory "package" as a package after each commit, so syntax errors can be easily avoided and exports the conda environment information to "config/environment.yml".\
 Afterwards, it will compile all .py files in the directory in order to speed-up the first run of each script.\
 Lastly, it executes 2 .sql files which add some essential tables and columns to the main database. These changes should be implemented in amalthea/main for a better integration.\
 \
-\
 # How to use OBS processing
-\
+
 ## Python scripts
 All python scripts offer a -h/--help option which shows their command line arguments with a brief explanation. However, in order to understand them better, you should read the following in-depth information carefully.\
-\
+
 ### decode\_bufr.py
-\
 This script decodes one or several BUFR files and inserts all relevant observations into the raw databases.\
 It can also process intire source/dataset directories which can be provided by the source name as arguments or via the configuration file's "source:" section.\
-By default, the configuration file's name is defined as "obs.yml". So before the first usage, you need to make sure to create it by copying the "obs\_template.yml" in "config/" and adding your desired configuration/sources.
-\
+By default, the configuration file's name is defined as "obs.yml". So before the first usage, you need to make sure to create it by copying the "obs\_template.yml" in "config/" and adding your desired configuration/sources.\
+
 #### Important flags explained in detail
-\
+
 ##### --approach
 It may use 5 different approaches ("-a", "--approach") to decode the files:
 - pd: Using pdbufr package officially provided by ECMWF (very slow because it uses pandas)
@@ -31,40 +28,39 @@ It may use 5 different approaches ("-a", "--approach") to decode the files:
 - gt: Also using plbufr bufr but instead of creating a dataframe it uses a generator (equally fast)
 - us: Fastest decoding method using bufr keys from ECCODES but lacking some observations like soil temperatures
 - ex: Slower than "us" method but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files, still lacking some information from DWD Open Data BUFR files
-\
+
 \
 #### Example usages
 \
-single file, redo even if already processed:\
+##### single file, redo even if already processed:\
 decode\_bufr.py -a pl -f example\_file.bufr -r\
 \
-multiple files, use "," as divider character, show verbose output:\
+##### multiple files, use "," as divider character, show verbose output:\
 decode\_bufr.py -a ex -F example\_file1.bin,example\_file2.bin,example\_file3.bin -D "," -v\
 \
-single source, consider only specific stations:\
+##### single source, consider only specific stations:\
 decode\_bufr.py DWD -a gt -k 10381,10382,10384,10385\
 \
-multiple sources, process a maximum of 100 files per source:\
+##### multiple sources, process a maximum of 100 files per source:\
 decode\_bufr.py DWD KNMI RMI -a gt -n 100\
 \
-custom config file, process all sources which are defined there and use custom output directory:\
+##### custom config file, process all sources which are defined there and use custom output directory:\
 decode\_bufr.py -C obs\_custom.yml -O /custom/output/directory\
-\
+
 ### forge\_obs.py
 This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed when -e/--export is set.\
-\
 ### reduce\_obs.py
-\
+- TODO
 ### derive\_obs.py
-\
+- TODO
 ### aggregate\_obs.py
-\
+- TODO
 ### derive\_obs.py -A
-\
+- TODO
 ### audit\_obs.py
-\
+- TODO
 ### empty\_obs.py
-\
+- TODO
 ### export\_obs.py
 \
 1 reduce\_obs.py (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
@@ -101,19 +97,19 @@ obs\_template.yml\
 - main configuration file template with the following sections
 \
 	general:\
-	  - TODO
+	  - TODO\
 	database:\
-	  - TODO
+	  - TODO\
 	bufr:\
-	  - TODO
+	  - TODO\
 	obs:\
-	  - TODO
+	  - TODO\
 	scripts:\
-	  - TODO
+	  - TODO\
 	clusters:\
-	  - TODO
+	  - TODO\
 	sources:\
-	  - TODO
+	  - TODO\
 \
 translations/\
 	bufr/\
@@ -131,9 +127,13 @@ parser\_args.yml\
 station\_tables/\
 	{mode}_{stage}.yml\
 \
-\
 ## Bash scripts in "scripts/" directory
-- export\_bufr\_tables.sh
-- export\_conda\_env.sh
-- install.sh
-- multi\_decode\_bufr.s
+
+### export\_bufr\_tables.sh
+- TODO
+### export\_conda\_env.sh
+- TODO
+### install.sh
+- TODO
+### multi\_decode\_bufr.sh
+- TODO
