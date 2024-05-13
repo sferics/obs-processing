@@ -1,0 +1,303 @@
+### most general (default) settings; can be overwritten by class and script configs (or command line options)
+general:
+  mode:           !!str   dev # oper, test, ???
+  output:         !!str   /path/to/station/databases
+  log_level:      !!str   INFO
+  verbose:        !!bool  0
+  debug:          !!bool  0
+  traceback:      !!bool  0
+  timeout:        !!int   5
+  max_retries:    !!int   100
+  stations:       !!set   [] #[wmo,dwd,noaa,zamg,tawes]
+  clusters:       !!set   []
+
+### configuration of classes (key name == name of class without 'Class')
+### class configurations
+
+database:
+  db_file:        !!str   /path/to/main.db
+  verbose:        !!bool  0
+  log_level:      !!str   ERROR
+  traceback:      !!bool  1
+  timeout:        !!int   5 # default is 5
+  settings: 
+    analysis_limit:             
+    auto_vacuum:                
+    automatic_index:            
+    busy_timeout:               
+    cache_size:                 
+    cache_spill:                
+    case_sensitive_like:        
+    cell_size_check:            
+    defer_foreign_keys:         
+    encoding:                   
+    foreign_keys:               
+    hard_heap_limit:            
+    ignore_check_constraints:   
+    journal_mode:               
+    journal_size_limit:         
+    legacy_alter_table:         
+    locking_mode:              NORMAL
+    max_page_count:             
+    mmap_size:                  
+    page_size:                  
+    parser_trace:               
+    query_only:                 
+    read_uncommitted:           
+    recursive_triggers:         
+    reverse_unordered_selects:  
+    schema_version:             
+    secure_delete:              
+    soft_heap_limit:            
+    synchronous:                
+    temp_store:                 
+    threads:                    
+    trusted_schema:             
+    user_version:               
+    writable_schema:            
+
+bufr:
+  verbose:            !!bool  0
+  log_level:          !!str   ERROR
+  traceback:          !!bool  0
+  tables:             !!str   /path/to/definition/tables
+
+obs:
+  verbose:            !!bool  0
+  log_level:          !!str   WARNING
+  traceback:          !!bool  0
+  mode:               !!str   dev
+  output:             !!str   /path/to/station/databases
+  max_retries:        !!int   1200
+  timeout:            !!int   3
+  commit:             !!bool  1
+  settings:                   {} # you may add SQLite PRAGMA settings analog to settings of main database here
+
+
+### script configurations (key name == script name)
+scripts:
+  add_stations_from_bufr.py:
+    conda_env:        !!str   obs
+    pid_file:         !!bool  0 # create and use pid file
+    verbose:          !!bool  1
+    traceback:        !!bool  1
+    max_files:        !!int   0 # 0 or None (~) means no limit
+    max_retries:      !!int   100
+    processes:        !!int   15
+    station_info:     !!str   bufr_station_info
+    null_vals:        !!set   ["null", "NULL", MISSING, XXXX, " ", "", ~]
+    mandatory_keys:   !!set   [stationOrSiteName, latitude, longitude]
+    additional_keys:  !!set   [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
+
+  decode_bufr.py: # can use any approach
+    conda_env:        !!str   obs
+    pid_file:         !!bool  0  # create and use pid file
+    verbose:          !!bool  0 # verbose output
+    log_level:        !!str   INFO
+    debug:            !!bool  0
+    traceback:        !!bool  0 # enable traceback prints
+    timeout:          !!int   3 # timeout for station databases
+    min_ram:          !!int   2048 # minimum amount of RAM script should leave free, if value is reached: restart
+    max_retries:      !!int   1000 # retries when using set_file_statuses (and writing to station databases)
+    max_files:        !!int   5395 #6225 #5046 # zero means no maximum #15: 5395
+    sort_files:       !!bool  1 # sort files alpha-numerically 
+    sort_method:      !!eval  sorted # sort method (callable to use as sorting algorithm)
+    stations:         !!set   [wmo]
+    clusters:         !!set   [germany]
+    mode:             !!str   dev
+    output:           !!str   /path/to/station/databases
+    approach:         !!str   pl
+    convert_datetime: !!set   [pd]    # approaches where we need pandas to python dt conversion
+    shift_datetime:   !!set   [us]    # approaches where it is necessary to shift some datetimes
+    scale_info:       !!set   [us,ex] # approaches which deliver scale info
+     
+  get_imgw.py:
+    conda_env:        !!str   obs
+    mode:             !!str   dev
+    log_level:        !!str   ERROR
+    verbose:          !!bool  1
+    max_retries:      !!int   10
+    timeout:          !!int   3
+    output:           !!str   /path/to/station/databases
+
+  forge_obs.py:
+    conda_env:        !!str   obs
+    pid_file:         !!bool  0 # create and use pid file
+    verbose:          !!bool  0 # verbose output
+    traceback:        !!bool  0 # traceback prints
+    debug:            !!bool  0
+    mode:             !!str   dev
+    output:           !!str   /path/to/station/databases
+    legacy_output:    !!str   /path/to/legacy/output
+    export:           !!bool  0
+    timeout:          !!int   5
+    max_retries:      !!int   100
+
+  reduce_obs.py:
+    pid_file:         !!bool  0 # create and use pid file
+    verbose:          !!bool  0 # verbose output
+    traceback:        !!bool  0 # traceback prints
+    debug:            !!bool  0
+    mode:             !!str   dev
+    output:           !!str   /path/to/station/databases
+    clusters:         !!set   [germany]
+    processes:        !!int   15 #4
+
+  audit_obs.py:
+    conda_env:        !!str   obs
+    pid_file:         !!bool  0 # create and use pid file
+    output:           !!str   /path/to/station/databases
+    element_info:     !!str   element_info
+
+  derive_obs.py:
+    conda_env:        !!str   obs
+    pid_file:         !!bool  0 # create and use pid file
+    verbose:          !!bool  1
+    traceback:        !!bool  0
+    mode:             !!str   dev
+    output:           !!str   /path/to/station/databases
+    processes:        !!int   15
+    clusters:         !!set   [germany]
+    replacements:
+      TMIN_10cm_syn:  !!str   TMIN_5cm_syn
+      DIR_10m_syn:    !!str   WDIR_5m_syn
+      FFavg_10m_syn:  !!str   WIND_5m_syn
+      #TCC_LC_syn:     !!str   CDC1_2m_syn #, LCDC_2m_syn
+      #TCC_MC_syn:     !!str   CDC2_2m_syn
+      #TCC_HC_syn:     !!str   CDC3_2m_syn
+      TCC_1C_syn:     !!str   CDCL_2m_syn
+      TCC_2C_syn:     !!str   CDCM_2m_syn
+      TCC_3C_syn:     !!str   CDCH_2m_syn
+      #VIS_syn:        !!str   MOR_2m_syn,VISmin_2m_syn,MORmin_2m_syn,VISpre_2m_syn,VIS_2m_met,VISsea_2m_syn,MORmax_2m_syn
+    combinations:
+      #CL[1-4]_syn:    !!tuple [TCC_%dC_syn, round(CB%d_syn)]
+      CL1_syn:        !!tuple [TCC_1C_syn, round(CB1_syn)]
+      CL2_syn:        !!tuple [TCC_2C_syn, round(CB2_syn)]
+      CL3_syn:        !!tuple [TCC_3C_syn, round(CB3_syn)]
+      CL4_syn:        !!tuple [TCC_4C_syn, round(CB4_syn)]
+      #CLCMCH_syn:     !!tuple [TCC_LC_syn, TCC_MC_syn, TCC_HC_syn]
+
+  aggregate_obs.py:
+    conda_env:        !!str   obs
+    pid_file:         !!bool  0 # create and use pid file
+    verbose:          !!bool  0 # verbose output
+    traceback:        !!bool  1 # traceback prints
+    mode:             !!str   dev
+    output:           !!str   /path/to/station/databases
+    processes:        !!int   15
+    stations:         !!set   [wmo, dwd]
+    clusters:         !!set   [germany] # TODO should take setting from sources instead
+    aggregat_elems:   !!str   element_aggregation
+
+
+clusters:
+  country:
+      block:                  99
+      identifier:             999
+      stations:       !!set   [wmo]
+
+sources:
+  # source template
+  name:
+    bufr:
+      ext:            !!str   bin
+      glob:           !!str   "*" #"*_bda01,synop_bufr_GER_999999_999999__MW_???" # only german BUFR messages
+      prio:           !!int   0
+      dir:            !!str   /path/to/input/files
+      tables:         !!str   /path/to/definition/tables
+      skip1:          !!int   2
+      skip2:          !!int   11
+      skip3:          !!int   4
+    metar:
+      ext:            !!str   txt
+    synop:
+      ext:            !!str   syn
+    csv:
+      ext:            !!str   csv
+    json:
+      ext:            !!str   json
+    netcdf:
+      ext:            !!str   nc
+    api:
+      url:            !!str   https://example.com
+      key:            !!str   api_key
+    other:
+      ext:            !!str   dat
+    general:
+      stations:       !!set   [wmo,other]
+      clusters:       !!set   [country1,country2]
+ 
+
+  # some example open data sources
+  dwd_germany:
+    bufr:
+      ext:            !!str   bin
+      url:            !!str   https://opendata.dwd.de/weather/weather_reports/synoptic/germany/
+      dir:            !!str   /home/juri/data/live/dwd/bufr/germany
+    general:
+      stations:       !!set   [wmo]
+      clusters:       !!set   [germany]
+  
+  cod:
+    bufr:
+      ext:            !!str   bufr
+      url:            !!str   https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
+      dir:            !!str   /home/juri/data/live/cod/bufr
+    general:
+      stations:       !!set   [wmo]
+      clusters:       !!set   [germany]
+
+  DWD: # German weather service
+    bufr:
+      ext:            !!str   bin
+      prio:           !!int   2
+      dir:            !!str   /home/dev/obs-processing/DWD # em24 dev
+    general:
+      stations:       !!set   [wmo, dwd]
+      clusters:       !!set   [germany, europe, usa]
+  
+  KNMI: # Dutch weather service
+    bufr:
+      ext:            !!str   bufr
+      glob:           !!str   "SYNOP_BUFR_*"
+      prio:           !!int   0
+      dir:            !!str   /home/dev/obs-processing/KNMI
+    netcdf:           !!str   
+      ext:            !!str   nc
+      url:            !!str   https://dataplatform.knmi.nl/dataset/access/actuele10mindataknmistations-2
+  
+  COD: # College of DuPage
+    bufr:
+      ext:            !!str   bufr
+      url:            !!str   https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
+      wget:           !!str   "-e robots=off -nc -nd -np -r"
+      prio:           !!int   1
+      dir:            !!str   /home/dev/obs-processing/COD
+    synop:
+      ext:            !!str   syn
+      url:            !!str   https://weather.cod.edu/digatmos/syn/
+      wget:           !!str   "-e robots=off -nc -nd -np -r"
+      prio:           !!int   2
+    metar:
+      ext:            !!str   sao
+      url:            !!str   https://weather.cod.edu/digatmos/sao/
+      wget:           !!str   "-e robots=off -nc -nd -np -r"
+      prio:           !!int   3
+    general:
+      stations:       !!set   [wmo]
+
+  RMI: # Belgian meteorological service
+    bufr:
+      ext:            !!str   bufr
+      url:            !!str   https://opendata.meteo.be/ftp/observations/synop/
+      wget:           !!str   "-nc -nd -np -r"
+      prio:           !!int   0
+      dir:            !!str   /home/dev/obs-processing/RMI
+  
+  IMGW: # Polish meteo+hydrological service
+    url:              !!str   https://danepubliczne.imgw.pl/api/data/synop
+    prio:             !!int   4
+    #historical data 2017-
+    #https://danepubliczne.imgw.pl/data/arch/ost_meteo/
+    #historical data 1951-
+    #https://danepubliczne.imgw.pl/data/dane_pomiarowo_obserwacyjne/dane_meteorologiczne/
