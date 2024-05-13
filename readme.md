@@ -153,7 +153,7 @@ Compute derived elements again, but only considering 30min-values.
 <br/><br/>
 
 ### aggregate\_obs.py
-Aggregate over certain time periods (like 30min,1h,3h,6h,12,24h) and create new elements with "\_DUR" suffix.
+Aggregate over certain time periods / durations (like 30min,1h,3h,6h,12,24h) and create new elements with "\_{duration}" suffix.
 
 #### Example usage
 ##### Enable traceback prints
@@ -162,8 +162,8 @@ Aggregate over certain time periods (like 30min,1h,3h,6h,12,24h) and create new 
  
 ### audit\_obs.py
 Check all obs in forge databases, delete bad data like NaN, unknown value or out-of-range
-- move good data in file databases e.g. "/oper/final" (oper mode)
-- move bad data to seperate databases, e.g. "/dev/bad" directory (dev mode)
+- move good data in final databases e.g. "/oper/final" (oper mode)
+- move bad data to seperate databases, e.g. "/dev/bad" (dev mode)
 
 #### Example usage
 #### Run in debugging mode with debug prints and stop points
@@ -171,7 +171,7 @@ Check all obs in forge databases, delete bad data like NaN, unknown value or out
 <br/><br/>
  
 ### empty\_obs.py
-Clear forge databases (they are temporary and get rebuilt every chain cycle).
+Clear forge station databases (they are temporary and get rebuilt every chain cycle).
 
 #### Unique command line arguments
 ##### -B/--bad\_obs
@@ -189,7 +189,7 @@ Export observations from final databases into the old/legacy metwatch csv format
 - define old/legacy metwatch csv output directory
 ##### Example usage
 ###### Define a custom directory for the legacy output
-`python export_obs.py -l /legacy/output/directory`
+`python export_obs.py -L /legacy/output/directory`
 <br/><br/>
 
 
@@ -256,15 +256,15 @@ Export observations from final databases into the old/legacy metwatch csv format
 ## Bash scripts in "scripts/" directory
 
 ### export\_bufr\_tables.sh
-- TODO
+Export your custom BUFR tables to the local and conda environment variables.
 <br/>
 
-### export\_conda\_env.sh
-- TODO
+### export\_conda\_environment.sh
+Export conda environment information to "config/enviroment.yml". Only skip "path:" and "variables:" section because they depend on the local system.
 <br/>
 
 ### install.sh
-- TODO
+Install the repository using conda and prepare everything to get started immediately.
 <br/>
 
 ### multi\_decode\_bufr.sh
@@ -277,3 +277,9 @@ NOTE: You have to calculate manually how many files to process for each instance
 - set BUFR decoding approach (default: gt)
 ##### $2
 - number of processes to use (start decode\_bufr.py N times)
+##### $3
+- sleep time in between script execution (wait N seconds before starting the next instance)
+
+#### Example usage
+##### Start 14 instances of decode\_bufr.py using "ex" approach and 2 seconds sleep time
+`./multi_decode_bufr.sh 14 ex 2 
