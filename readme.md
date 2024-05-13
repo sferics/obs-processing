@@ -32,22 +32,22 @@ It may use 5 different approaches ("-a", "--approach") to decode the files:
 #### Example usages
 
 ##### single file, redo even if already processed:
-decode\_bufr.py -a pl -f example\_file.bufr -r\
+decode\_bufr.py -a pl -f example\_file.bufr -r
 
 ##### multiple files, use "," as divider character, show verbose output:
-decode\_bufr.py -a ex -F example\_file1.bin,example\_file2.bin,example\_file3.bin -D "," -v\
+decode\_bufr.py -a ex -F example\_file1.bin,example\_file2.bin,example\_file3.bin -D "," -v
 
 ##### single source, consider only specific stations:
-decode\_bufr.py DWD -a gt -k 10381,10382,10384,10385\
+decode\_bufr.py DWD -a gt -k 10381,10382,10384,10385
 
 ##### multiple sources, process a maximum of 100 files per source:
-decode\_bufr.py DWD KNMI RMI -a gt -n 100\
+decode\_bufr.py DWD KNMI RMI -a gt -n 100
 
 ##### custom config file, process all sources which are defined there and use custom output directory:
-decode\_bufr.py -C obs\_custom.yml -O /custom/output/directory\
+decode\_bufr.py -C obs\_custom.yml -O /custom/output/directory
 
 ### forge\_obs.py
-This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed when -e/--export is set.\
+This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed when -e/--export is set.
 ### reduce\_obs.py
 - TODO
 ### derive\_obs.py
@@ -61,7 +61,6 @@ This is a chain script which runs the following scripts in the order of occurren
 ### empty\_obs.py
 - TODO
 ### export\_obs.py
-\
 1 reduce\_obs.py (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
   copy all remaining elements from raw to forge databases [datetime,duration,element,value]
 -in forge databases do:
@@ -73,27 +72,22 @@ This is a chain script which runs the following scripts in the order of occurren
                         move good data in file databases e.g. "/oper/final" (oper mode)
                         move bad data to seperate databases, e.g. "/dev/bad" directory (dev mode)
 6 empty\_obs.py      ->  clear forge databases (they are temporary and get rebuilt every chain cycle)
-\
+
 ## Configuration YAML files/structure in "config/" directory
-\
-codes/\
+
+### codes/
         bufr/\
                 flags_{approach}.yml\
                 sequences.yml\
-synop.yml\
-metar.yml\
-\
-element\_aggregation.yml\
-\
-element\_info.yml\
-\
-environment.yml\
+### synop.yml
+### metar.yml
+### element\_aggregation.yml
+### element\_info.yml
+### environment.yml
 - conda environment information (environment name, packages to install, conda settings)
 - does not contain prefix and variables because they are system-dependent
-\
-obs\_template.yml\
-- main configuration file template with the following sections
-\
+### obs\_template.yml
+- main configuration file template with the following sections\
 	general:\
 	  - TODO\
 	database:\
@@ -108,8 +102,8 @@ obs\_template.yml\
 	  - TODO\
 	sources:\
 	  - TODO\
-\
-translations/\
+
+### translations/
 	bufr/\
 		{approach}.yml\
 		- BUFR key translations for the different approaches
@@ -119,11 +113,10 @@ translations/\
 	- translation for element names of Polish weather service Open Data
 	{other_source}.yml\
 	- use this naming scheme if you want to add your own custom source translation files
-\
-parser\_args.yml\
-\
-station\_tables/\
-	{mode}_{stage}.yml\
+
+### parser\_args.yml
+### station\_tables/
+	{mode}_{stage}.yml
 
 ## Bash scripts in "scripts/" directory
 
