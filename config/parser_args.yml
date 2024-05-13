@@ -21,7 +21,7 @@ flags:
 #  F:      [files,         ~,                                          ~,          ~,          ~,        split_tuple,"parse one or more BUFR files; define seperator with --divider option"]
 #  F:      [files,         ~,                                          ~,          split_args, ~,        tuple,      "parse one or more BUFR files; define seperator with --divider option"]
   i:      [pid_file,      ~,                                          ~,          store_true, ~,        ~,          "use a PID file to check whether script is running"                   ]
-  H:      [how,           [sorted,reversed],                          ~,          ~,          sorted,   eval,       "how to sort? sorting algorithm to be used by -s/--sort_files option" ]
+  H:      [how,           [sorted,reversed],                          ~,          ~,          sorted,   ToEval,     "how to sort? sorting algorithm to be used by -s/--sort_files option" ]
   l:      [log_level,     [CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET], ~,          ~,          NOTSET,   str,        "set logging level"                                                   ]
   L:      [legacy_output, ~,                                          ~,          ~,          ~,        str,        "define output directory for old system's CSV format"                 ]
   k:      [known_stations,~,                                          ~,          ~,          ~,        split_set,  "only extract obs from these stations (comma-seperated list)"         ]

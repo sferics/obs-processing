@@ -428,7 +428,18 @@ def read_yaml(file_name="obs", file_dir="config", ext="yml", typ="safe", pure=Tr
             return td( *yield_sequence(node, call=int) )
         else: raise TypeError("node.value needs to be a scalar, mapping or sequence")
 
-    tags = ("bool", "eval", "fset", "set", "tuple", "list", "iter", "range", "date", "dt", "td")
+    def construct_path(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.ScalarNode):
+            from path import Path
+            return Path(node.value)
+        else: raise TypeError("node.value needs to be a scalar")
+
+    def construct_slice(loader: loader, node: yaml.Node):
+        if isinstance(node, yaml.SequenceNode):
+            return slice( *yield_sequence(node, call=int) )
+        else: raise TypeError("node.value needs to be a scalar")
+
+    tags =("bool","eval","fset","set","tuple","list","iter","range","date","dt","td","path","slice")
 
     for tag in tags:
         construct_function = locals()[f"construct_{tag}"]

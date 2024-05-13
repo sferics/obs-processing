@@ -1,11 +1,12 @@
 # What is OBS processing?
-This repository contains all tools needed to processes and store synoptical observation from a variety of sources.
+This repository contains all tools needed to process and store synoptical observation from a variety of sources. Out-of-the box it supports DWD, KNMI and IMGW Open Data services and can parse BUFR files from many other providers.
+It is easily extendible via configuration (YAML) files and by adding your own scripts which use the existing framework.
 <br/><br/>
 
 # How to install OBS processing
-- run install.sh like this:\
+- Run install.sh like this:\
 `chmod +x install.sh && ./install.sh`
-- or if the permissions cannot be set/changed:\
+- OR if the permissions cannot be set/changed:\
 `bash install.sh`
 - The install.sh script will install miniconda if not present, create an environment with all necessary packages and install the plbufr package from github as well as the local directory "package" using "python setup.py install".
 - It then defines ".githook/" as the directory for git hooks. There is currently only one git hook which automatically installs the directory "package" as a package after each commit, so syntax errors can be easily avoided and exports the conda environment information to "config/environment.yml".
@@ -187,11 +188,16 @@ Export observations from final databases into the old/legacy metwatch csv format
 #### Unique command line arguments
 ##### -L/--legacy\_output $LEGACY\_OUTPUT
 - define old/legacy metwatch csv output directory
-##### Example usage
-###### Define a custom directory for the legacy output
+#### Example usage
+##### Define a custom directory for the legacy output
 `python export_obs.py -L /legacy/output/directory`
 <br/><br/>
 
+### get\_imgw.py
+Get latest observations from the Polish Open Data service
+#### Example usage
+##### Verbose output and consider only stations in cluster "poland"
+`python get_imgw.py -v -c poland`
 
 ## Description of YAML files and structure in "config/" directory
 

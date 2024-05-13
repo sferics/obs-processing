@@ -10,9 +10,11 @@ class ToSet(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, set(values))
 
-class ToFrozenseet(argparse.Action):
+class ToFrozenset(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, frozenset(values))
+
+ToFset = ToFrozenset
 
 class ToTuple(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -22,6 +24,10 @@ class ToList(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, list(values))
 
+class ToDict(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, dict(values))
+
 class ToIter(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, iter(values))
@@ -29,6 +35,55 @@ class ToIter(argparse.Action):
 class ToRange(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, range(values))
+
+class ToSlice(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, slice(values))
+
+class ToStr(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        setattr(namespace, self.dest, str(value))
+
+class ToBool(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        setattr(namespace, self.dest, bool(value))
+
+class ToInt(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        setattr(namespace, self.dest, int(value))
+
+class ToFloat(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        setattr(namespace, self.dest, float(value))
+
+class ToEval(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        setattr(namespace, self.dest, eval(value))
+
+class ToPath(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        from path import Path
+        setattr(namespace, self.dest, Path(value))
+
+class ToDatetime(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        from datetime import datetime as dt
+        setattr(namespace, self.dest, dt.fromisoformat(value))
+
+ToDt = ToDatetime
+
+class ToTimedelta(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        from datetime import timedelta as td
+        setattr(namespace, self.dest, td(*values))
+
+ToTd = ToTimedelta
+
+class ToDate(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        from date import date
+        setattr(namespace, self.dest, date.fromisoformat(value))
+
 
 split_set       = lambda values : set(values.split(","))
 split_frozenset = lambda values : frozenset(values.split(","))
@@ -68,6 +123,7 @@ class ConfigClass:
         # parse the command line arguments
         self.args       = self.psr.parse_args()
         
+        #TODO instead of setting the config file only -C should better define the whole config dir
         # if the config_file flag is present in parser_args.yml and the flag is turned on
         if hasattr(self.args, "config_file") and self.args.config_file:
             # overwrite config file name (default: obs[.yml])
