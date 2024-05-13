@@ -20,8 +20,6 @@ obs.db
 .viminfo
 .wget-hsts
 __pycache__/
-bufr.old/
-bufr/
 synop/
 GMA/
 data.json
