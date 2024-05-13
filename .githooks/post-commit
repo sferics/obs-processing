@@ -11,4 +11,5 @@ ls
 
 # compile all .py files in order to detect more syntax errors and speedup first execution of scripts
 # uses recursion depth 1 as described here: https://stackoverflow.com/a/59610560/12935487
-python -m compileall . -1
+python -m compileall . -lq
+python -m compileall package -q

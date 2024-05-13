@@ -16,7 +16,7 @@ All python scripts offer a -h/--help option which shows their command line argum
 ### Command line arguments
 
 All command line arguments are defined in "config/parser\_args" and they are the same across all scripts. The only difference lies in their availability. For more details, read the section about the YAML configuration files.\
-The settings defined by command line arguments always overwrite settings defined in the script's configuration.
+Please note: Settings defined by command line arguments always overwrite settings defined in the script's configuration.
 
 #### Common command line arguments
 
@@ -75,15 +75,14 @@ You may use 5 different approaches to decode the files:
 - gt: Also using plbufr bufr but instead of creating a dataframe it uses a generator (equally fast)
 - us: Fastest decoding method using bufr keys from ECCODES but lacking some observations like soil temperatures
 - ex: Slower than "us" method but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files, still lacking some information from DWD Open Data BUFR files
-#### 
 
-#### -D/--divider
+##### -D/--divider
 
-#### -r/--redo
+##### -r/--redo
 
-#### -R/--restart
+##### -R/--restart
 
-#### -s/--sort\_files
+##### -s/--sort\_files
 
 #### Example usages
 
@@ -148,56 +147,56 @@ TODO
 
 ## Configuration YAML files/structure in "config/" directory
 
-> ### codes/
->> bufr/\
->>> flags_{approach}.yml\
+### codes/
+>> bufr/
+>> flags_{approach}.yml
 - TODO
->> sequences.yml\
+> sequences.yml
 - TODO
-> ### synop.yml
+### synop.yml
 - TODO
-> ### metar.yml
+### metar.yml
 - TODO
-> ### element\_aggregation.yml
+### element\_aggregation.yml
 - TODO
-> ### element\_info.yml
+### element\_info.yml
 - TODO
-> ### environment.yml
+### environment.yml
 - conda environment information (environment name, packages to install, conda settings)
 - does not contain prefix and variables because they are system-dependent
-> ### obs\_template.yml
+### obs\_template.yml
 - main configuration file template with the following sections:
 
-#### general:
+> #### general:
+- most general settings which will be overwritten by the script's config
+> #### database:
 - TODO
-#### database:
+> #### bufr:
 - TODO
-#### bufr:
+> #### obs:
 - TODO
-#### obs:
+> #### scripts:
 - TODO
-#### scripts:
+> #### clusters:
 - TODO
-#### clusters:
-- TODO
-#### sources:
+> #### sources:
 - TODO
 
-> ### translations/
->> bufr/\
->>> {approach}.yml\
+### translations/
+> bufr/
+>> {approach}.yml
 - BUFR key translations for the different approaches
->> metwatch.yml\
+> metwatch.yml
 - translation for the legacy metwatch element names
->> imgw.yml\
+> imgw.yml
 - translation for element names of Polish weather service Open Data
->> {other\_source}.yml\
+> {other\_source}.yml
 - use this naming scheme if you want to add your own custom source translation files
 
-> ### parser\_args.yml
+### parser\_args.yml
 - TODO
-> ### station\_tables/
->> {mode}\_{stage}.yml
+### station\_tables/
+> {mode}\_{stage}.yml
 - TODO
 
 ## Bash scripts in "scripts/" directory
