@@ -21,9 +21,9 @@ All python scripts offer a -h/--help option which shows their command line argum
 
 ### Note on command line arguments
 
-All command line arguments are defined in "config/parser\_args.yml" and they are the same across all scripts. The only difference lies in their availability.
-For more details on adding/changing/removing command line arguments, please read the respective section about the YAML configuration file (parser\_args.yml).\
-IMPORTANT TO REMEMBER: Settings defined by command line arguments always overwrite settings defined in the script's configuration!
+All command line arguments are defined in "config/parser\_args.yml" and they are **the same across all scripts**. The only difference lies in their availability.\
+For more details on adding/changing/removing command line arguments, please read the respective section about the **YAML configuration file** (parser\_args.yml).\
+**IMPORTANT**: Settings defined by command line arguments always _overwrite_ settings defined in the script's configuration!
 <br/><br/>
  
 #### Common command line arguments
