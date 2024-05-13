@@ -280,11 +280,11 @@ NOTE: You have to calculate manually how many files to process for each instance
 <br/>
 
 #### Command line arguments
-##### $1
+##### $1 $APPROACH
 - set BUFR decoding approach (default: gt)
-##### $2
+##### $2 $PROCESSES
 - number of processes to use (start decode\_bufr.py N times)
-##### $3
+##### $3 $SLEEP\_TIME
 - sleep time in between script execution (wait N seconds before starting the next instance)
 
 #### Example usage
