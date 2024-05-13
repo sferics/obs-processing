@@ -131,49 +131,49 @@ This is a chain script which runs the following scripts in the order of occurren
 ##### Define custum output path and set log level to "INFO"
 `python forge_obs.py -e -L /legacy/output/path -l INFO`
 <br/><br/>
-
+ 
 > ### reduce\_obs.py
 > (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
 > Copy all remaining elements from raw to forge databases [dataset,datetime,duration,element,value]
-
+> 
 > #### Example usage
 > ##### Use 12 processes:
 > `python reduce_obs.py -P 12`
 > <br/><br/>
-
+> 
 > ### derive\_obs.py
 > Compute derived elements like relative humidity, cloud levels or reduced pressure.
-
+> 
 > #### Unique command line arguments
 > ##### -A/--aggregated
 > Compute derived elements again, but only considering 30min-values.
-
+> 
 > #### Example usage
 > ##### Only derive observations from a single station:
 > `python derive_obs.py -k 10381`
 > <br/><br/>
-
+> 
 > ### aggregate\_obs.py
 > Aggregate over certain time periods / durations (like 30min,1h,3h,6h,12,24h) and create new elements with "\_{duration}" suffix.
-
+> 
 > #### Example usage
 > ##### Enable traceback prints
 > `python aggregate_obs.py -t`
 > <br/><br/>
- 
+> 
 > ### audit\_obs.py
 > Check all obs in forge databases, delete bad data like NaN, unknown value or out-of-range
 > - move good data in final databases e.g. "/oper/final" (oper mode)
 > - move bad data to seperate databases, e.g. "/dev/bad" (dev mode)
-
+> 
 > #### Example usage
 > #### Run in debugging mode with debug prints and stop points
 > `python audit_obs.py -d`
 > <br/><br/>
- 
+> 
 > ### empty\_obs.py
 > Clear forge station databases (they are temporary and get rebuilt every chain cycle).
-
+> 
 > #### Unique command line arguments
 > ##### -B/--bad\_obs
 > - clear bad obs as well
@@ -181,10 +181,10 @@ This is a chain script which runs the following scripts in the order of occurren
 > ##### Use the above option and show no warnings
 > `python empty_obs.py -B -w`
 > <br/><br/>
-
+> 
 > ### export\_obs.py
 > Export observations from final databases into the old/legacy metwatch csv format.
-
+> 
 > #### Unique command line arguments
 > ##### -L/--legacy\_output $LEGACY\_OUTPUT
 > - define old/legacy metwatch csv output directory
