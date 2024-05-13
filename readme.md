@@ -248,7 +248,7 @@ Export observations from final databases into the old/legacy metwatch csv format
 
 ##### parser\_args.yml
 \- TODO
-##### station\_tables/
+### station\_tables/
 > ##### {mode}\_{stage}.yml
 > \- TODO
 <br/>
