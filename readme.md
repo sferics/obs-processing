@@ -1,6 +1,6 @@
 # What is OBS processing?
 This repository contains all tools needed to process and store synoptical observation from a variety of sources. Out-of-the box it supports DWD, KNMI and IMGW Open Data services and can parse BUFR files from many other providers.
-It is easily extendible via configuration (YAML) files and by adding your own scripts which use the existing framework.
+It is easily extendable via configuration (YAML) files and by adding your own scripts which use the existing framework.
 <br/><br/>
 
 # How to install OBS processing
@@ -198,6 +198,7 @@ Get latest observations from the Polish Open Data service
 #### Example usage
 ##### Verbose output and consider only stations in cluster "poland"
 `python get_imgw.py -v -c poland`
+<br/><br/>
 
 ## Description of YAML files and structure in "config/" directory
 
