@@ -77,7 +77,7 @@ You may use 5 different approaches to decode the files:
 - ex: Slower than "us" method but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files, still lacking some information from DWD Open Data BUFR files
 ##### -f/--file $FILE\_PATH
 - process single file by file path
-##### -F/--FILES $FILES
+##### -F/--FILES $LIST\_OF\_FILES
 - process several files, given by file paths, seperated by divider character (default: ";")
 ##### -D/--divider $DIVIDER
 - define a custom divider/seperator character for -F
@@ -110,44 +110,41 @@ This is a chain script which runs the following scripts in the order of occurren
 #### Unique command line arguments
 
 ### reduce\_obs.py
-TODO
+(only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
+Copy all remaining elements from raw to forge databases [dataset,datetime,duration,element,value]
+
 #### Unique command line arguments
 
 ### derive\_obs.py
-TODO
+Compute derived elements like relative humidity, cloud levels or reduced pressure.
+
 #### Unique command line arguments
 
 ### aggregate\_obs.py
-TODO
+Aggregate over certain time periods (like 30min,1h,3h,6h,12,24h) and create new elements with "\_DUR" suffix.
+
 #### Unique command line arguments
 
 ### derive\_obs.py -A
-TODO
-#### Unique command line arguments
+Compute derived elements again, but only considering 30min-values.
 
 ### audit\_obs.py
-TODO
+Check all obs in forge databases, delete bad data like NaN, unknown value or out-of-range
+- move good data in file databases e.g. "/oper/final" (oper mode)
+- move bad data to seperate databases, e.g. "/dev/bad" directory (dev mode)
+
 #### Unique command line arguments
 
 ### empty\_obs.py
-TODO
+Clear forge databases (they are temporary and get rebuilt every chain cycle).
+
 #### Unique command line arguments
 
 ### export\_obs.py
-TODO
+Export observations from final databases into the old/legacy metwatch csv format.
+
 #### Unique command line arguments
 
-1 reduce\_obs.py (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
-  copy all remaining elements from raw to forge databases [datetime,duration,element,value]
--in forge databases do:
-2 audit\_obs.py      ->  check each obs, delete bad data like NaN, unknown value or out-of-range
-2 derive\_obs.py     ->  compute derived elements like RH+TMP=DPT; cloud levels; reduced pressure...
-3 aggregate\_obs.py  ->  aggregate over time periods (1,3,6,12,24h) and create new elements with "\_DUR" suffix
-4 derive\_obs.py -A  ->  compute derived elements again, but only 30min values (--aggregated)
-5 audit\_obs.py      ->  check each obs, delete bad data like NaN, unknown value or out-of-range
-                        move good data in file databases e.g. "/oper/final" (oper mode)
-                        move bad data to seperate databases, e.g. "/dev/bad" directory (dev mode)
-6 empty\_obs.py      ->  clear forge databases (they are temporary and get rebuilt every chain cycle)\
 
 ## Configuration YAML files/structure in "config/" directory
 
