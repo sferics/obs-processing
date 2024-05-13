@@ -9,7 +9,7 @@ import global_functions as gf
 import global_variables as gv
 
 # main SQL insert statement which will be used at the end of aggregate_obs function
-SQL = "INSERT INTO obs VALUES(?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, duration = excluded.duration"
+SQL = "INSERT INTO obs VALUES(?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, duration = excluded.duration"
 
 # constants
 mins_10 = td(minutes=10)
@@ -196,14 +196,19 @@ def aggregate_obs(stations):
                                 dt_base = dt(int(year), int(month), int(day), int(hour), minute)
                                 
                                 sql = f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) = '{dt_base}'"
-                                db_loc.exe( sql.replace("?", "COUNT(value)") )
+                                db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
                                 
+                                # get number of values and dataset name
+                                n_vals, dataset = db_loc.fetch()
+                                 
                                 # if no value is present
-                                if not db_loc.fetch1():
+                                #if not db_loc.fetch1():
+                                if not n_vals:
                                     
                                     dt_start    = dt_base - mins_10
                                     dt_end      = dt_base + mins_10     
                                     
+                                    # this statement is looking for all obs values between dt_start and dt_end
                                     sql = f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN '{dt_start}' AND '{dt_end}'"
                                     db_loc.exe( sql.replace("?", "COUNT(value)") )
                                      
@@ -217,7 +222,7 @@ def aggregate_obs(stations):
                                         db_loc.exe( sql.replace("?", "AVG(value)") )
                                         val = db_loc.fetch1()
                                         
-                                        sql_values.add( (dt_base, "", el_old, val) )
+                                        sql_values.add( (dataset, dt_base, "", el_old, val) )
         
 
         for el_old in duration_elems:
@@ -238,7 +243,7 @@ def aggregate_obs(stations):
                     data = get_copy_vals(dur=dur)
                     if not data: continue
                     for i in data:
-                        sql_values.add( (i[0], i[1], el_new, i[-1]) )
+                        sql_values.add( (i[0], i[1], i[2], el_new, i[-1]) )
                     continue
                 
                 subdurs = el_old_dur[0] # sub-durations [12h, 6h, 3h, 1h, 30min, 10min]
@@ -273,7 +278,7 @@ def aggregate_obs(stations):
                                 
                                 if data:
                                     for i in data:
-                                        sql_values.add( (i[0], i[1], el_new, i[-1]) )
+                                        sql_values.add( (i[0], i[1], i[2], el_new, i[-1]) )
                                     # if data is complete we can continue
                                     #TODO how can we smartly omit already present data in next for loop if this is False?
                                     if len(data) == int( 24 // dur_h ):
@@ -310,7 +315,7 @@ def aggregate_obs(stations):
 
                                     if val_new is not None:
                                         if verbose: print(dt_base, dur, el_new, val_new)
-                                        sql_values.add( (dt_base, dur, el_new, val_new) )
+                                        sql_values.add( (dataset, dt_base, dur, el_new, val_new) )
                                         # break the loop when a value is first found
                                         break
                                     # only for MIN/MAX and when a fallback element is present, try again
@@ -325,7 +330,7 @@ def aggregate_obs(stations):
                                         
                                         if val_new is not None:
                                             if verbose: print(dt_base, dur, el_new, val_new)
-                                            sql_values.add( (dt_base, dur, el_new, val_new) )
+                                            sql_values.add( (dataset, dt_base, dur, el_new, val_new) )
                                             # break the loop when a value is first found
                                             break
 
@@ -347,7 +352,7 @@ def aggregate_obs(stations):
                                         #TODO use IN instead of BETWEEN to be more explicit and failsave? slower?
                                         sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN "
                                             f"'{dt_start}' AND '{dt_end}' AND duration='{subdur}'")
-                                        db_loc.exe( sql.replace("?", "COUNT(value)") )
+                                        db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
                                         
                                         # convert 1h into 60mins
                                         if dur == "1h": dur_int *= 60
@@ -358,11 +363,11 @@ def aggregate_obs(stations):
 
                                         db_loc.exe( sql.replace("?", FUN+"(value)") )
                                         
-                                        val_new = db_loc.fetch1()
+                                        val_new, dataset = db_loc.fetch()
                                         
                                         if val_new is not None:
                                             if verbose: print(dt_end, dur, el_new, val_new)
-                                            sql_values.add( (dt_end, dur, el_new, val_new) )
+                                            sql_values.add( (dataset, dt_end, dur, el_new, val_new) )
                                             # break the loop when a value is first found
                                             # and break the outer loop as well
                                             break_loop = True
@@ -386,18 +391,18 @@ def aggregate_obs(stations):
                                     sql_add = get_duration(FUN, dur, subdur)
                                     
                                     sql += sql_add
-                                    db_loc.exe( sql.replace("?", "COUNT(value)") )
+                                    db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
 
                                     # if we want an average make sure there are continous values for each sub-duration
                                     if FUN in {"AVG","SUM"} and int(db_loc.fetch1()) != int(dur_num // subdur_num):
                                         continue
                                     db_loc.exe( sql.replace("?", FUN+"(value)") )
-
-                                    val_new = db_loc.fetch1()
-
+                                    
+                                    val_new, dataset = db_loc.fetch()
+                                    
                                     if val_new is not None:
                                         if verbose: print(dt_end, dur, el_new, val_new)
-                                        sql_values.add( (dt_end, dur, el_new, val_new) )
+                                        sql_values.add( (dataset, dt_end, dur, el_new, val_new) )
                                         # break the loop when a value is first found
                                         break
                                     # only for MIN/MAX and when a fallback element is present, try again
@@ -412,7 +417,7 @@ def aggregate_obs(stations):
                                         
                                         if val_new is not None:
                                             if verbose: print(dt_base, dur, el_new, val_new)
-                                            sql_values.add( (dt_base, dur, el_new, val_new) )
+                                            sql_values.add( (dataset, dt_base, dur, el_new, val_new) )
                                             # break the loop when a value is first found
                                             break
                 

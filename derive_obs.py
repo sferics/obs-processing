@@ -57,18 +57,18 @@ def derive_obs(stations):
         #TODO implement source specific treatment (process by source?) OR keep source information
         if not dt_30min:
             # in DWD data we need to replace the duration for 9z Tmin/Tmax obs
-            sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn','TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09'"# AND dataset IN('test','DWD','dwd_germany')"
+            sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn','TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09' AND dataset IN('test','DWD','dwd_germany')"
             sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element LIKE 'CB%_2m_syn'"
             try:    db_loc.exe(sql)
             except: continue
             else:   db_loc.commit()
         
         """
-        sql1=f"SELECT datetime,duration,element,value FROM obs WHERE element = '%s'{dt_30min}"
-        sql2="INSERT INTO obs (datetime,duration,element,value) VALUES(?,?,?,?) ON CONFLICT IGNORE"
-
+        sql1=f"SELECT dataset,datetime,duration,element,value FROM obs WHERE element = '%s'{dt_30min}"
+        sql2="INSERT INTO obs (dataset,datetime,duration,element,value) VALUES(?,?,?,?,?) ON CONFLICT IGNORE"
+        
         found = False
-
+        
         for replace in replacements:
             print(replace)
             replace_order = replacements[replace].split(",")
@@ -88,8 +88,8 @@ def derive_obs(stations):
         print(sql_values)
         db_loc.exemany(sql2, sql_values)
         """    
-    
-        sql = ("SELECT datetime,element,round(value) from obs WHERE element IN "
+         
+        sql = ("SELECT dataset,datetime,element,round(value) from obs WHERE element IN "
             "('CDC{i}_2m_syn', 'CB{i}_2m_syn'){dt_30min} ORDER BY datetime asc, element desc")
         
         # https://discourse.techart.online/t/python-group-nested-list-by-first-element/3637
@@ -120,7 +120,7 @@ def derive_obs(stations):
                 sql_values.add( (k, f"CL{i}_2m_syn", CL[k]) )
 
         # duration is always 1s for cloud observations
-        sql = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,?,?,'1s') ON CONFLICT DO UPDATE SET value=excluded.value" #NOTHING"
+        sql = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,'1s') ON CONFLICT DO UPDATE SET value=excluded.value" #NOTHING"
         try:    db_loc.exemany(sql, sql_values)
         except: continue
 
@@ -131,7 +131,7 @@ def derive_obs(stations):
        
         # derive cloud bases [CB?_2m_syn] and cloud covers in the 4 levels [CDC?_2m_syn]
         # from cloud levels [CL?_2m_syn] (usually provided by metwatch CSVs)
-        sql = f"SELECT element,valie FROM obs WHERE element REGEXP ('CB%_2m_syn'|'CDC%_2m_syn'){dt_30min} ORDER BY datetime asc, element desc" 
+        sql = f"SELECT element,value FROM obs WHERE element REGEXP ('CB%_2m_syn'|'CDC%_2m_syn'){dt_30min} ORDER BY datetime asc, element desc" 
         db_loc.row_factory = sf.dict_row
         db_loc.exe(sql)
         # reset row factory
@@ -148,13 +148,15 @@ def derive_obs(stations):
             baro_height = db.get_station_baro_elev(loc)
         except sqlite3.OperationalError:
             baro_height = None
+        
+        #TODO if baro_elev is implemented in amalthea/main incomment this line and delete try/except above
+        #baro_height = db.get_station_baro_elev(loc)
 
         if baro_height is None:
             baro_height     = db.get_station_elevation(loc)
             station_height  = copy(baro_height)
         else:
             station_height  = copy(baro_height)
-            baro_height     = db.get_station_baro_elev(loc)
 
         db.close()
         
@@ -172,28 +174,33 @@ def derive_obs(stations):
         # reset row factory
         db_loc.row_factory = df.default_row
 
-        #sql_insert  = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,'PRATE_1m_syn',?,?)"
-        sql_insert  = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,?,?,?)"
+        #sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,'PRATE_1m_syn',?,?)"
+        sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?)"
         prate_vals  = set()
         
         db_loc.row_factory = sf.dict_row
 
         for datetime in db_loc.fetch():
             datetime = datetime[0] 
-            sql = (f"SELECT element,value FROM obs WHERE datetime = '{datetime}' AND element "
+            sql = (f"SELECT dataset,element,value FROM obs WHERE datetime = '{datetime}' AND element "
                 f"LIKE '%TR%' ORDER BY element")
             db_loc.exe(sql)
             
+            duration    = None
+            value_TR    = None
+            prev_elem   = ""
+
             for values in db_loc.fetch():
                 
-                if debug: print("VALUES PRATE TR", values)
-                if len(values) < 2: continue
-                else:
-                    duration = str(values[-1]) + "h"
-                value_PRATE = values[0]
-                duration    = str(values[-1]) + "h"
-                 
-                prate_vals.add( (datetime, value_PRATE, duration) )
+                dataset, element, value = values
+                
+                if element == "TR": duration    = str(value) + "h"
+                else:               value_obs   = copy(value)
+                
+                # if we had element="TR" and a TR-dependent obs alternating plus value and duration
+                if element != prev_elem and value_obs and duration:
+                    # add the obsveration to the sql values set
+                    prate_vals.add( (dataset, datetime, value_obs, duration) )
         
         # reset row factory
         db_loc.row_factory = df.default_row
@@ -218,18 +225,19 @@ def derive_obs(stations):
             
             datetimes = set( i[0] for i in db_loc.fetch() )
            
-            sql_insert  = "INSERT INTO obs (datetime,element,value,duration) VALUES(?,?,?,'1s')"
+            sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,'1s')"
             prmsl_vals  = set()
 
             # try calculate PRMSL for all datetimes where only PRES is available
-            sql = (f"SELECT datetime,value FROM obs WHERE element = 'PRES_0m_syn' AND value "
+            sql = (f"SELECT dataset,datetime,value FROM obs WHERE element = 'PRES_0m_syn' AND value "
                 f"IS NOT NULL{dt_30min}")
             db_loc.exe(sql)
 
             for row in db_loc.fetch():
                 if debug: print("ROW", row)
-                datetime    = row[0]
-                value_PRES  = float(row[1])
+                dataset     = row[0]
+                datetime    = row[1]
+                value_PRES  = float(row[2])
                 
                 # we prefer to use qff, so try to get all needed elements for it 
                 sql = (f"SELECT value FROM obs WHERE element IN ('TMP_2m_syn', 'DPT_2m_syn', "
@@ -252,7 +260,7 @@ def derive_obs(stations):
 
                 if value_PRES is not None and value_TMP is not None and baro_height <= 350:
                     pr_qnh = gf.qnh( value_PRES, baro_height, value_TMP )
-                    prmsl_vals.add( (datetime, "PRMSL_ms_met", pr_qnh) )
+                    prmsl_vals.add( (dataset, datetime, "PRMSL_ms_met", pr_qnh) )
                     
                     # if dewpoint or relative humidity are present: use DWD reduction method
                     #https://www.dwd.de/DE/leistungen/pbfb_verlag_vub/pdf_einzelbaende/vub_2_binaer_barrierefrei.pdf?__blob=publicationFile&v=4 [page 106]
@@ -266,7 +274,7 @@ def derive_obs(stations):
                             if debug: print("PPP, h, TMP, RH")
                             if debug: print(value_PRES, baro_height, value_TMP, value_RH )
                             pr_qff  = gf.qff_dwd( value_PRES, baro_height, value_TMP, value_RH )
-                            prmsl_vals.add( (datetime, "PRMSL_ms_syn", pr_qff) )
+                            prmsl_vals.add( (dataset, datetime, "PRMSL_ms_syn", pr_qff) )
                 
             db_loc.exemany(sql_insert, prmsl_vals)
             
@@ -279,29 +287,30 @@ def derive_obs(stations):
                 f"element = 'DPT_2m_syn' AND IFNULL(value, '') = ''{dt_30min}")
             db_loc.exe(sql)
             
-            sql_insert  = ("INSERT INTO obs (datetime,element,value,duration) VALUES"
-                "(?,'DPT_2m_syn',?,'1s')")
+            sql_insert  = ("INSERT INTO obs (dataset,datetime,element,value,duration) VALUES"
+                "(?,?,'DPT_2m_syn',?,'1s')")
             dpt_vals    = set()
             
             for datetime in db_loc.fetch():
                 datetime = datetime[0]
-                sql = (f"SELECT value FROM obs WHERE element IN ('RH_2m_syn','TMP_2m_syn') "
+                sql = (f"SELECT dataset,value FROM obs WHERE element IN ('RH_2m_syn','TMP_2m_syn') "
                     f"AND datetime = '{datetime}' AND value IS NOT NULL ORDER BY element")
                 db_loc.exe(sql)
                 
                 values      = db_loc.fetch()[0]
-                if len(values) < 2: continue
+                if len(values) < 3: continue
                 if debug: print("VALUES", values)
-                value_RH    = float(values[0])
+                dataset     = values[0]
+                value_RH    = float(values[1])
                 
                 # relative humidity needs to be between 0 and 100 percent
                 if 0 <= value_RH <= 100:
-                    value_TMP   = float(values[1])
+                    value_TMP   = float(values[2])
                     value_DPT   = gf.rh2dpt(values_RH, value_TMP)
                      
                     # dewpoint temperature needs to be smaller than OR equal to temperature
                     if value_DPT <= value_TMP:
-                        dpt_vals.add( (datetime, value_DPT) )
+                        dpt_vals.add( (dataset, datetime, value_DPT) )
                 
             db_loc.exemany(sql_insert, dpt_vals)
             

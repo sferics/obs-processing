@@ -224,79 +224,79 @@ sources:
     other:
       ext:            !!str   dat
     general:
-      stations: [wmo,other]
-      clusters: [country1,country2]
+      stations:       !!set   [wmo,other]
+      clusters:       !!set   [country1,country2]
  
 
   # some example open data sources
   dwd_germany:
     bufr:
-      ext:    bin
-      url:    https://opendata.dwd.de/weather/weather_reports/synoptic/germany/
-      dir:    /home/juri/data/live/dwd/bufr/germany
+      ext:            !!str   bin
+      url:            !!str   https://opendata.dwd.de/weather/weather_reports/synoptic/germany/
+      dir:            !!str   /home/juri/data/live/dwd/bufr/germany
     general:
-      stations: [wmo]
-      clusters: [germany]
+      stations:       !!set   [wmo]
+      clusters:       !!set   [germany]
   
   cod:
     bufr:
-      ext:    bufr
-      url:    https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
-      dir:    /home/juri/data/live/cod/bufr
+      ext:            !!str   bufr
+      url:            !!str   https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
+      dir:            !!str   /home/juri/data/live/cod/bufr
     general:
-      stations: [wmo]
-      clusters: [germany]
+      stations:       !!set   [wmo]
+      clusters:       !!set   [germany]
 
   DWD: # German weather service
     bufr:
-      ext:    bin
-      prio:   2
-      dir:    /home/dev/obs-processing/DWD # em24 dev
+      ext:            !!str   bin
+      prio:           !!int   2
+      dir:            !!str   /home/dev/obs-processing/DWD # em24 dev
     general:
-      stations: [wmo, dwd]
-      clusters: [germany, europe, usa]
+      stations:       !!set   [wmo, dwd]
+      clusters:       !!set   [germany, europe, usa]
   
   KNMI: # Dutch weather service
     bufr:
-      ext:  bufr
-      glob: "SYNOP_BUFR_*"
-      prio: 0
-      dir:  /home/dev/obs-processing/KNMI
-    netcdf:
-      ext:  nc
-      url:  https://dataplatform.knmi.nl/dataset/access/actuele10mindataknmistations-2
+      ext:            !!str   bufr
+      glob:           !!str   "SYNOP_BUFR_*"
+      prio:           !!int   0
+      dir:            !!str   /home/dev/obs-processing/KNMI
+    netcdf:           !!str   
+      ext:            !!str   nc
+      url:            !!str   https://dataplatform.knmi.nl/dataset/access/actuele10mindataknmistations-2
   
   COD: # College of DuPage
     bufr:
-      ext:  bufr
-      url:  https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
-      wget: "-e robots=off -nc -nd -np -r"
-      prio: 1
-      dir:  /home/dev/obs-processing/COD
+      ext:            !!str   bufr
+      url:            !!str   https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
+      wget:           !!str   "-e robots=off -nc -nd -np -r"
+      prio:           !!int   1
+      dir:            !!str   /home/dev/obs-processing/COD
     synop:
-      ext:  syn
-      url:  https://weather.cod.edu/digatmos/syn/
-      wget: "-e robots=off -nc -nd -np -r"
-      prio: 2
+      ext:            !!str   syn
+      url:            !!str   https://weather.cod.edu/digatmos/syn/
+      wget:           !!str   "-e robots=off -nc -nd -np -r"
+      prio:           !!int   2
     metar:
-      ext:  sao
-      url:  https://weather.cod.edu/digatmos/sao/
-      wget: "-e robots=off -nc -nd -np -r"
-      prio: 3
+      ext:            !!str   sao
+      url:            !!str   https://weather.cod.edu/digatmos/sao/
+      wget:           !!str   "-e robots=off -nc -nd -np -r"
+      prio:           !!int   3
     general:
-      stations: [wmo]
+      stations:       !!set   [wmo]
 
   RMI: # Belgian meteorological service
     bufr:
-      ext:  bufr
-      url:  https://opendata.meteo.be/ftp/observations/synop/
-      wget: "-nc -nd -np -r"
-      prio: 0
-      dir:  /home/dev/obs-processing/RMI
+      ext:            !!str   bufr
+      url:            !!str   https://opendata.meteo.be/ftp/observations/synop/
+      wget:           !!str   "-nc -nd -np -r"
+      prio:           !!int   0
+      dir:            !!str   /home/dev/obs-processing/RMI
   
   IMGW: # Polish meteo+hydrological service
-    url:    !!str   https://danepubliczne.imgw.pl/api/data/synop
-    prio:   !!int   4
+    url:              !!str   https://danepubliczne.imgw.pl/api/data/synop
+    prio:             !!int   4
     #historical data 2017-
     #https://danepubliczne.imgw.pl/data/arch/ost_meteo/
     #historical data 1951-

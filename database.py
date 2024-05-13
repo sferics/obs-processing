@@ -25,14 +25,11 @@ class DatabaseClass:
         self.db_file = db_file
         
         try:    self.timeout    = float(config["timeout"])
-        except: self.timeout    = 5
+        except: self.timeout    = 5 # sqlite default value
         
-        try:    self.verbose    = bool(config["verbose"])
-        except: self.verbose    = False
+        self.verbose    = config.get("verbose")
+        self.traceback  = config.get("traceback")
         
-        try:    self.traceback  = bool(config["traceback"])
-        except: self.traceback  = False
-
         # if ro == True we open the database in read-only mode
         if ro: self.db_file = f"file:{self.db_file}?mode=ro"
 
@@ -140,7 +137,7 @@ class DatabaseClass:
         except Exception as e:
             if verbose: gf.print_trace(e)
             return False
-        else: return True
+        return True
 
 
     def pragma( self, pragma, args=""):
@@ -1207,9 +1204,9 @@ class DatabaseClass:
 
         """
         # if the column name starts with a number we have to 'quote' it in SQLite...
-        try: test = int(column[0])
+        try:    test = int(column[0])
         except: return column
-        else: return f"'{column}'"
+        return f"'{column}'"
 
 
     # SQL command functions like insert, select (distinct) and update (TODO)
@@ -1262,7 +1259,7 @@ class DatabaseClass:
             if traceback: print_trace(e)
             if verbose: print(f"INSERT command '{sql}' failed!")
             return False
-        else: return True
+        return True
 
 
     def select( self, column, table, where=None, what=None, distinct="", order=None, limit=None, fetchall=True ):
@@ -1311,7 +1308,7 @@ class DatabaseClass:
 
         if order: sql += f"ORDER BY '{order}"
         if limit: sql += f"LIMIT {limit}"
-
+        
         self.exe( sql )
         
         if fetchall:
@@ -1363,7 +1360,7 @@ class DatabaseClass:
             if self.traceback: gf.print_trace(e)
             if verbose: print("Column '{column}' already exist in table '{table}'.")
             return False
-        else: return True
+        return True
         
         
     def drop_column( self, table, column, verbose=None ):
@@ -1389,7 +1386,7 @@ class DatabaseClass:
             if self.traceback: gf.print_trace(e)
             if verbose: print("Column '{column}' does not exist in table '{table}'.")
             return False
-        else: return True
+        return True
 
     #TODO add more ALTER TABLE commands https://www.sqlite.org/lang_altertable.html
     
@@ -1425,7 +1422,7 @@ class DatabaseClass:
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
-        else: return True
+        return True
 
 
     def drop_table( self, table, exists="IF EXISTS", verbose=None ):
@@ -1452,7 +1449,7 @@ class DatabaseClass:
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
-        else: return True
+        return True
 
     #TODO add CREATE INDEX statement https://www.sqlite.org/lang_createindex.html
 
@@ -1478,12 +1475,11 @@ class DatabaseClass:
 
         values = f"VALUES ('{file_name}','{file_dir}','{source}','{status}','{creation_date}','{addition_date}')"
         sql = f"INSERT INTO file_table (name,dir,source,status,created,added) {values} ON CONFLICT DO NOTHING"
-        try:
-            self.exe( sql )
-            return self.cur.lastrowid
+        try: self.exe( sql )
         except Exception as e:
             if traceback: gf.print_trace(e)
             return False
+        return self.cur.lastrowid
 
     
     def register_files(self, names, dirs, sources, statuses, dates, verbose=None):
@@ -1516,12 +1512,11 @@ class DatabaseClass:
             values.add( (names[i], dirs[i], sources[i], statuses[i], dates[i]) )
 
         sql = f"INSERT INTO file_table (?,?,?,?,?) ON CONFLICT DO NOTHING"
-        try:
-            self.executemany( sql, values )
-            return True
+        try: self.executemany( sql, values )
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
+        return True
 
 
     def file_exists( self, file_name, file_dir ):
@@ -1602,7 +1597,7 @@ class DatabaseClass:
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
-        else: return True
+        return True
 
 
     set_file_name   = lambda self, ID, file_name    : self.set_file_X( ID, "name", file_name )
@@ -1628,14 +1623,14 @@ class DatabaseClass:
         if verbose:
             name = self.get_file_name( ID )
             print(f"Setting date of FILE '{name}' to '{date}'")
+        
+        sql = f"UPDATE file_table SET date = '{date}' WHERE rowid = '{ID}'"
 
-        try:
-            sql = f"UPDATE file_table SET date = '{date}' WHERE rowid = '{ID}'"
-            self.exe( sql )
+        try: self.exe( sql )
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
-        else: return True
+        return True
 
 
     def set_file_status( self, ID, status, verbose=None ):
@@ -1661,7 +1656,7 @@ class DatabaseClass:
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
-        else: return True
+        return True
 
     
     def set_file_statuses( self, file_statuses, retries=100, timeout=5, verbose=None ):
@@ -1850,9 +1845,8 @@ class DatabaseClass:
         except Exception as e:
             if self.traceback: gf.print_trace(e)
             return False
-        else:
-            if commit: self.commit()
-            return True
+        if commit: self.commit()
+        return True
 
 
     def get_elements( self ):

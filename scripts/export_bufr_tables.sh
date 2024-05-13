@@ -1,6 +1,7 @@
 #!/bin/bash
 local_tables=/home/juri/bufrtables/dwd
 
+#TODO replace /home/juri/miniconda3 with general conda env path
 conda env config vars set METVIEW_EXTRA_GRIB_DEFINITION_PATH=${local_tables} ECCODES_DEFINITION_PATH=${local_tables}:${CONDA_PREFIX}/share/eccodes/definitions ECMWFLIBS_ECCODES_DEFINITION_PATH=${local_tables}:${CONDA_PREFIX}/share/eccodes/definitions && source /home/juri/miniconda3/etc/profile.d/conda.sh && conda activate $CONDA_DEFAULT_ENV
 
 export METVIEW_EXTRA_GRIB_DEFINITION_PATH=${local_tables}

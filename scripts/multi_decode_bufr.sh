@@ -6,16 +6,18 @@ if [ $# -ge 1 ]
 then
     N=$1
     a=$2
+    s=$3
 else
     N=15
     a=pl
+    s=60
 fi
 
 python -m compileall
-source export_bufr_tables.sh
+source scripts/export_bufr_tables.sh
 
 echo "Starting decode_bufr.py $N times..."
 
 for (( c=1; c<=$N; c++ )); do
-	python decode_bufr.py test -a $a -r & sleep 2
+	nohup python decode_bufr.py test -a $a & sleep $s
 done

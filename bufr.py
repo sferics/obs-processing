@@ -446,7 +446,7 @@ class BufrClass:
                             cor = int(val_obs)
                         elif code in self.tp_codes:
                             try:    duration    = self.bufr_translation[code][val_obs]
-                            except: duration    = "" # TODO or continue to skip unknown duration?
+                            except: duration    = "" # TODO OR use continue to skip unknown duration?
                             datetime_db = copy(datetime)
                         elif code == 8002:
                             try:    vertical_sigf = self.bufr_flags[code][int(val_obs)]

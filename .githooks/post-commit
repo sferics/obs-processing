@@ -1,3 +1,10 @@
 #!/bin/sh
 ls
+# try to initiate conda and activate obs environment; else exit
+#conda init && conda activate obs || exit
+
+# export environment information without prefix and variables sections
+#conda env export | grep -v "^prefix:$" | sed -e '/^variables:$/,$d' > config/environment.yml
+
+# install all files in package directory with pip install
 #python -m pip install --editable package

@@ -5,10 +5,10 @@ positional:
 
 flags:
   # short flag            choices                                     nargs       action      default   type        help
-  a:      [approach,      [us, ex, pd, pl, gt],                       ~,          ~,          gt,       str,        "choose method / approach of decoding (default=gt)"                   ]
+  a:      [approach,      [us, ex, pd, pl, gt],                       ~,          ~,          gt,       str,        "choose method / approach of decoding BUFR files (default=gt)"        ]
   A:      [aggregated,    ~,                                          ~,          store_true, ~,        ~,          "derive only aggregated elements (when called after aggregate_obs.py" ]
-  b:      [bare,          ~,                                          ~,          store_true, ~,        ~,          "do not actually run scripts, only print the bare commands"           ]
-  B:      [bad_obs,       ~,                                          ~,          store_true, ~,        ~,          "handle bad obs as well (meaning delete them in emtpy_obs.py script"  ]
+  b:      [bare,          ~,                                          ~,          store_true, ~,        ~,          "do not actually run chain scripts, only print the bare commands"     ]
+  B:      [bad_obs,       ~,                                          ~,          store_true, ~,        ~,          "handle bad obs as well (meaning delete them in emtpy_obs.py script)" ]
   c:      [clusters,      ~,                                          ~,          ~,          ~,        split_set,  "station clusters to consider, comma seperated"                       ]
 #  c:      [clusters,      ~,                                          ~,          split_args, ~,        set,        "station clusters to consider, comma seperated"                       ]
   C:      [config_file,   ~,                                          ~,          ~,          ~,        str,        "set custom name of config file"                                      ]
@@ -33,7 +33,7 @@ flags:
   p:      [profiler,      ~,                                          ~,          ~,          ~,        str,        "enable profiler of your choice (default=None)"                       ]
   P:      [processes,     ~,                                          ~,          ~,          ~,        int,        "number of processes to use (enables multiprocessing mode if set)"    ]
   r:      [redo,          ~,                                          ~,          store_true, ~,        ~,          "decode bufr again even if already processed"                         ]
-  R:      [restart,       ~,                                          ~,          store_true, ~,        ~,          "only parse all files with status=locked_{pid}"                       ]
+  R:      [restart,       ~,                                          ~,          ~,          ~,        int,        "only parse all files with status=locked_{restart} (R=PID usually)"   ]
   s:      [sort_files,    ~,                                          ~,          store_true, ~,        ~,          "sort files alpha-numeric before parsing"                             ]
   S:      [stage,         [raw,forge,bad,final],                      ~,          ~,          forge,    str,        "name of stage within staging chain processing (default=forge)"       ]
   t:      [traceback,     ~,                                          ~,          store_true, ~,        ~,          "enable traceback debugging prints (using the traceback module)"      ]

@@ -388,7 +388,7 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 
                 if location is None and clear_key in bf.station_keys:
                     #meta[clear_key] = ec.codes_get(msg, key)
-                    try: meta[clear_key] = ec.codes_get(msg, key)
+                    try:    meta[clear_key] = ec.codes_get(msg, key)
                     except: meta[clear_key] = ec.codes_get_array(msg, key)[0]
                     #TODO some OGIMET-BUFRs seem to contain multiple station numbers in one key (arrays)
 
@@ -435,8 +435,9 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 
                             elif bf.set_time_keys_hour.issubset(meta):
                                 # if only minute is missing, assume that minute == 0
-                                meta["minute"] = 0; valid_obs = True
-                                datetime = gf.to_datetime(meta)
+                                meta["minute"]  = 0
+                                valid_obs       = True
+                                datetime        = gf.to_datetime(meta)
                                 if debug: print("minute0:", meta)
                                 continue
 
@@ -449,7 +450,10 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 
                                 # again, if only minute is missing, assume that minute == 0
                                 if bf.set_time_keys_hour.issubset(meta):
-                                    meta["minute"] = 0; valid_obs = True; continue
+                                    meta["minute"]  = 0
+                                    datetime        = gf.try_to_datetime(meta)
+                                    valid_obs       = True if datetime else False
+                                    continue
 
                                 # no luck? possibly, there could be typicalDate or typicalTime present
                                 if not {"year","month","day"}.issubset(set(meta)) and "typicalDate" in typical:

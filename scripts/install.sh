@@ -7,14 +7,17 @@ sudo apt install python python-dev wget
 # clone plbufr repository (fork of pdbufr using polars instead of pandas)
 git clone https://github.com/sferics/plbufr/
 
+#TODO automize conda install
+
 # create new conda environment, using package list
-conda env create -f config/obs_env.yml
+conda env create -f config/environment.yml
 
 # install plbufr package (legacy install method!)
 cd plbufr && python setup.py install
 
-# install packaged files for easier imports
+# install packaged files for easier imports and syntax checks via hook
 #python -m pip install --editable package
+#python -m pip install -e package
 
 # change path of git hooks in local git config to .githooks
 git config --local core.hooksPath .githooks/

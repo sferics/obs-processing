@@ -52,29 +52,30 @@ def reduce_obs(stations):
                 # by selecting only the highest priority source (and from that the highest scale)
                 
                 sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
-                    "datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
+                    "dataset,datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
                     "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE "
-                    "r.datetime=obs.datetime AND r.element=obs.element AND "
-                    "r.duration=obs.duration );\n")
+                    "r.dataset=obs.dataset AND r.datetime=obs.datetime "
+                    "AND r.duration=obs.duration AND r.element=obs.element );\n")
                 
             case "oper":
-                #TODO debug! this looks crazy and might also not be necessary (just use dev?)
+                #TODO debug! this looks crazy and might also not be necessary (just use dev's sql?)
                 # select latest COR (correction) of highest scale from source with highest prio
                 sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
-                    "datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
+                    "dataset,datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
                     "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE cor = ( SELECT "
                     "MAX(cor) FROM main.obs WHERE scale = ( SELECT "
-                    "MAX(scale) FROM main.obs WHERE r.datetime=obs.datetime "
-                    "AND r.element=obs.element AND r.duration=obs.duration ) ) );\n")
+                    "MAX(scale) FROM main.obs WHERE r.dataset=obs.dataset AND "
+                    "r.datetime=obs.datetime AND r.duration=obs.duration "
+                    "AND r.element=obs.element ) ) );\n")
                 """
                 sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
-                    "datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
+                    "dataset,datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
                     "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE r.datetime=obs.datetime "
                     "AND r.element=obs.element AND r.duration=obs.duration AND cor = ( SELECT "
-                    "MAX(cor) FROM main.obs WHERE r.datetime=obs.datetime AND r.element=obs.element "
-                    "AND r.duration=obs.duration AND scale = ( SELECT "
-                    "MAX(scale) FROM main.obs WHERE r.datetime=obs.datetime "
-                    "AND r.element=obs.element AND r.duration=obs.duration ) ) );\n")
+                    "MAX(cor) FROM main.obs WHERE r.dataset=obs.dataset, r.datetime=obs.datetime 
+                    "AND r.element=obs.element AND r.duration=obs.duration AND scale = ( SELECT "
+                    "MAX(scale) FROM main.obs WHERE r.dataset=obs.dataset AND r.datetime=obs.datetime "
+                    "AND r.duration=obs.duration AND r.element=obs.element ) ) );\n")
                 """
                 
             case "test":

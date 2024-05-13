@@ -62,7 +62,7 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
         FILE_DIR    = FILE["dir"]
         FILE_NAME   = FILE["name"]
          
-        if verbose: print(FILE_DIR + FILE_NAME)
+        if debug: print(FILE_DIR + FILE_NAME)
         
         obs_bufr[ID], file_status = decoder_approach(ID, FILE_NAME, FILE_DIR, bf, log, traceback,
                 debug, verbose) 
@@ -90,10 +90,18 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
                 log.error(e)
             
             log.info("restart because of full memory")
+            
+            # remove old restart argument if present
+            argv = sys.argv
+            if "-R" in argv:
+                R_idx = argv.index("-R")
+                del argv[R_idx:R_idx+2]
+            
             # get the name of the currently running executable
             exe = sys.executable
             # restart program with same arguments and add restart flag
-            os.execl(exe, exe, *sys.argv, "-R", PID); sys.exit()
+            os.execl(exe, exe, *argv, "-R", PID)
+            sys.exit("RESTART")
             
         
     db = dc(config=cf.database)
@@ -164,19 +172,17 @@ if __name__ == "__main__":
     gls, lcs         = globals(), locals()
     decoder_approach = gf.import_from("decode_bufr_approaches", f"decode_bufr_{approach}", gls, lcs)
     config_sources   = None
-    
+   
     if args.file or args.files:
-        if verbose and args.redo: print("REDO")
         if args.file:
             # only processing a single BUFR file
             input_files_dict = gf.get_input_files_dict( cf.database, [args.file], PID=PID,
-                    redo=args.redo )
-        
+                    redo=args.redo, restart=args.restart, verbose=verbose )
         else:
             # input can be a semicolon-seperated list of files as well (or other divider char)
             input_files         = args.files.split(args.divider)
             input_files_dict    = gf.get_input_files_dict( cf.database, input_files, PID=PID,
-                    redo=args.redo, verbose=verbose )
+                    redo=args.redo, restart=args.restart, verbose=verbose )
          
         if debug: print(input_files_dict)
         decode_bufr( cf, input_files_dict, cf.args.extra, approach, pid_file, verbose=verbose )
@@ -200,8 +206,8 @@ if __name__ == "__main__":
                 config_source = cf.general | cf.bufr | cf.script | config_source["bufr"]
             else: continue
                     
-            input_files_dict = gf.get_input_files_dict( cf.database, source=SOURCE,
-                    config_source=config_source, PID=PID, verbose=verbose )
+            input_files_dict = gf.get_input_files_dict( cf.database, None, SOURCE, config_source,
+                    PID=PID, redo=args.redo, restart=args.restart, verbose=verbose )
             decode_bufr( cf, input_files_dict, SOURCE, approach, pid_file, verbose=verbose )
         
     stop_time       = dt.utcnow()

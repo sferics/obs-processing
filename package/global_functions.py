@@ -17,6 +17,28 @@ value_in_list       = lambda lst, val : val if val in lst else None
 to_datetime         = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"], DT["minute"])
 to_datetime_hour    = lambda DT : dt(DT["year"], DT["month"], DT["day"], DT["hour"])
 
+def try_to_datetime(dt_dict):
+    try:
+        DT = dt(dt_dict["year"],dt_dict["month"],dt_dict["day"],dt_dict["hour"],dt_dict["minute"])
+    except:
+        DT = None
+    return DT
+
+def cleanup_file_objects_and_descriptor(PID, log):
+    """
+    Notes:
+    ------
+    try to cleanup file objects and descriptors (see https://stackoverflow.com/a/33334183)
+    """
+    import psutil
+    try:
+        p = psutil.Process(PID)
+        for handler in p.open_files() + p.connections():
+            os.close(handler.fd)
+    except Exception as e:
+        log.error(e)
+        return False
+    else: return True
 
 def import_from(module_or_file, obj, globs, locs):
     """
@@ -479,7 +501,7 @@ def get_file_date( file_path, datetime=True ):
 
 
 def get_input_files_dict( config_database, input_files=[], source="extra",
-        config_source: dict = {}, PID=None, redo=False, log=None, verbose=False ):
+        config_source: dict={}, PID: int=0, redo=False, restart=False, log=None, verbose=False ):
     """
     Parameter:
     ----------
@@ -491,15 +513,11 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
     -------
     """
     from database import DatabaseClass
-    db = DatabaseClass(config=config_database)
-
-    files_dict      = {}
-    status_locked   = "locked"
-
-    if PID: status_locked += str(PID)
     
-    try:    redo        = config_source["redo"]
-    except: pass
+    files_dict      = {}
+    status_locked   = f"locked_{PID}" #if PID else "locked"
+    redo            = config_source.get("redo")
+    db              = DatabaseClass(config=config_database)
 
     if input_files:
         
@@ -510,13 +528,16 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
             file_dir    = get_file_dir(file_paht) #"/".join(file_path.split("/")[:-1])
             ID          = db.get_file_id(file_name, file_dir)
             
-            if ID:
+            if restart:
+                db.set_file_status(ID, status_locked)
+            elif ID:
                 if not redo:
                     if db.get_file_status(ID) in gv.skip_status:
                         continue
                     else: db.set_file_status(ID, status_locked)
             else:
-                ID = db.register_file(file_name, file_dir, source, status_locked, file_date, verbose=verbose)
+                ID = db.register_file(file_name, file_dir, source, status_locked, file_date,
+                        verbose=verbose)
                 if not ID:
                     print(f"REGISTERING FILE '{file_path}' FAILED!")
                     if log: log.error(f"REGISTERING FILE '{file_path}' FAILED!")
@@ -528,39 +549,36 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
     
     elif source and config_source:
         source_dir  = config_source["dir"] + "/"
-        try:    sort_files  = config_source["sort_files"]
-        except: sort_files  = False
-        try:
-            if callable(config_source["sort_method"]):
-                sort_method = config_source["sort_method"]
-            else: sort_method = sorted
-        except: sort_method = sorted
-        try:    max_files   = config_source["max_files"]
-        except: max_files   = None
+        sort_files  = config_source.get("sort_files")
+        max_files   = config_source.get("max_files")
+        
         try:    glob        = config_source["glob"]
         except: glob        = "*"
         try:    ext         = config_source["ext"]
         except: ext         = "*"
-        try:    restart     = config_source["restart"]
-        except: restart     = False
-
+        
         glob_ext = f"{glob}.{ext}"
-
+        
         if restart:
             files_to_parse = db.get_files_with_status( f"locked_{restart}", source )
         else:
             from glob import glob
             files_in_dir   = { os.path.basename(i) for i in glob( source_dir + glob_ext ) }
             
-            if redo:    skip_files  = db.get_files_with_status( r"locked_%", source )
+            if redo:    skip_files  = set() #db.get_files_with_status( r"locked%", source )
             else:       skip_files  = db.get_files_with_status( gv.skip_status, source )
             
             files_to_parse = list( files_in_dir - skip_files )
             
             #TODO special sort functions for CCA, RRA and stuff in case we dont have sequence key
             #TODO implement order by datetime (via sort_method callable)
-            if sort_files: files_to_parse = sort_method(files_to_parse)
-            if max_files:  files_to_parse = files_to_parse[:max_files]
+            if sort_files:
+                if callable(config_source.get("sort_method")):
+                    sort_method = config_source["sort_method"]
+                else: sort_method = sorted
+                files_to_parse = sort_method(files_to_parse)
+            
+            if max_files: files_to_parse = files_to_parse[:max_files]
             
             if verbose:
                 print("#FILES in DIR:  ",   len(files_in_dir))
@@ -568,18 +586,17 @@ def get_input_files_dict( config_database, input_files=[], source="extra",
         
         if verbose: print("#FILES to parse:",   len(files_to_parse))
 
-        for file_name in files_to_parse:
+        for file_name in tuple(files_to_parse):
 
-            file_date = get_file_date( source_dir + "/" + file_name )
+            file_date   = get_file_date( source_dir + "/" + file_name )
+            ID          = db.get_file_id(file_name, source_dir)
 
-            ID = db.get_file_id(file_name, source_dir)
             if not ID:
-                if PID: status_locked = f"locked_{PID}"
-                else:   status_locked = "locked"
                 ID = db.register_file(file_name, source_dir, source, status_locked, file_date, verbose=verbose)
                 if not ID:
                     if log: log.error(f"REGISTERING FILE '{file_path}' FAILED!")
                     continue
+            db.set_file_status( ID, status_locked )
 
             files_dict[ID] = { "name":file_name, "dir":source_dir, "date":file_date }
 
@@ -746,7 +763,6 @@ def already_running2():
 
 # meteorological functions
 def rh2dpt( rh, tmp, perc=True, C_in=True, C_out=True ):
-    #TODO
     """
     Parameter:
     ----------
@@ -856,7 +872,7 @@ def qff_dwd( ppp, h, tmp, rh, C_in=True ):
 
 #source for this pressure reductions: https://www.metpod.co.uk/calculators/pressure/
 def qff_smhi( ppp, h, tmp, lat, C_in=True ):
-    #TODO lat to phi, doctring
+    #TODO lat to phi, complete doctring
     """
     Parameter:
     ----------
