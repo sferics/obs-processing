@@ -172,17 +172,17 @@ TODO
 \- main configuration file template with the following sections:
 
 > **general:**\
-> \- most general settings which will be overwritten by the script's config
+> \- mos general settings which will be overwritten by the script's config\
 > **database:**\
-> \- TODO
+> \- TODO\
 > **bufr:**\
-> \- TODO
+> \- TODO\
 > **obs:**\
-> \- TODO
+> \- TODO\
 > **scripts:**\
-> \- TODO
+> \- TODO\
 > **clusters:**\
-> \- TODO
+> \- TODO\
 > **sources:**\
 > \- TODO
 
