@@ -144,7 +144,7 @@ This is a chain script which runs the following scripts in the order of occurren
 > <br/><br/>
 > 
 > ### derive\_obs.py
-> Compute derived elements like relative humidity, cloud levels or reduced pressure.
+> Compute derived elements like relative humidity, cloud levels or reduced pressure from (a combination of) other elements.
 > 
 > #### Unique command line arguments
 > ##### -A/--aggregated
@@ -157,7 +157,8 @@ This is a chain script which runs the following scripts in the order of occurren
 > 
 > ### aggregate\_obs.py
 > Aggregate over certain time periods / durations (like 30min,1h,3h,6h,12,24h) and create new elements with "\_{duration}" suffix.
-> 
+> The information about what elements to aggregate over which durations is contained in "config/element\_aggregation.yml".
+>  
 > #### Example usage
 > ##### Enable traceback prints
 > `python aggregate_obs.py -t`
@@ -247,13 +248,13 @@ Get latest observations from the Polish Open Data service
 ### translations/
 > #### bufr/
 > > ##### {approach}.yml
-> > \- BUFR key translations for the different approaches\
+> > \- BUFR key translations for the different approaches
 > ##### metwatch.yml
-> \- translation for the legacy metwatch element names\
+> \- translation for the legacy metwatch element names
 > ##### imgw.yml
-> \- translation for element names of Polish weather service Open Data\
+> \- translation for element names of Polish weather service Open Data
 > ##### {other\_source}.yml
-> \- use this naming scheme if you want to add your own custom source translation files\
+> \- use this naming scheme if you want to add your own custom source translation files
 
 ##### parser\_args.yml
 \- TODO

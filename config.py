@@ -1,4 +1,7 @@
 import argparse
+from datetime import datetime as dt
+from datetime import timedelta as td
+from datetime import date
 import global_functions as gf
 
 # https://stackoverflow.com/questions/52132076/argparse-action-or-type-for-comma-separated-list
@@ -67,30 +70,34 @@ class ToPath(argparse.Action):
 
 class ToDatetime(argparse.Action):
     def __call__(self, parser, namespace, value, option_string=None):
-        from datetime import datetime as dt
         setattr(namespace, self.dest, dt.fromisoformat(value))
 
 ToDt = ToDatetime
 
 class ToTimedelta(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        from datetime import timedelta as td
         setattr(namespace, self.dest, td(*values))
 
 ToTd = ToTimedelta
 
 class ToDate(argparse.Action):
     def __call__(self, parser, namespace, value, option_string=None):
-        from date import date
         setattr(namespace, self.dest, date.fromisoformat(value))
 
 
 split_set       = lambda values : set(values.split(","))
 split_frozenset = lambda values : frozenset(values.split(","))
+split_fset      = split_frozenset
 split_tuple     = lambda values : tuple(values.split(","))
 split_list      = lambda values : values.split(",")
 split_iter      = lambda values : iter(values.split(","))
 split_range     = lambda values : range(values.split(","))
+split_slice     = lambda values : slice(values.split(","))
+split_datetime  = lambda values : dt(*values.split("-"))
+split_dt        = split_datetime
+split_timedelta = lambda values : td(*values.split(","))
+split_td        = split_timedelta
+split_date      = lambda values : date(*values.split("-"))
 
 
 class ConfigClass:

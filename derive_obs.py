@@ -120,7 +120,7 @@ def derive_obs(stations):
                 sql_values.add( (k, f"CL{i}_2m_syn", CL[k]) )
 
         # duration is always 1s for cloud observations
-        sql = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,'1s') ON CONFLICT DO UPDATE SET value=excluded.value" #NOTHING"
+        sql = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,'1s') ON CONFLICT DO UPDATE SET value=excluded.value" #NOTHING"
         try:    db_loc.exemany(sql, sql_values)
         except: continue
 
@@ -174,8 +174,8 @@ def derive_obs(stations):
         # reset row factory
         db_loc.row_factory = df.default_row
 
-        #sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,'PRATE_1m_syn',?,?)"
-        sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?)"
+        #sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,'PRATE_1m_syn',?,?)"
+        sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,?)"
         prate_vals  = set()
         
         db_loc.row_factory = sf.dict_row
