@@ -38,5 +38,6 @@ flags:
   S:      [stage,         [raw,forge,bad,final],                      ~,          ~,          forge,    str,        "name of stage within staging chain processing (default=forge)"       ]
   t:      [traceback,     ~,                                          ~,          store_true, ~,        ~,          "enable traceback debugging prints (using the traceback module)"      ]
   T:      [translation,   ~,                                          ~,          ~,          ~,        str,        "name of custom (bufr) translation file"                              ]
+  u:      [update,        ~,                                          ~,          store_true, ~,        ~,          "force already existing values to be updated during conflict handling"]
   v:      [verbose,       ~,                                          ~,          store_true, ~,        ~,          "show more detailed output"                                           ]
   w:      [no_warnings,   ~,                                          ~,          store_true, ~,        ~,          "show warnings instead of surpressing them (default)"                 ]

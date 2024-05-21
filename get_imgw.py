@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Get latest obs from polish weather service and insert observatio data into database."
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","c","d","m","o")
+    flags       = ("l","v","c","d","m","o","u")
     cf          = ConfigClass(script_name, flags=flags, info=info, sources=True)
     
     # get currently active conda environment
@@ -54,7 +54,13 @@ if __name__ == "__main__":
     traceback       = cf.script["traceback"]
     timeout         = cf.script["timeout"]
     max_retries     = cf.script["max_retries"] 
+    update          = cf.script["update"]
 
+    if update:
+        on_conflict = "SET value=excluded.value"
+    else:
+        on_conflict = "NOTHING"
+    
     # get source specific configuration
     config_source   = cf.sources["IMGW"]
     # get priority setting for IMGW source
@@ -73,7 +79,7 @@ if __name__ == "__main__":
         log.error(error_message)
         sys.exit(error_message)
 
-    obs         = ObsClass(cf, "imgw", stage="raw")
+    obs         = ObsClass(cf, "imgw", stage="raw", verbose=verbose)
     translation = gf.read_yaml("translations/imgw", file_dir=cf.config_dir)
     elements    = translation["elements"]
 
@@ -95,7 +101,7 @@ if __name__ == "__main__":
             element, value, duration, scale = convert_imgw_keys(key, data)
             obs_db[location].add( (0, datetime, duration, element, value, 0, scale) )
 
-    obs.to_station_databases(obs_db, "imgw", scale=True, prio=prio)
+    obs.to_station_databases(obs_db, scale=True, prio=prio, update=update)
 
     finished_str    = gf.get_finished_str(script_name)
     log.info(finished_str)

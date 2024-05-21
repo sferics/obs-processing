@@ -36,8 +36,10 @@ conda env config vars set PYTHONPATH="${PYTHONPATH}:modules"
 # change path of git hooks in local git config to .githooks
 git config --local core.hooksPath .githooks/
 
-# compile all .py files to speed-up first run of any script
-python -m compileall
+# compile all .py files in order to detect more syntax errors and speedup first execution of scripts
+# uses recursion depth 1 as described here: https://stackoverflow.com/a/59610560/12935487
+python -m compileall . -lq
+python -m compileall modules -q
 
 # execute sql scripts creating file_table in main database and altering station table (baro_height)
 sqlite3 main.db < sql/file_table.sql

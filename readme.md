@@ -208,19 +208,31 @@ Get latest observations from the Polish Open Data service
 ### codes/
 > #### bufr/
 > > ##### flags_{approach}.yml
-> > \- TODO
+> > \- conversion of BUFR code/flag tables into values we use
 > > ##### sequences.yml
-> > \- TODO
+> > \- definition of wmo BUFR sequences
+> > \- only needed for "ex" approach of decode\_bufr.py
 > ##### synop.yml
-> \- TODO
+> \- conversion of SYNOP codes into values we use
 > ##### metar.yml
-> \- TODO
+> \- conversion of METAR codes into values we use
 
 ##### element\_aggregation.yml
-\- TODO
+\- information about which element to aggregate OR fill in gaps
+\- consists of two sections:
+> **duration:**
+> \- which element to aggregate over which durations
+> \- fallback elements can be defined (like TMP instead of TMAX)
+> **instant:**
+> \- which elements always have the same duration
+> \- for these elements we try to fill in the gaps (use nearby values)
 
 ##### element\_info.yml
-\- TODO
+\- information about the value range of elements (lower/upper boundaries)
+\- also: which values to include or exclude out of that range (extra/exclude)
+\- extra column is a list of values and these will always be excepted, even if they are out-of-range
+\- exclude is defined as a regular expression (x means no exluded values)
+\- used for audit\_obs.py script only
 
 ##### environment.yml
 \- conda environment information (environment name, packages to install, conda settings)\
@@ -234,14 +246,27 @@ Get latest observations from the Polish Open Data service
 > \- most general settings which will be overwritten by all following configs\
 > \- order: general -> class -> script -> command line arguments\
 > **database:**\
-> \- TODO\
+> \- configuration for the main database (usually when DatabaseClass is called for main.db)\
 > **bufr:**\
-> \- TODO\
+> \- configuration for the BufrClass\
 > **obs:**\
-> \- TODO\
+> \- configuration for the ObsClass\
 
 ##### scripts.yml
 \- just change the settings of all scripts to your desire in here
+\- sections/keys are always the FULL script name (with .py)!
+\- some important script configurations in detail:
+> **decode_bufr.py:**\
+> \- TODO\
+> **forge_obs.py:**\
+> \- TODO\
+> **aggregate_obs.py:**\
+> \- TODO\
+> **get_imgw.py:**\
+> \- TODO\
+> **get_knmi.py:**\
+> \- TODO\
+
 ##### sources\_template.yml
 \- needs to be copied to "config/sources.yml" in order to be recognized by the python scripts
 ##### clusters\_template.yml
@@ -259,10 +284,12 @@ Get latest observations from the Polish Open Data service
 > \- use this naming scheme if you want to add your own custom source translation files
 
 ##### parser\_args.yml
-\- TODO
+\- definition of positional and flag (e.g. -v/--verbose) command line arguments 
 ### station\_tables/
 > ##### {mode}\_{stage}.yml
-> \- TODO
+> \- definition of the table structure for the location/station databases
+> \- the syntax is very SQL-like but simpler than a real .sql file
+> \- different mode and stage combination need to be all present if you add custom modes/stages
 <br/>
 
 ## Bash scripts in "scripts/" directory

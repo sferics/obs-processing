@@ -65,7 +65,7 @@ def derive_obs(stations):
         
         """
         sql1=f"SELECT dataset,datetime,duration,element,value FROM obs WHERE element = '%s'{dt_30min}"
-        sql2="INSERT INTO obs (dataset,datetime,duration,element,value) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING"
+        sql2=f"INSERT INTO obs (dataset,datetime,duration,element,value) VALUES(?,?,?,?,?) ON CONFLICT DO{on_conflict}"
         
         found = False
         
@@ -120,7 +120,8 @@ def derive_obs(stations):
                 sql_values.add( (k, f"CL{i}_2m_syn", CL[k]) )
 
         # duration is always 1s for cloud observations
-        sql = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,'1s') ON CONFLICT DO UPDATE SET value=excluded.value" #NOTHING"
+        sql = ("INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,'1s') "
+            "ON CONFLICT DO{on_conflict}")
         try:    db_loc.exemany(sql, sql_values)
         except: continue
 
@@ -131,7 +132,8 @@ def derive_obs(stations):
        
         # derive cloud bases [CB?_2m_syn] and cloud covers in the 4 levels [CDC?_2m_syn]
         # from cloud levels [CL?_2m_syn] (usually provided by metwatch CSVs)
-        sql = f"SELECT element,value FROM obs WHERE element REGEXP '(CB%_2m_syn|CDC%_2m_syn)'{dt_30min} ORDER BY datetime asc, element desc" 
+        sql = (f"SELECT element,value FROM obs WHERE element REGEXP '(CB%_2m_syn|CDC%_2m_syn)'"
+            f"{dt_30min} ORDER BY datetime asc, element desc")
         db_loc.row_factory = sf.dict_row
         db_loc.exe(sql)
          
@@ -175,8 +177,10 @@ def derive_obs(stations):
         # reset row factory
         db_loc.row_factory = sf.default_row
 
-        #sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,'PRATE_1m_syn',?,?) ON CONFLICT DO NOTHING"
-        sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING"
+        #sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) "
+        #    f"VALUES(?,?,'PRATE_1m_syn',?,?) ON CONFLICT DO{on_conflict}")
+        sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) "
+            f"VALUES(?,?,?,?,?) ON CONFLICT DO{on_conflict}")
         prate_vals  = set()
         
         db_loc.row_factory = sf.dict_row
@@ -225,7 +229,8 @@ def derive_obs(stations):
             db_loc.exe(sql)
             
             datetimes   = set( i[0] for i in db_loc.fetch() )
-            sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,'1s') ON CONFLICT DO NOTHING"
+            sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) "
+                f"VALUES(?,?,?,?,'1s') ON CONFLICT DO{on_conflict}")
             prmsl_vals  = set()
 
             # try calculate PRMSL for all datetimes where only PRES is available
@@ -287,8 +292,8 @@ def derive_obs(stations):
                 f"element = 'DPT_2m_syn' AND IFNULL(value, '') = ''{dt_30min}")
             db_loc.exe(sql)
             
-            sql_insert  = ("INSERT INTO obs (dataset,datetime,element,value,duration) VALUES"
-                "(?,?,'DPT_2m_syn',?,'1s') ON CONFLICT DO NOTHING")
+            sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) VALUES"
+                f"(?,?,'DPT_2m_syn',?,'1s') ON CONFLICT DO{on_conflict}")
             dpt_vals    = set()
             
             for datetime in db_loc.fetch():
@@ -349,7 +354,7 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Derive obs elements from other parameters"
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","C","m","M","o","O","d","t","P","A")
+    flags       = ("l","v","C","m","M","o","O","d","t","P","A","u")
     cf          = cc(script_name, pos=["source"], flags=flags, info=info, clusters=False)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
@@ -370,7 +375,13 @@ if __name__ == "__main__":
     processes       = cf.script["processes"]
     replacements    = cf.script["replacements"]
     combinations    = cf.script["combinations"]
+    update          = cf.script["update"]
 
+    if update:
+        on_conflict = " SET value=excluded.value"
+    else:
+        on_conflict = " NOTHING"
+    
     if cf.script["aggregated"]:
         dt_30min = " AND strftime('%M', datetime) IN ('00','30')"
     else: dt_30min = ""

@@ -8,13 +8,10 @@ from config import ConfigClass as cc
 import global_functions as gf
 import global_variables as gv
 
-# main SQL insert statement which will be used at the end of aggregate_obs function
-SQL = "INSERT INTO obs VALUES(?,?,?,?,?) ON CONFLICT DO UPDATE SET value = excluded.value, duration = excluded.duration"
-
 # constants
 mins_10 = td(minutes=10)
 
-def aggregate_obs(stations):
+def aggregate_obs(stations, update=False):
     """
     Parameter:
     ----------
@@ -143,6 +140,13 @@ def aggregate_obs(stations):
 
         return sql
 
+    # main SQL insert statement which will be used at the end of aggregate_obs function
+    SQL = "INSERT INTO obs VALUES(?,?,?,?,?) ON CONFLICT DO "
+    if update: # update flag which forces already existing values to be updated
+        SQL += "UPDATE SET value = excluded.value, duration = excluded.duration"
+    else: # if -u/--update flag is not set do nothing
+        SQL += "NOTHING"
+
     #TODO this function should make sure that in the forge stage we only have 30 min data resolution
     # that means if there are missing 0min or 30min values, we should replace them with the closest values, e.g.
     # 10min/50min for 0min and 20min/40min for 30min; TODO which of those should we prefer and why? average them?
@@ -199,12 +203,12 @@ def aggregate_obs(stations):
                                 db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
                                 
                                 # get number of values and dataset name
-                                n_vals, dataset = db_loc.fetch1()
-                                 
+                                fetched = db_loc.fetch1() 
+                                if fetched is None: continue
+
+                                n_vals, dataset = fetched
                                 # if no value is present
-                                #if not db_loc.fetch1():
                                 if not n_vals:
-                                    
                                     dt_start    = dt_base - mins_10
                                     dt_end      = dt_base + mins_10     
                                     
@@ -212,18 +216,14 @@ def aggregate_obs(stations):
                                     sql = f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN '{dt_start}' AND '{dt_end}'"
                                     db_loc.exe( sql.replace("?", "COUNT(value)") )
                                      
-                                    # if 1 or 2 value exists
-                                    #TODO test which statement is faster. it should be the current one
-                                    #TODO do we really need to check for 1 or to or just any value? downside: less fail-proofed
-                                    #if db_loc.fetch1() in {1,2}:
-                                    #if db_loc.fetch1() in range(1,3):
-                                    if 1 <= db_loc.fetch1() <= 2:
+                                    # if only 1 or 2 values exists
+                                    if 1 <= n_vals <= 2:
                                         
                                         db_loc.exe( sql.replace("?", "AVG(value)") )
                                         val = db_loc.fetch1()
-                                        
+                                         
                                         sql_values.add( (dataset, dt_base, "", el_old, val) )
-        
+                                    
 
         for el_old in duration_elems:
             
@@ -304,15 +304,20 @@ def aggregate_obs(stations):
                                     sql_add = get_duration(FUN, dur, subdur)
 
                                     sql += sql_add
-                                    db_loc.exe( sql.replace("?", "COUNT(value)") )
+                                    db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
+
+                                    fetched = db_loc.fetch1()
+                                    if fetched is None: continue
+                                    
+                                    count_vals, dataset = fetched
 
                                     # if we want an average make sure there are continous values for each sub-duration
-                                    if FUN in {"AVG","SUM"} and int(db_loc.fetch1()) != int(dur_int // subdur_int):
+                                    if FUN in {"AVG","SUM"} and int(count_vals) != int(dur_int // subdur_int):
                                         continue
                                     db_loc.exe( sql.replace("?", FUN+"(value)") )
-
+                                    
                                     val_new = db_loc.fetch1()
-
+                                    
                                     if val_new is not None:
                                         if verbose: print(dt_base, dur, el_new, val_new)
                                         sql_values.add( (dataset, dt_base, dur, el_new, val_new) )
@@ -320,7 +325,7 @@ def aggregate_obs(stations):
                                         break
                                     # only for MIN/MAX and when a fallback element is present, try again
                                     elif FUN in {"MIN","MAX"} and el_fallback:
-                                        
+                                            
                                         sql=(f"SELECT {FUN}(value) FROM obs WHERE element = '{el_fallback}' "
                                             f"AND datetime(datetime) BETWEEN '{dt_start}' AND "
                                             f"'{dt_end}' AND {sql_add}")
@@ -333,15 +338,15 @@ def aggregate_obs(stations):
                                             sql_values.add( (dataset, dt_base, dur, el_new, val_new) )
                                             # break the loop when a value is first found
                                             break
-
+                                    
                                 elif dur in {"1h", "30min"} and "min" in subdur:
                                     
                                     for hour in get_distinct_hours():
-                                        
+                                            
                                         if dur == "1h": dur_int = 1
                                         else:           dur_int = 30
                                         subdur_int              = int( subdur.replace("min", "") )
-
+                                        
                                         dt_end = dt( int(year), int(month), int(day), int(hour) )
                                         
                                         if dur == "1h":
@@ -354,18 +359,23 @@ def aggregate_obs(stations):
                                             f"'{dt_start}' AND '{dt_end}' AND duration='{subdur}'")
                                         db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
                                         
+                                        fetched = db_loc.fetch1()
+                                        if fetched is None: continue
+                                        
+                                        count_vals, dataset = fetched
+                                        
                                         # convert 1h into 60mins
                                         if dur == "1h": dur_int *= 60
-
+                                        
                                         # if we want an average make sure there are continous values for each sub-duration
-                                        if FUN in {"AVG","SUM"} and int(db_loc.fetch1()[0]) != int(dur_int // subdur_int):
+                                        if FUN in {"AVG","SUM"} and int(count_vals) != int(dur_int // subdur_int):
                                             continue
-
+                                        
                                         db_loc.exe( sql.replace("?", FUN+"(value)") )
                                         
-                                        val_new, dataset = db_loc.fetch1()
-                                        
-                                        if val_new is not None:
+                                        fetched = db_loc.fetch1()
+                                        if fetched is not None:
+                                            val_new, dataset = fetched
                                             if verbose: print(dt_end, dur, el_new, val_new)
                                             sql_values.add( (dataset, dt_end, dur, el_new, val_new) )
                                             # break the loop when a value is first found
@@ -392,13 +402,16 @@ def aggregate_obs(stations):
                                     
                                     sql += sql_add
                                     db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
-                                    
+                                   
+                                    fetched = db_loc.fetch1()
+                                    if fetched is None: continue
+
                                     # if we want an average make sure there are continous values for each sub-duration
-                                    if FUN in {"AVG","SUM"} and int(db_loc.fetch1()[0]) != int(dur_num // subdur_num):
+                                    if FUN in {"AVG","SUM"} and int(fetched[0]) != int(dur_num // subdur_num):
                                         continue
                                     db_loc.exe( sql.replace("?", FUN+"(value)") )
                                     
-                                    val_new, dataset = db_loc.fetch1()
+                                    val_new = db_loc.fetch1()
                                     
                                     if val_new is not None:
                                         if verbose: print(dt_end, dur, el_new, val_new)
@@ -433,7 +446,7 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Aggregate observations over different time periods (durations)"
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","C","m","M","o","O","d","t","P")
+    flags       = ("l","v","C","m","M","o","O","d","t","P","u")
     cf          = cc(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
@@ -452,6 +465,7 @@ if __name__ == "__main__":
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
+    update          = cf.script["update"]
     aggregat_elems  = cf.script["aggregat_elems"]
     aggregat_elems  = gf.read_yaml(aggregat_elems, file_dir=cf.config_dir)
     duration_elems  = aggregat_elems["duration"]
@@ -474,7 +488,7 @@ if __name__ == "__main__":
         station_groups = np.array_split(stations, processes)
 
         for station_group in station_groups:
-            p = mp.Process(target=aggregate_obs, args=(station_group,))
+            p = mp.Process(target=aggregate_obs, args=(station_group,update))
             p.start()
 
-    else: aggregate_obs(stations)
+    else: aggregate_obs(stations, update)

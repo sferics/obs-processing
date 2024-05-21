@@ -38,6 +38,7 @@ get_imgw.py:
   mode:             !!str   dev
   log_level:        !!str   ERROR
   verbose:          !!bool  1
+  update:           !!bool  1
   max_retries:      !!int   10
   timeout:          !!int   3
 
@@ -48,6 +49,7 @@ forge_obs.py:
   traceback:        !!bool  0 # traceback prints
   debug:            !!bool  0
   mode:             !!str   dev
+  update:           !!bool  1
   export:           !!bool  0
   timeout:          !!int   5
   max_retries:      !!int   100
@@ -64,6 +66,7 @@ reduce_obs.py:
 audit_obs.py:
   conda_env:        !!str   obs
   pid_file:         !!bool  0 # create and use pid file
+  update:           !!bool  1
   element_info:     !!str   element_info
 
 derive_obs.py:
@@ -73,6 +76,7 @@ derive_obs.py:
   traceback:        !!bool  0
   mode:             !!str   dev
   processes:        !!int   15
+  update:           !!bool  1
   clusters:         !!set   [germany]
 
 aggregate_obs.py:
@@ -82,6 +86,7 @@ aggregate_obs.py:
   traceback:        !!bool  1 # traceback prints
   mode:             !!str   dev
   processes:        !!int   15
+  update:           !!bool  1
   stations:         !!set   [wmo, dwd]
   clusters:         !!set   [germany] # TODO should take setting from sources instead
   aggregat_elems:   !!str   element_aggregation

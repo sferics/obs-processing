@@ -1,6 +1,4 @@
-#!/bin/bash
-# try to initiate conda and activate obs environment; else exit
-conda shell.bash activate || exit
+#!/bin/sh
 
 # export environment information without prefix and variables sections
 bash scripts/export_conda_environment.sh

@@ -38,8 +38,10 @@ def audit_obs(stations):
         db_loc.attach_station_db(loc, output, mode=mode, stage="final")
         
         #sql = ""
-        sql_good    = "INSERT OR IGNORE INTO final.obs (dataset,timestamp,element,value) VALUES (?,?,?,?)"
-        sql_bad     = "INSERT OR IGNORE INTO final.obs_bad (dataset,datetime,element,value,reason) VALUES (?,?,?,?,?)"
+        sql_good    = (f"INSERT INTO final.obs (dataset,timestamp,element,value) VALUES (?,?,?,?) "
+            f"ON CONFLICT DO{on_conflict}")
+        sql_bad     = (f"INSERT INTO final.obs_bad (dataset,datetime,element,value,reason) VALUES "
+            f"(?,?,?,?,?) ON CONFLICT DO{on_conflict}")
         values_good, values_bad = set(), set()
 
         for element in elements:
@@ -105,7 +107,7 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Reduce the number of observations according to operation mode"
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","C","m","M","o","O","d","t","P")
+    flags       = ("l","v","C","m","M","o","O","d","t","P","u")
     cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
@@ -124,7 +126,13 @@ if __name__ == "__main__":
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
-    
+    update          = cf.script["update"]
+
+    if update:
+        on_conflict = " SET value=excluded.value"
+    else:
+        on_conflict = " NOTHING"
+
     element_info    = gf.read_yaml(cf.script["element_info"], file_dir=cf.config_dir)
     elements        = tuple( element_info.keys() )
 

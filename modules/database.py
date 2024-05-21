@@ -1450,7 +1450,21 @@ class DatabaseClass:
             if self.traceback: gf.print_trace(e)
             return False
         return True
-
+    
+    
+    def count_tables(self):
+        """
+        Notes:
+        ------
+        count the amount of tables in current database and return it
+        
+        Return:
+        -------
+        number of tables as int
+        """
+        self.exe(f"SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
+        return int( self.fetch1() )
+        
     #TODO add CREATE INDEX statement https://www.sqlite.org/lang_createindex.html
 
 

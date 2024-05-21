@@ -16,9 +16,11 @@ obs:
   UNIQUE:   (datetime, element)
 
 obs_bad:
-  dataset:  text NOT NULL
-  #datetime: datetime NOT NULL
-  datetime: integer NOT NULL
-  element:  text NOT NULL
-  value:    text NOT NULL
-  UNIQUE:   (datetime, element)
+  dataset:    text NOT NULL
+  datetime:   datetime NOT NULL
+  #timestamp:  integer NOT NULL
+  element:    text NOT NULL
+  value:      text NOT NULL
+  reason:     text NOT NULL
+  #UNIQUE:     (timestamp, element)
+  UNIQUE:     (datetime, element)
