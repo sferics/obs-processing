@@ -225,7 +225,7 @@ Get latest observations from the Polish Open Data service
 > \- fallback elements can be defined (like TMP instead of TMAX)\
 > **instant:**\
 > \- which elements always have the same duration\
-> \- for these elements we try to fill in the gaps (use nearby values)\
+> \- for these elements we try to fill in the gaps (using nearby values)
 
 ##### element\_info.yml
 \- information about the value range of elements (lower/upper boundaries)\
