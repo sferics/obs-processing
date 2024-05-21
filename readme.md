@@ -223,7 +223,7 @@ Get latest observations from the Polish Open Data service
 > **duration:**\
 > \- which element to aggregate over which durations\
 > \- fallback elements can be defined (like TMP instead of TMAX)\
-> **instant:**
+> **instant:**\
 > \- which elements always have the same duration\
 > \- for these elements we try to fill in the gaps (use nearby values)\
 
@@ -246,11 +246,11 @@ Get latest observations from the Polish Open Data service
 > \- most general settings which will be overwritten by all following configs\
 > \- order: general -> class -> script -> command line arguments\
 > **database:**\
-> \- configuration for the main database (usually when DatabaseClass is called for main.db)\
+> \- default configuration for the main database (usually when DatabaseClass is called for main.db)\
 > **bufr:**\
-> \- configuration for the BufrClass\
+> \- default configuration for the BufrClass\
 > **obs:**\
-> \- configuration for the ObsClass\
+> \- default configuration for the ObsClass
 
 ##### scripts.yml
 \- just change the settings of all scripts to your desire in here\
@@ -265,7 +265,7 @@ Get latest observations from the Polish Open Data service
 > **get_imgw.py:**\
 > \- TODO\
 > **get_knmi.py:**\
-> \- TODO\
+> \- TODO
 
 ##### sources\_template.yml
 \- needs to be copied to "config/sources.yml" in order to be recognized by the python scripts
