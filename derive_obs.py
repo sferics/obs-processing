@@ -65,7 +65,7 @@ def derive_obs(stations):
         
         """
         sql1=f"SELECT dataset,datetime,duration,element,value FROM obs WHERE element = '%s'{dt_30min}"
-        sql2="INSERT INTO obs (dataset,datetime,duration,element,value) VALUES(?,?,?,?,?) ON CONFLICT IGNORE"
+        sql2="INSERT INTO obs (dataset,datetime,duration,element,value) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING"
         
         found = False
         
@@ -131,11 +131,12 @@ def derive_obs(stations):
        
         # derive cloud bases [CB?_2m_syn] and cloud covers in the 4 levels [CDC?_2m_syn]
         # from cloud levels [CL?_2m_syn] (usually provided by metwatch CSVs)
-        sql = f"SELECT element,value FROM obs WHERE element REGEXP ('CB%_2m_syn'|'CDC%_2m_syn'){dt_30min} ORDER BY datetime asc, element desc" 
+        sql = f"SELECT element,value FROM obs WHERE element REGEXP '(CB%_2m_syn|CDC%_2m_syn)'{dt_30min} ORDER BY datetime asc, element desc" 
         db_loc.row_factory = sf.dict_row
         db_loc.exe(sql)
+         
         # reset row factory
-        db_loc.row_factory = df.default_row
+        db_loc.row_factory = sf.default_row
 
         data = db_loc.fetch()
 
@@ -172,10 +173,10 @@ def derive_obs(stations):
         db_loc.row_factory = sf.tuple_row
         db_loc.exe(sql)
         # reset row factory
-        db_loc.row_factory = df.default_row
+        db_loc.row_factory = sf.default_row
 
-        #sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,'PRATE_1m_syn',?,?)"
-        sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,?)"
+        #sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,'PRATE_1m_syn',?,?) ON CONFLICT DO NOTHING"
+        sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING"
         prate_vals  = set()
         
         db_loc.row_factory = sf.dict_row
@@ -198,12 +199,12 @@ def derive_obs(stations):
                 else:               value_obs   = copy(value)
                 
                 # if we had element="TR" and a TR-dependent obs alternating plus value and duration
-                if element != prev_elem and value_obs and duration:
-                    # add the obsveration to the sql values set
-                    prate_vals.add( (dataset, datetime, value_obs, duration) )
+                if element != prev_elem and element != "TR" and value_obs and duration:
+                    # add the observation to the sql values set
+                    prate_vals.add( (dataset, datetime, element, value_obs, duration) )
         
         # reset row factory
-        db_loc.row_factory = df.default_row
+        db_loc.row_factory = sf.default_row
         db_loc.exemany(sql_insert, prate_vals)
 
 
@@ -223,9 +224,8 @@ def derive_obs(stations):
                 #AND value IS NULL OR value = ''
             db_loc.exe(sql)
             
-            datetimes = set( i[0] for i in db_loc.fetch() )
-           
-            sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,'1s')"
+            datetimes   = set( i[0] for i in db_loc.fetch() )
+            sql_insert  = "INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,'1s') ON CONFLICT DO NOTHING"
             prmsl_vals  = set()
 
             # try calculate PRMSL for all datetimes where only PRES is available
@@ -288,7 +288,7 @@ def derive_obs(stations):
             db_loc.exe(sql)
             
             sql_insert  = ("INSERT INTO obs (dataset,datetime,element,value,duration) VALUES"
-                "(?,?,'DPT_2m_syn',?,'1s')")
+                "(?,?,'DPT_2m_syn',?,'1s') ON CONFLICT DO NOTHING")
             dpt_vals    = set()
             
             for datetime in db_loc.fetch():
@@ -316,7 +316,7 @@ def derive_obs(stations):
             
 
             ##TODO MEDIUM priority, could be useful for some sources
-
+            
             #TODO derive total sunshine duration in min from % (using astral package; see wetterturnier)
             #import astral 
             
@@ -328,7 +328,7 @@ def derive_obs(stations):
 
             #TODO derive 1 digit (SYNOP) ground state code from 2 digit (BUFR) ground state code?
             
-
+            
             ##TODO LOW priority, not really needed at the moment
             
             #TODO take 5m wind as 10m wind if 10m wind not present (are they compareble???)
@@ -340,7 +340,7 @@ def derive_obs(stations):
             
              
         db_loc.close(commit=True)
-
+        
     return
 
 
@@ -350,12 +350,11 @@ if __name__ == "__main__":
     info        = "Derive obs elements from other parameters"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","d","t","P","A")
-    cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=False)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
-    start_time  = dt.utcnow()
-    started_str = f"STARTED {script_name} @ {start_time}"
-
+     
+    started_str, start_time = gf.get_started_str_time(script_name)
     log.info(started_str)
 
     # define some shorthands from script config
@@ -381,9 +380,11 @@ if __name__ == "__main__":
     stations        = db.get_stations( clusters )
     db.close(commit=False)
     
-    # get synop codes conversion dictionary to decode synop codes
+    # get SYNOP codes conversion dictionary to decode SYNOP codes
     #synop_codes     = gf.read_yaml("codes/synop")
-
+    # get METAR codes conversion dictionary to decode METAR codes
+    #metar_codes     = gf.read_yaml("codes/metar")
+    
     if processes: # number of processes
         import multiprocessing as mp
         from random import shuffle
@@ -399,3 +400,6 @@ if __name__ == "__main__":
             p.start()
 
     else: derive_obs(stations)
+
+    finished_str = gf.get_finished_str(script_name)
+    if verbose: print(finished_str)

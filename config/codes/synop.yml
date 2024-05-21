@@ -10,7 +10,7 @@ iw: # wind unit indicator
 
 s: # sign of temperature or dewpoint
   0:  +   # positive
-  1:  -   # negative
+  1:  "-" # negative
   9:  RH  # relative humidity instead of dewpoint
   /:  ~
   "": ~

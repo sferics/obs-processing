@@ -4,9 +4,6 @@
 #sudo apt install libeccodes*
 sudo apt install python python-dev wget
 
-# clone plbufr repository (fork of pdbufr using polars instead of pandas)
-git clone https://github.com/sferics/plbufr/
-
 #TODO automize miniconda install
 # https://docs.anaconda.com/free/miniconda/
 mkdir -p ~/miniconda3
@@ -20,12 +17,21 @@ rm -rf ~/miniconda3/miniconda.sh
 # create new conda environment, using package list
 conda env create -f config/environment.yml
 
+# clone plbufr repository (fork of pdbufr using polars instead of pandas)
+git clone https://github.com/sferics/plbufr/
+
 # install plbufr package (legacy install method!)
 cd plbufr && python setup.py install
 
-# install packaged files for easier imports and syntax checks via hook
-#python -m pip install --editable package
-#python -m pip install -e package
+# permanently add modules directory to PYTHONPATH
+conda env config vars set PYTHONPATH="${PYTHONPATH}:modules"
+
+#TODO the above works fine but maybe use `conda develop` instead? https://docs.conda.io/projects/conda-build/en/latest/resources/commands/conda-develop.html
+#conda install conda-build && conda develop modules
+
+#TODO install packaged files (located in modules) for easier imports and syntax checks via git hook
+#python -m pip install --editable modules
+#python -m pip install -e modules
 
 # change path of git hooks in local git config to .githooks
 git config --local core.hooksPath .githooks/

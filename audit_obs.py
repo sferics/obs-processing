@@ -38,8 +38,8 @@ def audit_obs(stations):
         db_loc.attach_station_db(loc, output, mode=mode, stage="final")
         
         #sql = ""
-        sql_good    = "INSERT OR IGNORE INTO final.obs (timestamp,element,value) VALUES (?,?,?)"
-        sql_bad     = "INSERT OR IGNORE INTO final.obs_bad (datetime,element,value,reason) VALUES (?,?,?,?)"
+        sql_good    = "INSERT OR IGNORE INTO final.obs (dataset,timestamp,element,value) VALUES (?,?,?,?)"
+        sql_bad     = "INSERT OR IGNORE INTO final.obs_bad (dataset,datetime,element,value,reason) VALUES (?,?,?,?,?)"
         values_good, values_bad = set(), set()
 
         for element in elements:
@@ -49,14 +49,14 @@ def audit_obs(stations):
             element_range                   = range(lower, upper)
 
             # 1 get all 30-min data for this element
-            data = db_loc.exe((f"SELECT datetime,element,value FROM obs WHERE element='{element}' "
+            data = db_loc.exe((f"SELECT dataset,datetime,element,value FROM obs WHERE element='{element}' "
                 f"AND strftime('%M', datetime) IN ('00','30')"))
             # 2 check for bad (out-of-range) values
             
             for row in data:
                 #sql = ""
                 
-                datetime, element, val = dt.fromisoformat(row[0]), str(row[1]), row[2]
+                dataset, datetime, element, val = row[0], dt.fromisoformat(row[1]), str(row[2]), row[3]
                 
                 # if the value does match the exclude pattern it gets excluded
                 excluded = re.match(exclude, str(val))
@@ -67,7 +67,7 @@ def audit_obs(stations):
                 
                 if not excluded and (val_in_range or val in extra):
                     # 3b insert good data into obs table of final database
-                    #sql += f"INSERT INTO obs.final (timestamp,element,value) VALUES ({row[0]},{row[1]},{row[2]})\n"
+                    #sql += f"INSERT INTO obs.final (dataset,timestamp,element,value) VALUES ({row[0]},{row[1]},{row[2]},{row[3]})\n"
                     timestamp = int( datetime.timestamp() )
                     row = (timestamp, row[1], row[2]) 
                     values_good.add(row)
@@ -91,8 +91,8 @@ def audit_obs(stations):
                         reason = f"exception_{e}"
                      
                     # 3b insert bad data into obs_bad table of final database
-                    #sql += f"INSERT INTO obs_bad.final (timestamp,duration,element,value,reason) VALUES ({row[0]},{row[1]},{row[2]},{reason})\n"
-                    values_bad.add((datetime, element, val, reason))
+                    #sql += f"INSERT INTO obs_bad.final (dataset,timestamp,duration,element,value,reason) VALUES ({row[0]},{row[1]},{row[2]},{row[2]},{reason})\n"
+                    values_bad.add((dataset, datetime, element, val, reason))
                         
             
         db_loc.exemany(sql_good, values_good)
@@ -109,9 +109,8 @@ if __name__ == "__main__":
     cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
-    start_time  = dt.utcnow()
-    started_str = f"STARTED {script_name} @ {start_time}"
-
+    
+    started_str, start_time = gf.get_started_str_time(script_name)
     log.info(started_str)
 
     # define some shorthands from script config

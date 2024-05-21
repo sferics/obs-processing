@@ -1,7 +1,6 @@
 positional:
   # name  nargs           default       help         
   source: ["*",           ~,            "parse source / list of sources (enter space seperated if you want to define multiple sources)" ]
-  #source: ["*",           ~,            iter,   "parse source / list of sources (enter space seperated)"                                ]
 
 flags:
   # short flag            choices                                     nargs       action      default   type        help

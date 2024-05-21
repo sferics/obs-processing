@@ -115,6 +115,45 @@ def get_script_name(FILE, realpath=True):
     else: return os.path.basename(FILE)
 
 
+def get_started_str_time(script_name):
+    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+    str to print out when script starts
+    start time datetime object
+    """
+    # remember starting time of script so we can measure its performance later (when finishing it)
+    start_time      = dt.utcnow()
+    start_time_str  = start_time.strftime("%Y-%M-%d %H:%m:%S")
+    started_str     = f"STARTED {script_name} @ {start_time_str}"
+     
+    return started_str, start_time
+
+
+def get_finished_str(script_name):
+    """
+    Parameter:
+    ----------
+
+    Notes:
+    ------
+
+    Return:
+    -------
+    str to print out when script stops
+    """
+    stop_time_str   = dt.utcnow().strftime("%Y-%M-%d %H:%m:%S")
+    finished_str    = f"FINISHED {script_name} @ {stop_time_str}"
+        
+    return finished_str
+
+
 def print_time_taken(start_time, stop_time, precision=3):
     """
     Parameter:

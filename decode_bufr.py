@@ -144,10 +144,8 @@ if __name__ == "__main__":
     # get a logger instance for the current script
     log = gf.get_logger(script_name)
     
-    # remeber starting time of script so we can measure its performance later (when finishing it)
-    start_time  = dt.utcnow()
-    # a string that can be printed to log or stdout
-    started_str = f"STARTED {script_name} @ {start_time}"
+    # get a string that can be printed to log or stdout and start time
+    started_str, start_time = gf.get_started_str_time(script_name)
     log.info(started_str)
     
     # save PID, we will need it later
@@ -210,9 +208,8 @@ if __name__ == "__main__":
                     PID=PID, redo=args.redo, restart=args.restart, verbose=verbose )
             decode_bufr( cf, input_files_dict, SOURCE, approach, pid_file, verbose=verbose )
         
-    stop_time       = dt.utcnow()
-    finished_str    = f"FINISHED {script_name} @ {stop_time}"
-     
+    finished_str = gf.get_finished_str(script_name)
+
     log.info(finished_str)
     if verbose: print(finished_str)
     gf.print_time_taken(start_time, stop_time)

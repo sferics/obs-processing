@@ -84,7 +84,7 @@ def reduce_obs(stations):
         # detach the forge database again
         sql += "DETACH forge;\n"
         # mark all data as reduced (processed)
-        sql += "UPDATE obs SET reduced = 0;"
+        sql += "UPDATE obs SET reduced = 1;"
 
         #if debug: print(sql)
 
@@ -107,9 +107,8 @@ if __name__ == "__main__":
     cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
-    start_time  = dt.utcnow()
-    started_str = f"STARTED {script_name} @ {start_time}"
-
+    
+    started_str, start_time = gf.get_started_str_time(script_name)
     log.info(started_str)
 
     # define some shorthands from script config

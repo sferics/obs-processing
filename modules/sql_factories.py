@@ -4,6 +4,7 @@ import polars as pl
 import numpy as np
 from collections import namedtuple
 from datetime import datetime, date, time
+
 # (lambda) function defitions for custom SQLite row and text factories
 
 ### ROW FACTORIES
@@ -36,10 +37,13 @@ polars_lf_row       = lambda cursor, row : pl.LazyFrame(row)
 numpy_row           = lambda cursor, row : np.asarray(row)
 
 # return as set
-set_row             = lambda cursor, row : {value for value in row} # or just set(row) ?
+set_row             = lambda cursor, row : {value for value in row}         # or just set(row) ?
 
 # return as list
-list_row            = lambda cursor, row : [value for value in row] # or just list(row) ?
+list_row            = lambda cursor, row : [value for value in row]         # or just list(row) ?
+
+# return as tuple (default)
+tuple_row           = lambda cursor, row : tuple(value for value in row)    # or just tuple(row) ?
 
 # for all above factories: return a list / array / df only if len > 1; else return single element
 dict_len1_row       = lambda cursor, row : row[0] if len(row)==1 else dict_row(cursor, row)

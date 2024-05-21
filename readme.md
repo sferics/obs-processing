@@ -244,6 +244,7 @@ Get latest observations from the Polish Open Data service
 > \- TODO\
 > **sources:**\
 > \- TODO
+\- needs to be copied to "config/obs.yml" in order to be recognized by the python scripts.
 
 ### translations/
 > #### bufr/
@@ -266,11 +267,11 @@ Get latest observations from the Polish Open Data service
 ## Bash scripts in "scripts/" directory
 
 ### export\_bufr\_tables.sh
-Export your custom BUFR tables to the local and conda environment variables.
+Export your custom BUFR table paths to the local and conda environment variables.
 <br/>
 
 ### export\_conda\_environment.sh
-Export conda environment information to "config/enviroment.yml". Only skip "path:" and "variables:" section because they depend on the local system.
+Exports conda environment information to "config/enviroment.yml". Only skips "path:" and "variables:" section because they depend on the local system.
 <br/>
 
 ### install.sh

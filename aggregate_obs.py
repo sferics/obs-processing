@@ -199,7 +199,7 @@ def aggregate_obs(stations):
                                 db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
                                 
                                 # get number of values and dataset name
-                                n_vals, dataset = db_loc.fetch()
+                                n_vals, dataset = db_loc.fetch1()
                                  
                                 # if no value is present
                                 #if not db_loc.fetch1():
@@ -358,12 +358,12 @@ def aggregate_obs(stations):
                                         if dur == "1h": dur_int *= 60
 
                                         # if we want an average make sure there are continous values for each sub-duration
-                                        if FUN in {"AVG","SUM"} and int(db_loc.fetch1()) != int(dur_int // subdur_int):
+                                        if FUN in {"AVG","SUM"} and int(db_loc.fetch1()[0]) != int(dur_int // subdur_int):
                                             continue
 
                                         db_loc.exe( sql.replace("?", FUN+"(value)") )
                                         
-                                        val_new, dataset = db_loc.fetch()
+                                        val_new, dataset = db_loc.fetch1()
                                         
                                         if val_new is not None:
                                             if verbose: print(dt_end, dur, el_new, val_new)
@@ -392,13 +392,13 @@ def aggregate_obs(stations):
                                     
                                     sql += sql_add
                                     db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
-
+                                    
                                     # if we want an average make sure there are continous values for each sub-duration
-                                    if FUN in {"AVG","SUM"} and int(db_loc.fetch1()) != int(dur_num // subdur_num):
+                                    if FUN in {"AVG","SUM"} and int(db_loc.fetch1()[0]) != int(dur_num // subdur_num):
                                         continue
                                     db_loc.exe( sql.replace("?", FUN+"(value)") )
                                     
-                                    val_new, dataset = db_loc.fetch()
+                                    val_new, dataset = db_loc.fetch1()
                                     
                                     if val_new is not None:
                                         if verbose: print(dt_end, dur, el_new, val_new)
@@ -437,9 +437,8 @@ if __name__ == "__main__":
     cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
-    start_time  = dt.utcnow()
-    started_str = f"STARTED {script_name} @ {start_time}"
-
+    
+    started_str, start_time = gf.get_started_str_time(script_name)
     log.info(started_str)
 
     # define some shorthands from script config
