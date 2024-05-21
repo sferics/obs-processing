@@ -1,4 +1,4 @@
-name: obs
+name: base
 channels:
   - conda-forge
   - defaults
@@ -190,6 +190,7 @@ dependencies:
       - alabaster==0.7.13
       - annotated-types==0.6.0
       - argcomplete==3.1.1
+      - astral==3.2
       - autopep8==2.0.2
       - babel==2.12.1
       - beautifulsoup4==4.12.2
@@ -206,7 +207,6 @@ dependencies:
       - distro==1.8.0
       - docopt==0.6.2
       - docutils==0.20.1
-      - ecmwflibs==0.6.0
       - fsspec==2023.12.2
       - funcy==2.0
       - gevent==23.9.1

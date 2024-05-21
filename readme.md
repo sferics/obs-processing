@@ -68,8 +68,8 @@ For more details on adding/changing/removing command line arguments, please read
   
 ### decode\_bufr.py
 This script decodes one or several BUFR files and inserts all relevant observations into the raw databases.\
-It can also process intire source/dataset directories which can be provided by the source name as arguments or via the configuration file's "source:" section.\
-By default, the configuration file's name is defined as "obs.yml". So before the first usage, you need to make sure to create it by copying the "obs\_template.yml" in "config/" and adding your desired configurations/sources.
+It can also process intire source/dataset directories which can be provided by the source name as arguments or via the "source.yml" configuration file.\
+To run the scripts, the configuration files "general.yml", "sources.yml" and "clusters.yml" are needed. So right before the first usage, you need to make sure to create them by copying the template files named "{file\_name}\_template.yml" to "config/" and adding your desired configurations/sources/clusters.
 
 #### Unique command line arguments
 
@@ -226,7 +226,8 @@ Get latest observations from the Polish Open Data service
 \- conda environment information (environment name, packages to install, conda settings)\
 \- does not contain prefix and variables because they are system-dependent
 
-##### obs\_template.yml
+##### general\_template.yml
+\- needs to be copied to "config/general.yml" in order to be recognized by the python scripts
 \- main configuration file template with the following sections:
 
 > **general:**\
@@ -238,13 +239,13 @@ Get latest observations from the Polish Open Data service
 > \- TODO\
 > **obs:**\
 > \- TODO\
-> **scripts:**\
-> \- TODO\
-> **clusters:**\
-> \- TODO\
-> **sources:**\
-> \- TODO
-\- needs to be copied to "config/obs.yml" in order to be recognized by the python scripts.
+
+##### scripts.yml
+\- just change the settings of all scripts to your desire in here
+##### sources\_template.yml
+\- needs to be copied to "config/sources.yml" in order to be recognized by the python scripts
+##### clusters\_template.yml
+\- needs to be copied to "config/clusters.yml" in order to be recognized by the python scripts
 
 ### translations/
 > #### bufr/
@@ -275,7 +276,7 @@ Exports conda environment information to "config/enviroment.yml". Only skips "pa
 <br/>
 
 ### install.sh
-Install the repository using conda and prepare everything to get started immediately.
+Install the repository using conda and prepare everything to get started immediately. It creates the "obs" environment, installs all needed packages and sets the right environment variables.
 <br/>
 
 ### multi\_decode\_bufr.sh
@@ -292,5 +293,5 @@ NOTE: You have to calculate manually how many files to process for each instance
 - sleep time in between script execution (wait N seconds before starting the next instance)
 
 #### Example usage
-##### Start 14 instances of decode\_bufr.py using "ex" approach and 2 seconds sleep time
-`./multi_decode_bufr.sh 14 ex 2` 
+##### Start 8 instances of decode\_bufr.py using "ex" approach and 2 seconds sleep time in between
+`./multi_decode_bufr.sh 8 ex 2` 
