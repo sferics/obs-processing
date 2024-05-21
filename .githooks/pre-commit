@@ -1,1 +1,14 @@
-#TODO add execution of unit tests here
+#!/bin/bash
+# try to initiate conda and activate obs environment; else exit
+conda shell.bash activate || exit
+
+# export environment information without prefix and variables sections
+bash scripts/export_conda_environment.sh
+
+# install all files in package directory with pip install to detect syntax error
+#python -m pip install --editable package
+
+# compile all .py files in order to detect more syntax errors and speedup first execution of scripts
+# uses recursion depth 1 as described here: https://stackoverflow.com/a/59610560/12935487
+python -m compileall . -lq
+python -m compileall modules -q

@@ -9,7 +9,7 @@ It is easily extendable via configuration (YAML) files and by adding your own sc
 - OR if the permissions cannot be set/changed:\
 `bash install.sh`
 - The install.sh script will install miniconda if not present, create an environment with all necessary packages and install the plbufr package from github as well as the local directory "package" using "python setup.py install".
-- It then defines ".githook/" as the directory for git hooks. There is currently only one git hook which automatically installs the directory "package" as a package after each commit, so syntax errors can be easily avoided and exports the conda environment information to "config/environment.yml".
+- It then defines ".githook/" as the directory for git hooks. There is currently only one git hook which automatically compiles alls .py files before each commit, so at least some syntax errors can be easily avoided. It also exports the conda environment information to "config/environment.yml".
 - Afterwards, it will compile all .py files in the directory in order to speed-up the first run of each script.
 - Lastly, it executes 2 .sql files which add some essential tables and columns to the main database. These changes should be implemented in amalthea/main for a better integration.
 <br/>
