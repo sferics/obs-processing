@@ -17,19 +17,20 @@ It is easily extendable via configuration (YAML) files and by adding your own sc
 # How to use OBS processing
 
 ## Python scripts
-All python scripts offer a -h/--help option which shows their command line arguments with a brief explanation. However, in order to understand them better, you should read the following in-depth information carefully.
+All python scripts offer a -h/--help option which shows their command line arguments with a brief explanation. However, in order to understand them better, you should read the following in-depth information carefully.\
+To be able to run these scripts, the configuration files [general.yml](#general), [sources.yml](#sources) and [clusters.yml](#clusters) are needed. So right before the first usage, you need to make sure to create them by copying the template files named "{file\_name}\_template.yml" to [config/](#config_files) and adding your desired configurations/sources/clusters.
 
 ### Note on command line arguments
 
 All command line arguments are defined in [config/parser\_args.yml](#parser_args) and they are **the same across all scripts**. The only difference lies in their availability.\
 For more details on adding/changing/removing command line arguments, please read the respective section about the [**YAML configuration files**](#config_files) -> [parser\_args.yml](#parser_args).\
-**IMPORTANT**: Settings defined by command line arguments always _overwrite_ settings defined in the script's configuration!
+**IMPORTANT**: Settings defined by command line arguments will always _overwrite_ settings defined in the script's configuration!
 <br/><br/>
  
 #### Common command line arguments
 
 ##### -h/--help
-- show help message (defined in last column of [config/parser\_args.yml](#parser_args))
+- show help message which explains the usage of the script briefly
 ##### -v/--verbose
 - print (more) verbose output
 ##### -d/--debug
@@ -43,7 +44,7 @@ For more details on adding/changing/removing command line arguments, please read
 ##### -l/--log\_level $LOG\_LEVEL
 - define logging level (choose one of the following: {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET} )
 ##### -C/--config\_dir $FILE\_NAME
-- define a custom config directory (structure has to be the same as within "config/" directory)
+- define a custom config directory (structure has to be the same as within [config/](#config_files) directory)
 ##### -k/--known\_stations $LIST\_OF\_STATIONS
 - comma-seperated list of stations to consider
 ##### -c/--clusters $LIST\_OF\_CLUSTERS
@@ -66,10 +67,9 @@ For more details on adding/changing/removing command line arguments, please read
 - define name of custom (BUFR) translation file (can be necessary for providers which use special encoding or error treatment)
 <br/>
   
-### decode\_bufr.py
+### <a name="decode_bufr"></a>decode\_bufr.py
 This script decodes one or several BUFR files and inserts all relevant observations into the raw databases.\
 It can also process intire source/dataset directories which can be provided by the source name as arguments or via the "source.yml" configuration file.\
-To run the scripts, the configuration files [general.yml](#general), [sources.yml](#sources) and [clusters.yml](#clusters) are needed. So right before the first usage, you need to make sure to create them by copying the template files named "{file\_name}\_template.yml" to "config/" and adding your desired configurations/sources/clusters.
 
 #### Unique command line arguments
 
@@ -117,8 +117,8 @@ You may use 5 different approaches to decode the files:
 `decode_bufr.py -C obs_custom.yml -O /custom/output/directory`
 <br/><br/>
  
-### forge\_obs.py
-This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, derived\_obs.py runs again after aggregate\_obs.py and export\_obs.py will only be executed if -e/--export is set.
+### <a name="forge_obs"></a>forge\_obs.py
+This is a chain script which runs the following scripts in the order of occurrence. Only in operational mode, [derived\_obs.py](#derived_obs) runs again after [aggregate\_obs.py](#aggregate_obs) and [export\_obs.py](#export_obs) will only be executed if -e/--export is set.
 
 #### Unique command line arguments
 ##### -b/--bare
@@ -134,7 +134,7 @@ This is a chain script which runs the following scripts in the order of occurren
 `python forge_obs.py -e -L /legacy/output/path -l INFO`
 <br/><br/>
  
-> ### reduce\_obs.py
+> ### <a name="reduce_obs"></a>reduce\_obs.py
 > (only 1 row with max(file) per dataset [UNIQUE datetime,duration,element])
 > Copy all remaining elements from raw to forge databases [dataset,datetime,duration,element,value]
 > 
@@ -143,7 +143,7 @@ This is a chain script which runs the following scripts in the order of occurren
 > `python reduce_obs.py -P 12`
 > <br/><br/>
 > 
-> ### derive\_obs.py
+> ### <a name="derive_obs"></a>derive\_obs.py
 > Compute derived elements like relative humidity, cloud levels or reduced pressure from (a combination of) other elements.
 > 
 > #### Unique command line arguments
@@ -155,7 +155,7 @@ This is a chain script which runs the following scripts in the order of occurren
 > `python derive_obs.py -k 10381`
 > <br/><br/>
 > 
-> ### aggregate\_obs.py
+> ### <a name="aggregate_obs"></a>aggregate\_obs.py
 > Aggregate over certain time periods / durations (like 30min,1h,3h,6h,12,24h) and create new elements with "\_{duration}" suffix.
 > The information about what elements to aggregate over which durations and which elements need gap filling is contained in [config/element\_aggregation.yml](#element_aggregation).
 >  
@@ -164,7 +164,7 @@ This is a chain script which runs the following scripts in the order of occurren
 > `python aggregate_obs.py -t`
 > <br/><br/>
 > 
-> ### audit\_obs.py
+> ### <a name="audit_obs"></a>audit\_obs.py
 > Check all obs in forge databases, delete bad data like NaN, unknown value or out-of-range
 > - move good data in final databases e.g. "/oper/final" (oper mode)
 > - move bad data to seperate databases, e.g. "/dev/bad" (dev mode)
@@ -174,7 +174,7 @@ This is a chain script which runs the following scripts in the order of occurren
 > `python audit_obs.py -d`
 > <br/><br/>
 > 
-> ### empty\_obs.py
+> ### <a name="empty_obs"></a>empty\_obs.py
 > Clear forge station databases (they are temporary and get rebuilt every chain cycle).
 > 
 > #### Unique command line arguments
@@ -196,7 +196,7 @@ This is a chain script which runs the following scripts in the order of occurren
 > `python export_obs.py -L /legacy/output/directory`
 > <br/><br/>
 
-### get\_imgw.py
+### <a name="get_imgw"></a>get\_imgw.py
 Get latest observations from the Polish Open Data service
 #### Example usage
 ##### Verbose output and consider only stations in cluster "poland"
@@ -207,14 +207,14 @@ Get latest observations from the Polish Open Data service
 
 ### codes/
 > #### bufr/
-> > ##### flags_{approach}.yml
+> > ##### <a name="bufr_flags"></a>flags_{approach}.yml
 > > \- conversion of BUFR code/flag tables into values we use
-> > ##### sequences.yml
+> > ##### <a name="sequences"></a>sequences.yml
 > > \- definition of wmo BUFR sequences
 > > \- only needed for "ex" approach of decode\_bufr.py
-> ##### synop.yml
+> ##### <a name="synop"></a>synop.yml
 > \- conversion of SYNOP codes into values we use
-> ##### metar.yml
+> ##### <a name="metar"></a>metar.yml
 > \- conversion of METAR codes into values we use
 
 ##### <a name="element_aggregation"></a>element\_aggregation.yml
@@ -274,19 +274,19 @@ Get latest observations from the Polish Open Data service
 
 ### translations/
 > #### bufr/
-> > ##### {approach}.yml
+> > ##### <a name="bufr_translation"></a>{approach}.yml
 > > \- BUFR key translations for the different approaches
-> ##### metwatch.yml
+> ##### <a name="metwatch_translation"></a>metwatch.yml
 > \- translation for the legacy metwatch element names
-> ##### imgw.yml
+> ##### <a name="imgw_translation"></a>imgw.yml
 > \- translation for element names of Polish weather service Open Data
-> ##### {other\_source}.yml
+> ##### <a name="other_translation"></a>{other\_source}.yml
 > \- use this naming scheme if you want to add your own custom source translation files
 
 ##### <a name="parser_args"></a>parser\_args.yml
 \- definition of positional and flag (e.g. -v/--verbose) command line arguments 
 ### station\_tables/
-> ##### {mode}\_{stage}.yml
+> ##### <a name="station_tables"></a>{mode}\_{stage}.yml
 > \- definition of the table structure for the location/station databases\
 > \- the syntax is very SQL-like but simpler than a real .sql file\
 > \- different mode and stage combination need to be all present if you add custom modes/stages
@@ -294,19 +294,19 @@ Get latest observations from the Polish Open Data service
 
 ## Bash scripts in "scripts/" directory
 
-### export\_bufr\_tables.sh
+### <a name="export_bufr_tables"></a>export\_bufr\_tables.sh
 Export your custom BUFR table paths to the local and conda environment variables.
 <br/>
 
-### export\_conda\_environment.sh
-Exports conda environment information to "config/enviroment.yml". Only skips "path:" and "variables:" section because they depend on the local system.
+### <a name="export_conda_environments"></a>export\_conda\_environment.sh
+Exports conda environment information to [config/environment.yml](#environment). Only skips "path:" and "variables:" section because they depend on the local system.
 <br/>
 
 ### <a name="install"></a>install.sh
 Install the repository using conda and prepare everything to get started immediately. It creates the "obs" environment, installs all needed packages and sets the right environment variables.
 <br/>
 
-### multi\_decode\_bufr.sh
+### <a name="multi_decode_bufr"></a>multi\_decode\_bufr.sh
 This scripts starts the decode\_bufr.py script multiple times, so you can process a large number of files much faster.\
 NOTE: You have to calculate manually how many files to process for each instance of the script and define max\_files accordingly in the script config's "decode\_by.py:" section.
 <br/>
