@@ -218,20 +218,20 @@ Get latest observations from the Polish Open Data service
 > \- conversion of METAR codes into values we use
 
 ##### element\_aggregation.yml
-\- information about which element to aggregate OR fill in gaps
+\- information about which element to aggregate OR fill in gaps\
 \- consists of two sections:
-> **duration:**
-> \- which element to aggregate over which durations
-> \- fallback elements can be defined (like TMP instead of TMAX)
+> **duration:**\
+> \- which element to aggregate over which durations\
+> \- fallback elements can be defined (like TMP instead of TMAX)\
 > **instant:**
-> \- which elements always have the same duration
-> \- for these elements we try to fill in the gaps (use nearby values)
+> \- which elements always have the same duration\
+> \- for these elements we try to fill in the gaps (use nearby values)\
 
 ##### element\_info.yml
-\- information about the value range of elements (lower/upper boundaries)
-\- also: which values to include or exclude out of that range (extra/exclude)
-\- extra column is a list of values and these will always be excepted, even if they are out-of-range
-\- exclude is defined as a regular expression (x means no exluded values)
+\- information about the value range of elements (lower/upper boundaries)\
+\- also: which values to include or exclude out of that range (extra/exclude)\
+\- extra column is a list of values and these will always be excepted, even if they are out-of-range\
+\- exclude is defined as a regular expression (x means no exluded values)\
 \- used for audit\_obs.py script only
 
 ##### environment.yml
@@ -239,7 +239,7 @@ Get latest observations from the Polish Open Data service
 \- does not contain prefix and variables because they are system-dependent
 
 ##### general\_template.yml
-\- needs to be copied to "config/general.yml" in order to be recognized by the python scripts
+\- needs to be copied to "config/general.yml" in order to be recognized by the python scripts\
 \- main configuration file template with the following sections:
 
 > **general:**\
@@ -253,8 +253,8 @@ Get latest observations from the Polish Open Data service
 > \- configuration for the ObsClass\
 
 ##### scripts.yml
-\- just change the settings of all scripts to your desire in here
-\- sections/keys are always the FULL script name (with .py)!
+\- just change the settings of all scripts to your desire in here\
+\- sections/keys are always the FULL script name (with .py)!\
 \- some important script configurations in detail:
 > **decode_bufr.py:**\
 > \- TODO\
@@ -287,8 +287,8 @@ Get latest observations from the Polish Open Data service
 \- definition of positional and flag (e.g. -v/--verbose) command line arguments 
 ### station\_tables/
 > ##### {mode}\_{stage}.yml
-> \- definition of the table structure for the location/station databases
-> \- the syntax is very SQL-like but simpler than a real .sql file
+> \- definition of the table structure for the location/station databases\
+> \- the syntax is very SQL-like but simpler than a real .sql file\
 > \- different mode and stage combination need to be all present if you add custom modes/stages
 <br/>
 
