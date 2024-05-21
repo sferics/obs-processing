@@ -208,7 +208,7 @@ class ObsClass:
             if verbose: print("Creating table and adding columns...")
 
             # read yaml structure file for station tables into a dict
-            tables = gf.read_yaml( f"station_tables/{mode}_{stage}" )
+            tables = gf.read_yaml( f"station_tables/{mode}_{stage}", file_dir=self.config.config_dir )
 
             for table in tables:
                 retries = copy(max_retries)

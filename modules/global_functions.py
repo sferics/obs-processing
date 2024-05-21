@@ -154,7 +154,7 @@ def get_finished_str(script_name):
     return finished_str
 
 
-def print_time_taken(start_time, stop_time, precision=3):
+def print_time_taken(start_time, precision=1):
     """
     Parameter:
     ----------
@@ -166,6 +166,7 @@ def print_time_taken(start_time, stop_time, precision=3):
     -------
     None
     """
+    stop_time       = dt.utcnow()
     time_taken      = stop_time - start_time
     time_taken_deci = int(time_taken.microseconds / (1e6 / 10**precision) )
     print(f"{time_taken.seconds}.{time_taken_deci} s")

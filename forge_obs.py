@@ -30,7 +30,7 @@ if __name__ == "__main__":
     info        = "Run the complete obs post-processing chain"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","L","d","b","t","e")
-    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
     
@@ -109,4 +109,4 @@ if __name__ == "__main__":
 
     if verbose: print(finished_str)
     
-    gf.print_time_taken(start_time, stop_time)
+    gf.print_time_taken(start_time)

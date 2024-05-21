@@ -434,7 +434,7 @@ if __name__ == "__main__":
     info        = "Aggregate observations over different time periods (durations)"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","d","t","P")
-    cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    cf          = cc(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
     
@@ -453,7 +453,7 @@ if __name__ == "__main__":
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
     aggregat_elems  = cf.script["aggregat_elems"]
-    aggregat_elems  = gf.read_yaml(aggregat_elems)
+    aggregat_elems  = gf.read_yaml(aggregat_elems, file_dir=cf.config_dir)
     duration_elems  = aggregat_elems["duration"]
     instant_elems   = aggregat_elems["instant"]
     sql_in_elems    = dc.sql_in( duration_elems )

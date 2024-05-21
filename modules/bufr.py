@@ -175,8 +175,10 @@ class BufrClass:
         self.skip_status        = {"locked_.", "error", "empty", "parsed"}
 
         # parse the BUFR translation and bufr flags files into dictionaries
-        self.bufr_translation   = gf.read_yaml( "translations/bufr/" + self.approach )
-        self.bufr_flags         = gf.read_yaml( "codes/bufr/flags_" + self.approach )
+        self.bufr_translation   = gf.read_yaml( "translations/bufr/" + self.approach,
+            file_dir=self.config.config_dir )
+        self.bufr_flags         = gf.read_yaml( "codes/bufr/flags_" + self.approach,
+            file_dir=self.config.config_dir )
 
         # remove unit translations (first 5 keys)
         self.bufr_translation_keys  = tuple(self.bufr_translation)[5:]
@@ -249,8 +251,11 @@ class BufrClass:
                 self.station_codes  = {1001, 1002} # 1018
                 
                 if hasattr(self, "bufr_sequences"):
-                    self.bufr_sequences = gf.read_yaml( self.bufr_sequences )
-                else: self.bufr_sequences = gf.read_yaml( "codes/bufr/sequences" )
+                    self.bufr_sequences = gf.read_yaml( self.bufr_sequences,
+                        file_dir=self.config.config_dir )
+                else:
+                    self.bufr_sequences = gf.read_yaml( "codes/bufr/sequences",
+                        file_dir=self.config.config_dir )
 
                 self.sequence_range = range(min(self.bufr_sequences), max(self.bufr_sequences))
                 self.scale_increase = 0

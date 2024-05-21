@@ -101,17 +101,37 @@ split_date      = lambda values : date(*values.split("-"))
 
 
 class ConfigClass:
-    def __init__(self, script_name: str, pos: iter = [], flags: iter = [], info: str = "",
-            config_file: str = "obs", parser_args: str = "parser_args", verbose: bool = False):
+    def __init__( self, script_name: str, pos: iter = [], flags: iter = [], info: str = "",
+            config_dir: str = "config", sources: bool = False, clusters: bool = False ):
+        """
+        Parameter:
+        ----------
+        script_name : name of script to get config for
+        pos : list of positional arguments
+        flags : list of flags
+        info : info message string
+        config_dir : custom config directory path
+        sources : read sources config file into self.sources
+        clusters : read clusters config file into self.clusters
+
+        Notes:
+        ------
+        the __init__ function creates the config class object 
+
+        Return:
+        -------
+        class object
+        """
         
-        args_dict   = gf.read_yaml(parser_args)
+        args_dict   = gf.read_yaml("parser_args", file_dir=config_dir)
         args_pos    = args_dict["positional"]
         args_flags  = args_dict["flags"]
         self.psr    = argparse.ArgumentParser(description=info)
         
         for p in pos:
             arg_p = args_pos[p]
-            self.psr.add_argument( p, nargs=arg_p[0], default=arg_p[1], help=arg_p[2], action=ToTuple )
+            self.psr.add_argument( p, nargs=arg_p[0], default=arg_p[1], help=arg_p[2],
+                    action=ToTuple )
         
         for f in flags:
             arg_f = args_flags[f]
@@ -127,21 +147,31 @@ class ConfigClass:
                 self.psr.add_argument( f"-{f}", f"--{arg_f[0]}", action=arg_f[3],
                         default=arg_f[4], type=eval(arg_f[5]), help=arg_f[6] )
         
-        # parse the command line arguments
-        self.args       = self.psr.parse_args()
+        # parse the command line arguments using configparser module
+        self.args           = self.psr.parse_args()
         
-        #TODO instead of setting the config file only -C should better define the whole config dir
-        # if the config_file flag is present in parser_args.yml and the flag is turned on
-        if hasattr(self.args, "config_file") and self.args.config_file:
-            # overwrite config file name (default: obs[.yml])
-            config_file = self.args.config_file
+        # overwrite path of config directory (default: config) if -C/--config_dir flag is defined
+        if hasattr(self.args, "config_dir") and self.args.config_dir:
+            self.config_dir = self.args.config_dir
+        else: # use the argument config_dir from class __init__
+            self.config_dir = config_dir
         
-        self.config         = gf.read_yaml(config_file)
-        self.script_name    = script_name
+        # read most important config files which we always need (scripts and general)
+        self.scripts    = gf.read_yaml("scripts", file_dir=self.config_dir)
+        general_config  = gf.read_yaml("general", file_dir=self.config_dir)
         
-        # make all keys of config dict into class attributes for easier access
-        for key, dic in self.config.items():
+        # make all keys of general config dict into class attributes for easier access
+        for key, dic in general_config.items():
             setattr(self, key, dic)
+        
+        # sources and clusters config files will only be read if the respective arguments are set
+        if sources:
+            self.sources    = gf.read_yaml("sources", file_dir=self.config_dir)
+        if clusters:
+            self.clusters   = gf.read_yaml("clusters", file_dir=self.config_dir)
+        
+        # make script name a class attribute to make it accessible later on
+        self.script_name = script_name
         
         # take script name as argument & combine config_general+config_script (script has priority)
         self.script_raw = self.scripts[script_name]

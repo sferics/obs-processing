@@ -350,7 +350,7 @@ if __name__ == "__main__":
     info        = "Derive obs elements from other parameters"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","d","t","P","A")
-    cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=False)
+    cf          = cc(script_name, pos=["source"], flags=flags, info=info, clusters=False)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
      
@@ -381,9 +381,9 @@ if __name__ == "__main__":
     db.close(commit=False)
     
     # get SYNOP codes conversion dictionary to decode SYNOP codes
-    #synop_codes     = gf.read_yaml("codes/synop")
+    #synop_codes     = gf.read_yaml("codes/synop", file_dir=cf.config_dir)
     # get METAR codes conversion dictionary to decode METAR codes
-    #metar_codes     = gf.read_yaml("codes/metar")
+    #metar_codes     = gf.read_yaml("codes/metar", file_dir=cf.config_dir)
     
     if processes: # number of processes
         import multiprocessing as mp

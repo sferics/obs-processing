@@ -1,0 +1,8 @@
+country1:
+  block:                  99
+  identifier:             999
+  stations:       !!set   [wmo]
+country2:
+  block:                  1
+  identifier:             1
+  stations:       !!set   [wmo,custom]

@@ -33,7 +33,7 @@ if __name__ == "__main__":
     info        = "Get latest obs from polish weather service and insert observatio data into database."
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","c","d","m","o")
-    cf          = ConfigClass(script_name, flags=flags, info=info, verbose=True)
+    cf          = ConfigClass(script_name, flags=flags, info=info, sources=True)
     
     # get currently active conda environment
     conda_env   = os.environ['CONDA_DEFAULT_ENV']
@@ -44,9 +44,8 @@ if __name__ == "__main__":
 
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
-    start_time  = dt.utcnow()
-    started_str = f"STARTED {script_name} @ {start_time}"
-
+    
+    started_str, start_time = gf.get_started_str_time(script_name)
     log.info(started_str)
 
     # define some shorthands from script config 
@@ -75,7 +74,7 @@ if __name__ == "__main__":
         sys.exit(error_message)
 
     obs         = ObsClass(cf, "imgw", stage="raw")
-    translation = gf.read_yaml("translations/imgw")
+    translation = gf.read_yaml("translations/imgw", file_dir=cf.config_dir)
     elements    = translation["elements"]
 
     meta, obs_db = {}, {}
@@ -98,10 +97,8 @@ if __name__ == "__main__":
 
     obs.to_station_databases(obs_db, "imgw", scale=True, prio=prio)
 
-    stop_time       = dt.utcnow()
-    finished_str    = f"FINISHED {sys.argv[0]} @ {stop_time}"
+    finished_str    = gf.get_finished_str(script_name)
     log.info(finished_str)
     if verbose: print(finished_str)
 
-    time_taken = stop_time - start_time
-    print(f"{time_taken.seconds}.{time_taken.microseconds} s")
+    gf.print_time_taken(start_time)

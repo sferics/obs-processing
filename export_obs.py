@@ -42,12 +42,11 @@ if __name__ == "__main__":
     info        = "Export (latest) observations from databases to legacy output format (metwatch csv)"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","d","t","P")
-    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
-    start_time  = dt.utcnow()
-    started_str = f"STARTED {script_name} @ {start_time}"
-
+    
+    started_str, start_time = gf.get_started_str_time(script_name)
     log.info(started_str)
 
     # define some shorthands from script config

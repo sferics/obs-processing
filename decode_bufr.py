@@ -130,7 +130,7 @@ if __name__ == "__main__":
     script_name = gf.get_script_name(__file__)
     flags       = ("a","l","i","E","f","F","D","v","p","c","C","t","k","m","M","n","s","o","O","L",
             "d","r","R","w")
-    cf          = cc(script_name, pos=["source"], flags=flags, info=info, verbose=False)
+    cf          = cc(script_name, ["source"], flags=flags, info=info, sources=True, clusters=True)
     # get the right script name by adding approach suffix
     script_name = cf.script_name
     
@@ -212,4 +212,4 @@ if __name__ == "__main__":
 
     log.info(finished_str)
     if verbose: print(finished_str)
-    gf.print_time_taken(start_time, stop_time)
+    gf.print_time_taken(start_time, precision=3)

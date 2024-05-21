@@ -158,24 +158,6 @@ scripts:
     output:           !!str   /path/to/station/databases
     processes:        !!int   15
     clusters:         !!set   [germany]
-    replacements:
-      TMIN_10cm_syn:  !!str   TMIN_5cm_syn
-      DIR_10m_syn:    !!str   WDIR_5m_syn
-      FFavg_10m_syn:  !!str   WIND_5m_syn
-      #TCC_LC_syn:     !!str   CDC1_2m_syn #, LCDC_2m_syn
-      #TCC_MC_syn:     !!str   CDC2_2m_syn
-      #TCC_HC_syn:     !!str   CDC3_2m_syn
-      TCC_1C_syn:     !!str   CDCL_2m_syn
-      TCC_2C_syn:     !!str   CDCM_2m_syn
-      TCC_3C_syn:     !!str   CDCH_2m_syn
-      #VIS_syn:        !!str   MOR_2m_syn,VISmin_2m_syn,MORmin_2m_syn,VISpre_2m_syn,VIS_2m_met,VISsea_2m_syn,MORmax_2m_syn
-    combinations:
-      #CL[1-4]_syn:    !!tuple [TCC_%dC_syn, round(CB%d_syn)]
-      CL1_syn:        !!tuple [TCC_1C_syn, round(CB1_syn)]
-      CL2_syn:        !!tuple [TCC_2C_syn, round(CB2_syn)]
-      CL3_syn:        !!tuple [TCC_3C_syn, round(CB3_syn)]
-      CL4_syn:        !!tuple [TCC_4C_syn, round(CB4_syn)]
-      #CLCMCH_syn:     !!tuple [TCC_LC_syn, TCC_MC_syn, TCC_HC_syn]
 
   aggregate_obs.py:
     conda_env:        !!str   obs

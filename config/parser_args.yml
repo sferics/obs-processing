@@ -10,7 +10,7 @@ flags:
   B:      [bad_obs,       ~,                                          ~,          store_true, ~,        ~,          "handle bad obs as well (meaning delete them in emtpy_obs.py script)" ]
   c:      [clusters,      ~,                                          ~,          ~,          ~,        split_set,  "station clusters to consider, comma seperated"                       ]
 #  c:      [clusters,      ~,                                          ~,          split_args, ~,        set,        "station clusters to consider, comma seperated"                       ]
-  C:      [config_file,   ~,                                          ~,          ~,          ~,        str,        "set custom name of config file"                                      ]
+  C:      [config_dir,    ~,                                          ~,          ~,          ~,        str,        "set custom path of the config directory (default=config)"            ]
   d:      [debug,         ~,                                          ~,          store_true, ~,        ~,          "enable debugging (using pdb and debug prints)"                       ]
   D:      [divider,       ~,                                          ~,          ~,          ;,        str,        "divider / seperator character for the file argument (default=;)"     ] 
   e:      [export,        ~,                                          ~,          store_true, ~,        ~,          "export data to legacy CSV format"                                    ]

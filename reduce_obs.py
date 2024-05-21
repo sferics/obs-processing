@@ -104,7 +104,7 @@ if __name__ == "__main__":
     info        = "Reduce the number of observations according to operation mode"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","d","t","P")
-    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, verbose=True)
+    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
     

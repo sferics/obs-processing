@@ -1,0 +1,75 @@
+### most general (default) settings; can be overwritten by class and script configs (or command line options)
+general:
+  mode:           !!str   dev # oper, test, ???
+  output:         !!str   /path/to/station/databases
+  legacy_output:  !!str   /path/to/legacy/output
+  log_level:      !!str   INFO
+  verbose:        !!bool  0
+  debug:          !!bool  0
+  traceback:      !!bool  0
+  timeout:        !!int   5
+  max_retries:    !!int   100
+  stations:       !!set   [] #[wmo,dwd,noaa,zamg,tawes]
+  clusters:       !!set   []
+
+### configuration of classes (key name == name of class without 'Class')
+### class configurations
+
+database:
+  db_file:        !!str   /path/to/main.db
+  verbose:        !!bool  0
+  log_level:      !!str   ERROR
+  traceback:      !!bool  1
+  timeout:        !!int   5 # default is 5
+  settings: 
+    analysis_limit:             
+    auto_vacuum:                
+    automatic_index:            
+    busy_timeout:               
+    cache_size:                 
+    cache_spill:                
+    case_sensitive_like:        
+    cell_size_check:            
+    defer_foreign_keys:         
+    encoding:                   
+    foreign_keys:               
+    hard_heap_limit:            
+    ignore_check_constraints:   
+    journal_mode:               
+    journal_size_limit:         
+    legacy_alter_table:         
+    locking_mode:              NORMAL
+    max_page_count:             
+    mmap_size:                  
+    page_size:                  
+    parser_trace:               
+    query_only:                 
+    read_uncommitted:           
+    recursive_triggers:         
+    reverse_unordered_selects:  
+    schema_version:             
+    secure_delete:              
+    soft_heap_limit:            
+    synchronous:                
+    temp_store:                 
+    threads:                    
+    trusted_schema:             
+    user_version:               
+    writable_schema:            
+
+bufr:
+  verbose:            !!bool  0
+  log_level:          !!str   ERROR
+  traceback:          !!bool  0
+  tables:             !!str   /path/to/definition/tables
+
+obs:
+  verbose:            !!bool  0
+  log_level:          !!str   WARNING
+  traceback:          !!bool  0
+  mode:               !!str   dev
+  output:             !!str   /path/to/station/databases
+  max_retries:        !!int   1200
+  timeout:            !!int   3
+  commit:             !!bool  1
+  settings:                   {} # you may add SQLite PRAGMA settings analog to settings of main database here
