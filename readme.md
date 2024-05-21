@@ -8,8 +8,8 @@ It is easily extendable via configuration (YAML) files and by adding your own sc
 `chmod +x install.sh && ./install.sh`
 - OR if the permissions cannot be set/changed:\
 `bash install.sh`
-- The install.sh script will install miniconda if not present, create an environment with all necessary packages and install the plbufr package from github as well as the local directory "package" using "python setup.py install".
-- It then defines ".githook/" as the directory for git hooks. There is currently only one git hook which automatically compiles alls .py files before each commit, so at least some syntax errors can be easily avoided. It also exports the conda environment information to "config/environment.yml".
+- The [install.sh script](#install) will install miniconda if not present, create an environment with all necessary packages and install the plbufr package from github as well as the local directory "package" using "python setup.py install".
+- It then defines ".githook/" as the directory for git hooks. There is currently only one git hook which automatically compiles alls .py files before each commit, so at least some syntax errors can be easily avoided. It also exports the conda environment information to [config/environment.yml](#environment).
 - Afterwards, it will compile all .py files in the directory in order to speed-up the first run of each script.
 - Lastly, it executes 2 .sql files which add some essential tables and columns to the main database. These changes should be implemented in amalthea/main for a better integration.
 <br/>
@@ -21,15 +21,15 @@ All python scripts offer a -h/--help option which shows their command line argum
 
 ### Note on command line arguments
 
-All command line arguments are defined in "config/parser\_args.yml" and they are **the same across all scripts**. The only difference lies in their availability.\
-For more details on adding/changing/removing command line arguments, please read the respective section about the **YAML configuration file** (parser\_args.yml).\
+All command line arguments are defined in [config/parser\_args.yml](#parser_args) and they are **the same across all scripts**. The only difference lies in their availability.\
+For more details on adding/changing/removing command line arguments, please read the respective section about the [**YAML configuration files**](#config_files) -> [parser\_args.yml](#parser_args).\
 **IMPORTANT**: Settings defined by command line arguments always _overwrite_ settings defined in the script's configuration!
 <br/><br/>
  
 #### Common command line arguments
 
 ##### -h/--help
-- show help message (defined in last column of "config/parser\_args")
+- show help message (defined in last column of [config/parser\_args.yml](#parser_args))
 ##### -v/--verbose
 - print (more) verbose output
 ##### -d/--debug
@@ -42,8 +42,8 @@ For more details on adding/changing/removing command line arguments, please read
 - use a PID file to determine whether the script is already running and which processes number it has
 ##### -l/--log\_level $LOG\_LEVEL
 - define logging level (choose one of the following: {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET} )
-##### -C/--config\_file $FILE\_NAME
-- define a custom config file (has to be within "config/" directory)
+##### -C/--config\_dir $FILE\_NAME
+- define a custom config directory (structure has to be the same as within "config/" directory)
 ##### -k/--known\_stations $LIST\_OF\_STATIONS
 - comma-seperated list of stations to consider
 ##### -c/--clusters $LIST\_OF\_CLUSTERS
@@ -69,7 +69,7 @@ For more details on adding/changing/removing command line arguments, please read
 ### decode\_bufr.py
 This script decodes one or several BUFR files and inserts all relevant observations into the raw databases.\
 It can also process intire source/dataset directories which can be provided by the source name as arguments or via the "source.yml" configuration file.\
-To run the scripts, the configuration files "general.yml", "sources.yml" and "clusters.yml" are needed. So right before the first usage, you need to make sure to create them by copying the template files named "{file\_name}\_template.yml" to "config/" and adding your desired configurations/sources/clusters.
+To run the scripts, the configuration files [general.yml](#general), [sources.yml](#sources) and [clusters.yml](#clusters) are needed. So right before the first usage, you need to make sure to create them by copying the template files named "{file\_name}\_template.yml" to "config/" and adding your desired configurations/sources/clusters.
 
 #### Unique command line arguments
 
@@ -125,7 +125,7 @@ This is a chain script which runs the following scripts in the order of occurren
 - only print out commands and do not actually run the scripts
 - this is meant for debugging purposes only
 ##### -e/--export
-- export new observations into old/legacy metwatch csv format after finishing the chain (see export\_obs.py for more information)
+- export new observations into old/legacy metwatch csv format after finishing the chain (see [export\_obs.py](#export_obs) for more information)
 ##### -L/--legacy\_output $LEGACY\_OUTPUT
 - define old/legacy metwatch csv output directory for export\_obs.py
 
@@ -157,7 +157,7 @@ This is a chain script which runs the following scripts in the order of occurren
 > 
 > ### aggregate\_obs.py
 > Aggregate over certain time periods / durations (like 30min,1h,3h,6h,12,24h) and create new elements with "\_{duration}" suffix.
-> The information about what elements to aggregate over which durations is contained in "config/element\_aggregation.yml".
+> The information about what elements to aggregate over which durations and which elements need gap filling is contained in [config/element\_aggregation.yml](#element_aggregation).
 >  
 > #### Example usage
 > ##### Enable traceback prints
@@ -185,7 +185,7 @@ This is a chain script which runs the following scripts in the order of occurren
 > `python empty_obs.py -B -w`
 > <br/><br/>
 > 
-> ### export\_obs.py
+> ### <a name="export_obs"></a>export\_obs.py
 > Export observations from final databases into the old/legacy metwatch csv format.
 > 
 > #### Unique command line arguments
@@ -203,7 +203,7 @@ Get latest observations from the Polish Open Data service
 `python get_imgw.py -v -c poland`
 <br/><br/>
 
-## Description of YAML files and structure in "config/" directory
+## <a name="config_files"></a>Description of YAML configuration files in "config/" directory
 
 ### codes/
 > #### bufr/
@@ -217,7 +217,7 @@ Get latest observations from the Polish Open Data service
 > ##### metar.yml
 > \- conversion of METAR codes into values we use
 
-##### element\_aggregation.yml
+##### <a name="element_aggregation"></a>element\_aggregation.yml
 \- information about which element to aggregate OR fill in gaps\
 \- consists of two sections:
 > **duration:**\
@@ -227,18 +227,18 @@ Get latest observations from the Polish Open Data service
 > \- which elements always have the same duration\
 > \- for these elements we try to fill in the gaps (using nearby values)
 
-##### element\_info.yml
+##### <a name="element_info"></a>element\_info.yml
 \- information about the value range of elements (lower/upper boundaries)\
 \- also: which values to include or exclude out of that range (extra/exclude)\
 \- extra column is a list of values and these will always be excepted, even if they are out-of-range\
 \- exclude is defined as a regular expression (x means no exluded values)\
 \- used for audit\_obs.py script only
 
-##### environment.yml
+##### <a name="environment"></a>environment.yml
 \- conda environment information (environment name, packages to install, conda settings)\
 \- does not contain prefix and variables because they are system-dependent
 
-##### general\_template.yml
+##### <a name="general"></a>general\_template.yml
 \- needs to be copied to "config/general.yml" in order to be recognized by the python scripts\
 \- main configuration file template with the following sections:
 
@@ -252,7 +252,7 @@ Get latest observations from the Polish Open Data service
 > **obs:**\
 > \- default configuration for the ObsClass
 
-##### scripts.yml
+##### <a name="scripts"></a>scripts.yml
 \- just change the settings of all scripts to your desire in here\
 \- sections/keys are always the FULL script name (with .py)!\
 \- some important script configurations in detail:
@@ -267,9 +267,9 @@ Get latest observations from the Polish Open Data service
 > **get_knmi.py:**\
 > \- TODO
 
-##### sources\_template.yml
+##### <a name="sources"></a>sources\_template.yml
 \- needs to be copied to "config/sources.yml" in order to be recognized by the python scripts
-##### clusters\_template.yml
+##### <a name="clusters"></a>clusters\_template.yml
 \- needs to be copied to "config/clusters.yml" in order to be recognized by the python scripts
 
 ### translations/
@@ -283,7 +283,7 @@ Get latest observations from the Polish Open Data service
 > ##### {other\_source}.yml
 > \- use this naming scheme if you want to add your own custom source translation files
 
-##### parser\_args.yml
+##### <a name="parser_args"></a>parser\_args.yml
 \- definition of positional and flag (e.g. -v/--verbose) command line arguments 
 ### station\_tables/
 > ##### {mode}\_{stage}.yml
@@ -302,7 +302,7 @@ Export your custom BUFR table paths to the local and conda environment variables
 Exports conda environment information to "config/enviroment.yml". Only skips "path:" and "variables:" section because they depend on the local system.
 <br/>
 
-### install.sh
+### <a name="install"></a>install.sh
 Install the repository using conda and prepare everything to get started immediately. It creates the "obs" environment, installs all needed packages and sets the right environment variables.
 <br/>
 
