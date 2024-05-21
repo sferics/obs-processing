@@ -4,7 +4,7 @@ It is easily extendable via configuration (YAML) files and by adding your own sc
 <br/><br/>
 
 # How to install OBS processing
-- Run install.sh like this:\
+- While in the directory of the repository, run install.sh like this:\
 `chmod +x install.sh && ./install.sh`
 - OR if the permissions cannot be set/changed:\
 `bash install.sh`
