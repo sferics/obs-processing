@@ -42,6 +42,16 @@ get_imgw.py:
   max_retries:      !!int   10
   timeout:          !!int   3
 
+get_knmi.py:
+  conda_env:        !!str   obs
+  mode:             !!str   dev
+  log_level:        !!str   ERROR
+  verbose:          !!bool  1
+  update:           !!bool  1
+  max_retries:      !!int   10
+  timeout:          !!int   3
+  download_dir:     !!str   KNMI
+
 forge_obs.py:
   conda_env:        !!str   obs
   pid_file:         !!bool  0 # create and use pid file
@@ -77,6 +87,7 @@ derive_obs.py:
   mode:             !!str   dev
   processes:        !!int   15
   update:           !!bool  1
+  aggregated:       !!bool  0
   clusters:         !!set   [germany]
 
 aggregate_obs.py:

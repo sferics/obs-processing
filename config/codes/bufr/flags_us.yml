@@ -431,13 +431,13 @@
   31:
 
 020009: # generalWeatherIndicatorTafOrMetar https://confluence.ecmwf.int/display/ECC/WMO%3D40+code-flag+table#WMO=40codeflagtable-CF_020009
-  0:  ~       # RESERVED
-  1:  NSC     # NSC MIL SIGNIFICANT CLOUD
-  2:  CAVOK   # CAVOK CLOUD AND VISIBILITY OK
-  3:  SKC     # SKC SKY CLEAR
-  4:  NSW     # NSW NIL SIGNIFICANT WEATHER
-  5:  NCD     # NCD NO CLOUDS DETECTED
-  15: ~       # MISSING VALUE
+  0:  ~     # RESERVED
+  1:  NSC   # NSC MIL SIGNIFICANT CLOUD
+  2:  CAVOK # CAVOK CLOUD AND VISIBILITY OK
+  3:  SKC   # SKC SKY CLEAR
+  4:  NSW   # NSW NIL SIGNIFICANT WEATHER
+  5:  NCD   # NCD NO CLOUDS DETECTED
+  15: ~     # MISSING VALUE
 
 020011: # cloudAmount https://confluence.ecmwf.int/display/ECC/WMO%3D14+code-flag+table#WMO=14codeflagtable-CF_020011
   0:  0

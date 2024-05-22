@@ -39,9 +39,9 @@ def audit_obs(stations):
         
         #sql = ""
         sql_good    = (f"INSERT INTO final.obs (dataset,timestamp,element,value) VALUES (?,?,?,?) "
-            f"ON CONFLICT DO{on_conflict}")
+            f"ON CONFLICT DO {on_conflict}")
         sql_bad     = (f"INSERT INTO final.obs_bad (dataset,datetime,element,value,reason) VALUES "
-            f"(?,?,?,?,?) ON CONFLICT DO{on_conflict}")
+            f"(?,?,?,?,?) ON CONFLICT DO {on_conflict}")
         values_good, values_bad = set(), set()
 
         for element in elements:
@@ -129,9 +129,9 @@ if __name__ == "__main__":
     update          = cf.script["update"]
 
     if update:
-        on_conflict = " SET value=excluded.value"
+        on_conflict = "UPDATE SET value=excluded.value"
     else:
-        on_conflict = " NOTHING"
+        on_conflict = "NOTHING"
 
     element_info    = gf.read_yaml(cf.script["element_info"], file_dir=cf.config_dir)
     elements        = tuple( element_info.keys() )

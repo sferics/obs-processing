@@ -21,16 +21,100 @@ stateOfGround: # STATE OF THE GROUND (WITH OR WITHOUT SNOW) https://confluence.e
   19: 4
   31: ~
 
+pastWeather1: # 020004 https://confluence.ecmwf.int/display/ECC/WMO%3D35+element+table#WMO=35elementtable-CL_20
+  0:  0
+  1:  1
+  2:  2
+  3:  3
+  4:  4
+  5:  5
+  6:  6
+  7:  7
+  8:  8
+  9:  9
+  10: 0
+  11: 0
+  12: 3
+  13: 4
+  14: 6
+  15: 5
+  16: 6
+  17: 7
+  18: 8
+  19: 9
+  20:
+  21:
+  22:
+  23:
+  24:
+  25:
+  26:
+  27:
+  28:
+  29:
+  30:
+  31:
+
+pastWeather2: # 020005 https://confluence.ecmwf.int/display/ECC/WMO%3D35+element+table#WMO=35elementtable-CL_20
+  0:  0
+  1:  1
+  2:  2
+  3:  3
+  4:  4
+  5:  5
+  6:  6
+  7:  7
+  8:  8
+  9:  9
+  10: 0
+  11: 0
+  12: 0
+  13: 4
+  14: 6
+  15: 5
+  16: 6
+  17: 7
+  18: 8
+  19: 9
+  20:
+  21:
+  22:
+  23:
+  24:
+  25:
+  26:
+  27:
+  28:
+  29:
+  30:
+  31:
 
 generalWeatherIndicatorTafOrMetar: # 020009 https://confluence.ecmwf.int/display/ECC/WMO%3D14+element+table#WMO=14elementtable-CL_20
-  0:  ~      # RESERVED
-  1:  NSC    # NSC MIL SIGNIFICANT CLOUD
-  2:  CAVOK  # CAVOK CLOUD AND VISIBILITY OK
-  3:  SKC    # SKC SKY CLEAR
-  4:  NSW    # NSW NIL SIGNIFICANT WEATHER
-  5:  NCD     # NCD NO CLOUDS DETECTED
-  15: ~      # MISSING VALUE
+  0:  ~     # RESERVED
+  1:  NSC   # NSC MIL SIGNIFICANT CLOUD
+  2:  CAVOK # CAVOK CLOUD AND VISIBILITY OK
+  3:  SKC   # SKC SKY CLEAR
+  4:  NSW   # NSW NIL SIGNIFICANT WEATHER
+  5:  NCD   # NCD NO CLOUDS DETECTED
+  15: ~     # MISSING VALUE
 
+cloudAmount: # 020011 https://confluence.ecmwf.int/display/ECC/WMO%3D14+code-flag+table#WMO=14codeflagtable-CF_020011
+  0:  0
+  1:  1
+  2:  2
+  3:  3
+  4:  4
+  5:  5
+  6:  6
+  7:  7
+  8:  8
+  9:  9
+  10: 9
+  11: 4 #aufgelockert ? siehe S 26:
+  12: 6 #durchbrochen ? https://www.dwd.de/DE/leistungen/lf_11_flugwetterbetriebsdienste/handbuch_flugwetterdienste_ops_4.0_mit_aenderungen.pdf?__blob=publicationFile&v=2
+  13: 2 #gering ? FEW = 1-2/8; SCT = 3-4/8: BKN = 5-7/8
+  14:
+  15:
 
 verticalSignificanceSurfaceObservations: # 008002 https://confluence.ecmwf.int/display/ECC/WMO%3D14+element+table#WMO=14elementtable-CL_8
   0:  0 # Observing rules for base of lowest cloud and cloud types of FM 12 SYNOP and FM 13 SHIP apply

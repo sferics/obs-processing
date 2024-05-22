@@ -125,7 +125,7 @@ pastWeather2:                       [W2_2m_syn,  ~,    1, 0]           # Wetterv
   #specialPhenomena:                   [PHspl_2m_syn, ~, 1, 0]              # 
   #otherWeatherPhenomena:              [PHoth_2m_syn, ~, 1, 0]              # 
 #this parameter is not equivalent to metwatch METAR parameter (WW_2m_met), does not contain specific significant weather information (like RA, TS or DZ)
-generalWeatherIndicatorTafOrMetar:      [GWI_2m_met, 1min, 1, 0]           # Signifikantes Wetter und Bewölkung
+generalWeatherIndicatorTafOrMetar:      [GWI_2m_met, 1min, 1, 0]           # Allgemeiner Wetterindikator (METAR)
 
 ### VISIBILITY
 #TODO which of these visibility/optical range parameters should have priority? how do we order them?
@@ -239,20 +239,20 @@ maximumWindSpeed10MinuteMeanWind:   [MAXWIND_10m_syn, ~, 1, 0] # Maximales 10min
 
 cloudAmount:
   0:                                [TCDC_2m_syn,   1s,   1,  0]    # Bedeckungsgrad gesamt
-  C:                                [LCDC_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der niedrigsten Schicht (DWD meldet immer 9) TODO rename "NCDC" or "CCDC" (for Nh/ceiling)
-  L:                                [CDCL_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der niedrigen Wolken
-  M:                                [CDCM_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der mitteleren Wolken
-  H:                                [CDCH_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der hohen Wolken
-  1:                                [CDC1_2m_syn,   1s,   1,  0]    # Bedeckungsgrad 1. Schicht
-  2:                                [CDC2_2m_syn,   1s,   1,  0]    # Bedeckungsgrad 2. Schicht
-  3:                                [CDC3_2m_syn,   1s,   1,  0]    # Bedeckungsgrad 3. Schicht
-  4:                                [CDC4_2m_syn,   1s,   1,  0]    # Bedeckungsgrad 4. Schicht (Cb oder 4. Automat)
+  C:                                [CCDC_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der niedrigsten Schicht (Ceiling, DWD meldet immer 9)
+  L:                                [LCDC_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der niedrigen Wolken
+  M:                                [MCDC_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der mitteleren Wolken
+  H:                                [HCDC_2m_syn,   1s,   1,  0]    # Bedeckungsgrad der hohen Wolken
+  1:                                [CA1_2m_syn,    1s,   1,  0]    # Bedeckungsgrad 1. Schicht
+  2:                                [CA2_2m_syn,    1s,   1,  0]    # Bedeckungsgrad 2. Schicht
+  3:                                [CA3_2m_syn,    1s,   1,  0]    # Bedeckungsgrad 3. Schicht
+  4:                                [CA4_2m_syn,    1s,   1,  0]    # Bedeckungsgrad 4. Schicht (Cb oder 4. Automat)
 
 cloudCoverTotal:                    [TCDC_2m_syn, 1s, 0.08, 0]    # Bedeckungsgrad gesamt
 
 heightOfBaseOfCloud:                [HLC_2m_syn,       1s,1, 0]   # Höhe der tiefen Wolken (tiefste Wolkenschicht)
 
 # usually not used by DWD
-amountOfLowClouds:                  [CDCL_2m_syn,    1s,   1,   0]   # Bedeckungsgrad der niedrigen Wolken
-amountOfMiddleClouds:               [CDCM_2m_syn,    1s,   1,   0]   # Bedeckungsgrad der mitteleren Wolken
-amountOfHighClouds:                 [CDCH_2m_syn,    1s,   1,   0]   # Bedeckungsgrad der hohen Wolken
+amountOfLowClouds:                  [LCDL_2m_syn,    1s,   1,   0]   # Bedeckungsgrad der niedrigen Wolken
+amountOfMiddleClouds:               [MCDC_2m_syn,    1s,   1,   0]   # Bedeckungsgrad der mitteleren Wolken
+amountOfHighClouds:                 [HCDC_2m_syn,    1s,   1,   0]   # Bedeckungsgrad der hohen Wolken

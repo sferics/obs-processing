@@ -10,35 +10,6 @@ from database import DatabaseClass as dc
 from config import ConfigClass as cc
 from obs import ObsClass as oc
 
-#TODO HIGH PRIORITY! ESSENTIAL!
-
-  #ClNCmNChN: [CLCMCH_2m_syn,  ~, 1, 0]  # Wolkenarten in den Stockwerken                   (zB: Cu2Ac3Cs6) -> 236
-  #ClNCmNChN: [CLCMCH_2m_syn,  ~, 1, 0]  # -> Wolkenmenegen in den Stockwerken              (zB: 3451, 1///)
-  #NC1XXX:    [CL1_2m_syn,     ~, 1, 0]  # unterste Wolkenschicht Bedeckung/Art/Untergrenze (zB: 2ST020) -> 2020
-  #NC2XXX:    [CL2_2m_syn,     ~, 1, 0]  # 2.Wolkenschicht                                  (zB: 4AC100) -> 4100
-  #NC3XXX:    [CL3_2m_syn,     ~, 1, 0]  # 3.Wolkenschicht                                  (zB: 5CS300) -> 5300
-  #NC4XXX:    [CL4_2m_syn,     ~, 1, 0]  # 4.Wolkenschicht                                  (zB: 2CB080) -> 2080
-  #NC1XXX:    [CL?_2m_syn,     ~, 1, 0]  # Wolkenschicht Bedeckung+Untergrenze              (zB: 1015, 5300, 2080)
-
-#TODO if no TCC_LC_syn: take TCC_ceiling_syn
-
-#TODO derive total cloud cover per height level (CL, CM, CH)
-
-#TODO derive cloud layers (CL_?) from cloud bases and cloud amounts
-
-# only in station_test: first devide cloud height by 30
-
-# CL?_2m_syn = TCC_?C_syn + CB?_2m_syn
-# if no TCC_[1-3]C_syn present:
-# CL1_2m_syn = CDCL_2m_syn + CB1_2m_syn
-# CL2_2m_syn = CDCM_2m_syn + CB2_2m_syn
-# CL3_2m_syn = CDCH_2m_syn + CB3_2m_syn
-
-#TODO derive VIS_2m_syn from MOR_2m_syn, MOR_2m_min, MOR_2m_max, VIS_2m_min, VIS_2m_pre, VIS_2m_run, VIS_2m_sea
-# if no VIS_2m_syn: VIS_2m_syn = MOR_2m_syn
-# [if no VIS_2m_syn and no MOR_2m_syn: VIS_2m_min, MOR_2m_min, VIS_2m_pre, VIS_2m_run, VIS_2m_sea, MOR_2m_max (priorities)]
-
-# if key is not found, try to take replacements[key], else ignore
 
 def derive_obs(stations):
     
@@ -56,16 +27,16 @@ def derive_obs(stations):
        
         #TODO implement source specific treatment (process by source?) OR keep source information
         if not dt_30min:
-            # in DWD data we need to replace the duration for 9z Tmin/Tmax obs
+            # in DWD data we need to correct the duration for 9z Tmin/Tmax obs to 15h
             sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn','TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09' AND dataset IN('test','DWD','dwd_germany')"
-            sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element LIKE 'CB%_2m_syn'"
+            sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element REGEXP '(CA._2m_syn|CB._2m_syn)'"
             try:    db_loc.exe(sql)
             except: continue
             else:   db_loc.commit()
         
         """
         sql1=f"SELECT dataset,datetime,duration,element,value FROM obs WHERE element = '%s'{dt_30min}"
-        sql2=f"INSERT INTO obs (dataset,datetime,duration,element,value) VALUES(?,?,?,?,?) ON CONFLICT DO{on_conflict}"
+        sql2=f"INSERT INTO obs (dataset,datetime,duration,element,value) VALUES(?,?,?,?,?) ON CONFLICT DO {on_conflict}"
         
         found = False
         
@@ -90,7 +61,7 @@ def derive_obs(stations):
         """    
          
         sql = ("SELECT dataset,datetime,element,round(value) from obs WHERE element IN "
-            "('CDC{i}_2m_syn', 'CB{i}_2m_syn'){dt_30min} ORDER BY datetime asc, element desc")
+            "('CA{i}_2m_syn', 'CB{i}_2m_syn'){dt_30min} ORDER BY datetime asc, element desc")
         
         # https://discourse.techart.online/t/python-group-nested-list-by-first-element/3637
 
@@ -105,43 +76,76 @@ def derive_obs(stations):
             cloud_covers    = set()
 
             for j in data:
-                if len(CL[j[0]]) == 0 and j[1] == f"CDC{i}_2m_syn" and j[0] not in cloud_covers:
-                    CL[j[0]]    += str(int(j[-1]))
-                    cloud_covers.add(j[0])
-                elif len(CL[j[0]]) == 1 and j[1] == f"CB{i}_2m_syn" and j[0] in cloud_covers:
+                dataset     = j[0]
+                datetime    = j[1]
+                if len(CL[j[-1]]) == 0 and j[2] == f"CA{i}_2m_syn" and j[-1] not in cloud_covers:
+                    CL[j[-1]]    += str(int(j[-1]))
+                    cloud_covers.add(j[-1])
+                elif len(CL[j[-1]]) == 1 and j[2] == f"CB{i}_2m_syn" and j[-1] in cloud_covers:
                     CB_in_30m   = int(j[-1]/30)
-                    CL[j[0]]    += str(CB_in_30m).rjust(3,"0")
+                    CL[j[-1]]    += str(CB_in_30m).rjust(3,"0")
 
             CL = dict(CL)
 
             for k in CL:
                 if len(CL[k]) == 1:
                     CL[k] += "///"
-                sql_values.add( (k, f"CL{i}_2m_syn", CL[k]) )
+                sql_values.add( (dataset, datetime, k, f"CL{i}_2m_syn", CL[k]) )
 
         # duration is always 1s for cloud observations
-        sql = ("INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,'1s') "
-            "ON CONFLICT DO{on_conflict}")
-        try:    db_loc.exemany(sql, sql_values)
-        except: continue
+        sql_insert = ("INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,'1s') "
+            "ON CONFLICT DO {on_conflict}")
+        try:    db_loc.exemany(sql_insert, sql_values)
+        except: pass
 
         # https://stackoverflow.com/a/49975954
-        sql = "DELETE FROM obs WHERE length(value) > 4 AND element LIKE 'CL%_2m_syn'"
-        try:    db_loc.exe(sql)
-        except: continue
+        sql_delete = "DELETE FROM obs WHERE length(value) > 4 AND element LIKE 'CL%_2m_syn'"
+        try:    db_loc.exe(sql_delete)
+        except: pass
        
-        # derive cloud bases [CB?_2m_syn] and cloud covers in the 4 levels [CDC?_2m_syn]
+        # derive cloud amounts [CA?_2m_syn] and cloud bases in the 4 levels [CB?_2m_syn]
         # from cloud levels [CL?_2m_syn] (usually provided by metwatch CSVs)
-        sql = (f"SELECT element,value FROM obs WHERE element REGEXP '(CB%_2m_syn|CDC%_2m_syn)'"
+        sql_select = "SELECT dataset,element,value FROM obs WHERE element LIKE 'CL%_2m_syn'"
+        db_loc.exe(sql_select)
+        
+        data        = db_loc.fetch()
+        sql_values  = set()
+
+        for i in data:
+            dataset     = i[0]
+            datetime    = i[1]
+            element     = i[2]
+            element_CAx = element[:2] + "A" + element[3:]
+            element_CBx = element[:2] + "B" + element[3:]
+            value_CAx   = value[0]
+            value_CBx   = value[1:]
+
+            sql_values.add( (dataset,datetime,element_CAx,value_CAx) )
+            sql_values.add( (dataset,datetime,element_CBx,value_CBx) )
+        
+        try:    db_loc.exemany(sql_insert, sql_values)
+        except: pass
+
+        # do the opposite of the above:
+        # derive cloud levels [CL?_2m_syn] from cloud amounts [CA?_2m_syn] and bases [CB?_2m_syn]
+        sql = (f"SELECT dataset,element,value FROM obs WHERE element REGEXP '(CA._2m_syn|CB._2m_syn)'"
             f"{dt_30min} ORDER BY datetime asc, element desc")
         db_loc.row_factory = sf.dict_row
         db_loc.exe(sql)
          
-        # reset row factory
-        db_loc.row_factory = sf.default_row
-
+        # set row factory to tuple
+        db_loc.row_factory = sf.tuple_row
+        
         data = db_loc.fetch()
-
+        print("CL")
+        for i in data:
+            dataset = i[0]
+            element = i[1]
+            value   = str(int(float(i[2])))
+            print(dataset, element, value)
+         
+        # reset row factory to default
+        db_loc.row_factory = sf.default_row
 
         # try to calculate QFF+QNH if no reduced pressure is present in obs and we have barometer height instead
         db = dc( config=cf.database, ro=1 )
@@ -178,9 +182,9 @@ def derive_obs(stations):
         db_loc.row_factory = sf.default_row
 
         #sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) "
-        #    f"VALUES(?,?,'PRATE_1m_syn',?,?) ON CONFLICT DO{on_conflict}")
+        #    f"VALUES(?,?,'PRATE_1m_syn',?,?) ON CONFLICT DO {on_conflict}")
         sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) "
-            f"VALUES(?,?,?,?,?) ON CONFLICT DO{on_conflict}")
+            f"VALUES(?,?,?,?,?) ON CONFLICT DO {on_conflict}")
         prate_vals  = set()
         
         db_loc.row_factory = sf.dict_row
@@ -230,7 +234,7 @@ def derive_obs(stations):
             
             datetimes   = set( i[0] for i in db_loc.fetch() )
             sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) "
-                f"VALUES(?,?,?,?,'1s') ON CONFLICT DO{on_conflict}")
+                f"VALUES(?,?,?,?,'1s') ON CONFLICT DO {on_conflict}")
             prmsl_vals  = set()
 
             # try calculate PRMSL for all datetimes where only PRES is available
@@ -293,7 +297,7 @@ def derive_obs(stations):
             db_loc.exe(sql)
             
             sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) VALUES"
-                f"(?,?,'DPT_2m_syn',?,'1s') ON CONFLICT DO{on_conflict}")
+                f"(?,?,'DPT_2m_syn',?,'1s') ON CONFLICT DO {on_conflict}")
             dpt_vals    = set()
             
             for datetime in db_loc.fetch():
@@ -373,14 +377,14 @@ if __name__ == "__main__":
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
-    replacements    = cf.script["replacements"]
-    combinations    = cf.script["combinations"]
+    #replacements    = cf.script["replacements"]
+    #combinations    = cf.script["combinations"]
     update          = cf.script["update"]
 
     if update:
-        on_conflict = " SET value=excluded.value"
+        on_conflict = "UPDATE SET value=excluded.value"
     else:
-        on_conflict = " NOTHING"
+        on_conflict = "NOTHING"
     
     if cf.script["aggregated"]:
         dt_30min = " AND strftime('%M', datetime) IN ('00','30')"

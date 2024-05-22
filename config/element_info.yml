@@ -1,119 +1,129 @@
-#element              | lower boundary  | upper boundary| extra             | exclude [re]|
-#---------------------+-----------------+---------------+-------------------+-------------+
-WDIR_10m_syn:         [    0,             360,            [990],              x           ]
+#element              | lower boundary  | upper boundary| extra                   | exclude [re]  |
+#---------------------+-----------------+---------------+-------------------------+---------------+
+WDIR_10m_syn:         [    0,             360,            [990],                    x             ]
+  # TODO MAX find records / reasonable values
   # http://www.mondorf-wetter.de/regiowind/rekwind.htm 
-WIND10min_10m_syn:    [    0,              70,            [0],                x           ]
-WIND30min_10m_syn:    [    0,              65,            [0],                x           ]
-WIND1h_10m_syn:       [    0,              60,            [0],                x           ]
+WIND10min_10m_syn:    [    0,              70,            [0],                      x             ]
+WIND30min_10m_syn:    [    0,              65,            [0],                      x             ]
+WIND1h_10m_syn:       [    0,              60,            [0],                      x             ]
   # https://www.wikiwand.com/en/List_of_weather_records#Wind_speeds
-WIND24h_10m_syn:      [    0,              48,            [0],                x           ]
+WIND24h_10m_syn:      [    0,            48.3,            [0],                      x             ]
   # https://web.archive.org/web/20231202085403/https://wmo.asu.edu/content/world-maximum-surface-wind-gust-TC
-GUST10min_10m_syn:    [    0,             113,            [0],                x           ]
-GUST30min_10m_syn:    [    0,             113,            [0],                x           ]
-GUST1h_10m_syn:       [    0,             113,            [0],                x           ]
-GUST3h_10m_syn:       [    0,             113,            [0],                x           ]
-GUST6h_10m_syn:       [    0,             113,            [0],                x           ]
-GUST24h_10m_syn:      [    0,             113,            [0],                x           ]
-MAXWIND30min_10m_syn: [    0,              70,            [0],                x           ]
-MAXWIND1h_10m_syn:    [    0,              70,            [0],                x           ]
-MAXWIND3h_10m_syn:    [    0,              70,            [0],                x           ]
-MAXWIND6h_10m_syn:    [    0,              70,            [0],                x           ]
+GUST10min_10m_syn:    [    0,            113.2,            [0],                     x             ]
+GUST30min_10m_syn:    [    0,            113.2,            [0],                     x             ]
+GUST1h_10m_syn:       [    0,            113.2,            [0],                     x             ]
+GUST3h_10m_syn:       [    0,            113.2,            [0],                     x             ]
+GUST6h_10m_syn:       [    0,            113.2,            [0],                     x             ]
+GUST24h_10m_syn:      [    0,            113.2,            [0],                     x             ]
+  # TODO find MAX records / reasonable values
+MAXWIND30min_10m_syn: [    0,              70,            [0],                      x             ]
+MAXWIND1h_10m_syn:    [    0,              70,            [0],                      x             ]
+MAXWIND3h_10m_syn:    [    0,              70,            [0],                      x             ]
+MAXWIND6h_10m_syn:    [    0,              70,            [0],                      x             ]
   
   # min: https://web.archive.org/web/20240420043810/https://wmo.asu.edu/content/world-lowest-temperature 
   # max: https://web.archive.org/web/20180501140030/https://wmo.asu.edu/content/world-highest-temperature
-TMP_2m_syn:           [  -89,              57,            [0],                x           ]
+TMP_2m_syn:           [-89.2,            56.7,            [0],                      x             ]
+  # TODO find MIN record / reasonable value
   # min: https://www.quora.com/What-is-lowest-dew-point-ever-observed-on-earth 
   # max: https://www.guinnessworldrecords.com/world-records/645732-highest-dewpoint-temperature
-DPT_2m_syn:           [ -100,              35,            [0],                x           ]
+DPT_2m_syn:           [ -100,              35,            [0],                      x             ]
+  # TODO find MIN/MAX records / reasonable values
   # min: 
   # max: 
-TMP_5cm_syn:          [  -89,              75,            [0],                x           ]
+TMP_5cm_syn:          [-89.2,              75,            [0],                      x             ]
 
-  # https://web.archive.org/web/20180501140030/https://wmo.asu.edu/content/world-highest-temperature
-TMAX12h_2m_syn:       [  -70,              57,            [0],                x           ]
+  # TODO find MIN record / reasonable value
+  # min:
+  # max: https://web.archive.org/web/20180501140030/https://wmo.asu.edu/content/world-highest-temperature
+TMAX12h_2m_syn:       [  -70,            56.7,            [0],                      x             ]
   # https://www.wunderground.com/cat6/world-record-low-humidity-116f-036-humidity-iran
-TMIN12h_2m_syn:       [  -89,              44,            [0],                x           ]
-TMIN12h_5cm_syn:      [  -89,              44,            [0],                x           ]
-TMAX24h_2m_syn:       [  -70,              57,            [0],                x           ]
+TMIN12h_2m_syn:       [-89.2,            44.2,            [0],                      x             ]
+TMIN12h_5cm_syn:      [-89.2,            44.2,            [0],                      x             ]
+  # TODO find MIN record / reasonable value
+TMAX24h_2m_syn:       [  -70,            56.7,            [0],                      x             ]
   # https://www.wunderground.com/cat6/Heat-Records-Falling-Around-World-2018
-TMIN24h_2m_syn:       [  -89,              43,            [0],                x           ]
-TMIN24h_5cm_syn:      [  -89,              43,            [0],                x           ]
+TMIN24h_2m_syn:       [-89.2,            42.6,            [0],                      x             ]
+TMIN24h_5cm_syn:      [-89.2,            42.6,            [0],                      x             ]
   # min: https://www.guinnessworldrecords.com/world-records/497541-coldest-seawater 
   # max: https://pubmed.ncbi.nlm.nih.gov/33096400/#:~:text=The%20extreme%20SST%20in%20Kuwait,the%20middle%20of%20the%20Bay. 
-Twater_sst_syn:       [   -3,              38,            [0],                x           ]
+Twater_sst_syn:       [ -2.6,            37.6,            [0],                      x             ]
   # min: https://web.archive.org/web/20240420043810/https://wmo.asu.edu/content/world-lowest-temperature
   # max: https://doi.org/10.1175%2F1520-0450%281992%29031%3C1096%3AEMLST%3E2.0.CO%3B2 
-TMP_srf_syn:          [  -89,              90,            [0],                x           ]
-TMP_n5cm_syn:         [  -85,              85,            [0],                x           ]
-TMP_n10cm_syn:        [  -80,              80,            [0],                x           ]
-TMP_n20cm_syn:        [  -75,              75,            [0],                x           ]
-TMP_n50cm_syn:        [  -70,              70,            [0],                x           ]
-TMP_n1m_syn:          [  -65,              65,            [0],                x           ]
-TMP_n2m_syn:          [  -60,              60,            [0],                x           ]
+TMP_srf_syn:          [-89.2,              90,            [0],                      x             ]
+  # TODO find MIN/MAX records / reasonable values
+TMP_n5cm_syn:         [  -85,              85,            [0],                      x             ]
+TMP_n10cm_syn:        [  -80,              80,            [0],                      x             ]
+TMP_n20cm_syn:        [  -75,              75,            [0],                      x             ]
+TMP_n50cm_syn:        [  -70,              70,            [0],                      x             ]
+TMP_n1m_syn:          [  -65,              65,            [0],                      x             ]
+TMP_n2m_syn:          [  -60,              60,            [0],                      x             ]
 
 #TODO reconsider min PRES (depending on highest WMO station in our system)
   # min: http://www.vedur.is/vedur/frodleikur/greinar/nr/1056
   # max: https://web.archive.org/web/20231223035928/https://wmo.asu.edu/content/world-highest-sea-level-air-pressure-below-700m
-PRES_0m_syn:          [  500,            1084,            [],                 x           ]
-PRMSL_ms_syn:         [  920,            1084,            [],                 x           ]
-PRMSL_ms_met:         [  920,            1084,            [],                 x           ]
+PRES_0m_syn:          [  500,          1083.8,            [],                       x             ]
+PRMSL_ms_syn:         [  920,          1083.8,            [],                       x             ]
+PRMSL_ms_met:         [  920,          1083.8,            [],                       x             ]
 
-GS_srf_syn:           [    0,              19,            [31],               x           ]
+GS_srf_syn:           [    0,              19,            [31],                     x             ]
 
-WW_2m_syn:            [    0,             293,            [508,509,510,511],  "3?[0-9]$"  ] # lazy alternative: "3.$"
-WWN_2m_met:           [    0,               5,            [15],               "3"         ]
-W1_2m_syn:            [    0,              19,            [31],               x           ]
-W2_2m_syn:            [    0,              19,            [31],               "3"         ]
-  #natWW_2m_syn:        [    0,               4,            [7,8,9,33,36],      "3"        ]
-VIS_2m_syn:           [    0,             400,            [],                 x           ]
+GWI_2m_met:           [    0,               0,            [NSC,CAVOK,SKC,NSW,NCD],  x             ]
+WW_2m_syn:            [    0,             293,            [508,509,510,511],        "3?[0-9]$"    ] # lazy regex alternative: "3.$"
+WW_2m_met:            [    0,               5,            [15],                     "3"           ]
+W1_2m_syn:            [    0,              19,            [31],                     x             ]
+W2_2m_syn:            [    0,              19,            [31],                     "3"           ]
+natWW_2m_syn:         [    0,               4,            [7,8,9,33,36],            "3"           ]
+VIS_2m_syn:           [    0,             400,            [],                       x             ]
 
-TCDC_2m_syn:          [    0,               8,            [9],                x           ]
-LCDC_2m_syn:          [    0,               8,            [9],                x           ]
-MCDC_2m_syn:          [    0,               8,            [9],                x           ]
-HCDC_2m_syn:          [    0,               8,            [9],                x           ]
-HLC_2m_syn:           [    0,            2500,            [],                 x           ]
-CLCMCH_2m_syn:        [    0,               0,            [],                 .           ]
-CL1_2m_syn:           [    0,            8999,            [9///],             x           ]
-CL2_2m_syn:           [    0,            8999,            [9///],             x           ]
-CL3_2m_syn:           [    0,            8999,            [9///],             x           ]
-CL4_2m_syn:           [    0,            8999,            [9///],             x           ]
-CA1_2m_syn:           [    0,               8,            [9],                x           ]
-CA2_2m_syn:           [    0,               8,            [9],                x           ]
-CA3_2m_syn:           [    0,               8,            [9],                x           ]
-CA4_2m_syn:           [    0,               8,            [9],                x           ]
-CB1_2m_syn:           [    0,            2500,             [],                x           ]
-CB2_2m_syn:           [    0,            7500,             [],                x           ]
-CB3_2m_syn:           [    0,           15000,             [],                x           ]
-CB4_2m_syn:           [    0,            2500,             [],                x           ]
+TCDC_2m_syn:          [    0,               8,            [9],                      x             ]
+CCDC_2m_syn:          [    0,               8,            [9],                      x             ]
+LCDC_2m_syn:          [    0,               8,            [9],                      x             ]
+MCDC_2m_syn:          [    0,               8,            [9],                      x             ]
+HCDC_2m_syn:          [    0,               8,            [9],                      x             ]
+HLC_2m_syn:           [    0,            2500,            [],                       x             ]
+CLCMCH_2m_syn:        [    0,               0,            [],                       .             ]
+CL1_2m_syn:           [    0,            8999,            [9///],                   x             ]
+CL2_2m_syn:           [    0,            8999,            [9///],                   x             ]
+CL3_2m_syn:           [    0,            8999,            [9///],                   x             ]
+CL4_2m_syn:           [    0,            8100,            [9///],                   x             ]
+CA1_2m_syn:           [    0,               8,            [9],                      x             ]
+CA2_2m_syn:           [    0,               8,            [9],                      x             ]
+CA3_2m_syn:           [    0,               8,            [9],                      x             ]
+CA4_2m_syn:           [    0,               8,            [9],                      x             ]
+CB1_2m_syn:           [    0,           20000,             [],                      x             ]
+CB2_2m_syn:           [    0,           20000,             [],                      x             ]
+CB3_2m_syn:           [    0,           20000,             [],                      x             ]
+CB4_2m_syn:           [    0,            3000,             [],                      x             ]
 
 #TODO find somewhat reasonable values to put here
-PRATE30min_1m_syn:    [    0,            2000,            [0],                x           ]
+PRATE30min_1m_syn:    [    0,            2000,            [0],                      x             ]
   # https://www.guinnessworldrecords.com/world-records/737965-greatest-rainfall-in-one-hour
-PRATE1h_1m_syn:       [    0,            3048,            [0],                x           ]
+PRATE1h_1m_syn:       [    0,            3048,            [0],                      x             ]
   # https://www.guinnessworldrecords.com/world-records/greatest-rainfall-24-hours
-PRATE24h_1m_syn:      [    0,           18250,            [0],                x           ]
-PCPDUR30min_1m_syn:   [    0,              30,            [0],                x           ]
-PCPDUR1h_1m_syn:      [    0,              60,            [0],                x           ]
+PRATE24h_1m_syn:      [    0,           18250,            [0],                      x             ]
+PCPDUR30min_1m_syn:   [    0,              30,            [0],                      x             ]
+PCPDUR1h_1m_syn:      [    0,              60,            [0],                      x             ]
 
 #TODO find somewhat reasonable values to put here
   # https://weather.com/storms/winter/news/2022-11-18-snowfall-records-united-states-days-month-season 
-SNOD_srf_syn:         [    0,           11455,            [0],                x           ]
+SNOD_srf_syn:         [    0,           11455,            [0],                      x             ]
   # 
-NEWSNOD1h_srf_syn:    [    0,             100,            [0],                x           ]
+NEWSNOD1h_srf_syn:    [    0,             100,            [0],                      x             ]
   # https://web.archive.org/web/20201231192807/https://www.washingtonpost.com/news/capital-weather-gang/wp/2015/03/11/100-inches-of-snow-may-have-clobbered-italy-in-18-hours-review-pending/
-NEWSNOD24h_srf_syn:   [    0,            2300,            [0],                x           ] 
+NEWSNOD24h_srf_syn:   [    0,            2300,            [0],                      x             ] 
 
-SUNDUR30min_srf_syn:  [    0,              30,            [0],                x           ]
-SUNDUR1h_srf_syn:     [    0,              60,            [0],                x           ]
-SUNDUR24h_srf_syn:    [    0,            1440,            [0],                x           ]
+SUNDUR30min_srf_syn:  [    0,              30,            [0],                      x             ]
+SUNDUR1h_srf_syn:     [    0,              60,            [0],                      x             ]
+SUNDUR24h_srf_syn:    [    0,            1440,            [0],                      x             ]
 
 #TODO find somewhat reasonable values to put here
-GLRAD30min_srf_syn:   [    0,            3000,            [0],                x           ]
-GLRAD1h_srf_syn:      [    0,            6000,            [0],                x           ]
-DIFFRAD30min_srf_syn: [    0,            3000,            [0],                x           ]
-DIFFRAD1h_srf_syn:    [    0,            6000,            [0],                x           ]
-LONGRAD30min_srf_syn: [    0,            3000,            [0],                x           ]
-LONGRAD1h_srf_syn:    [    0,            6000,            [0],                x           ]
+GLRAD30min_srf_syn:   [    0,            3000,            [0],                      x             ]
+GLRAD1h_srf_syn:      [    0,            6000,            [0],                      x             ]
+DIFFRAD30min_srf_syn: [    0,            3000,            [0],                      x             ]
+DIFFRAD1h_srf_syn:    [    0,            6000,            [0],                      x             ]
+LONGRAD30min_srf_syn: [    0,            3000,            [0],                      x             ]
+LONGRAD1h_srf_syn:    [    0,            6000,            [0],                      x             ]
 
 
 #TODO proposals:

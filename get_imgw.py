@@ -3,7 +3,7 @@ import os, sys, time, requests, argparse
 import global_functions as gf
 from config import ConfigClass
 from obs import ObsClass
-from datetime import datetime as dt
+from datetime import datetime as dt, timedelta as td
 import logging as log
 
 
@@ -30,7 +30,7 @@ def convert_imgw_keys(key, data):
 if __name__ == "__main__":
     
     # define program info message (--help, -h)
-    info        = "Get latest obs from polish weather service and insert observatio data into database."
+    info        = "Get thelatest obs from IMGW and insert all relevant data into station databases."
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","c","d","m","o","u")
     cf          = ConfigClass(script_name, flags=flags, info=info, sources=True)
@@ -40,8 +40,9 @@ if __name__ == "__main__":
 
     # check whether script is running in correct environment; if not exit
     if cf.script["conda_env"] != conda_env:
-        sys.exit(f"This script ({script_name}) needs to run in conda env {cf.script['conda_env']}, exiting!")
-
+        conda_env = cf.script['conda_env']
+        sys.exit(f"This script ({script_name}) needs to run in conda env {conda_env}, exiting!")
+    
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
     
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     update          = cf.script["update"]
 
     if update:
-        on_conflict = "SET value=excluded.value"
+        on_conflict = "UPDATE SET value=excluded.value"
     else:
         on_conflict = "NOTHING"
     
@@ -92,14 +93,25 @@ if __name__ == "__main__":
         location = meta["location"] + "0"
         if location not in obs_db: obs_db[location] = set()
 
-        date = meta["date"]; hour = int(meta["hour"])
-        datetime = dt(int(date[:4]), int(date[5:7]), int(date[8:10]), hour)
+        date        = meta["date"]
+        hour        = int(meta["hour"])
+        datetime    = dt(int(date[:4]), int(date[5:7]), int(date[8:10]), hour)
         
         for key in elements:
+            
             # if observation value is None: skip it
             if data[key] is None: continue
+
             element, value, duration, scale = convert_imgw_keys(key, data)
-            obs_db[location].add( (0, datetime, duration, element, value, 0, scale) )
+            
+            # precipitation is always only last 6z measurement
+            if element == "PRATE_1m_syn":
+                datetime_prate = dt(int(date[:4]), int(date[5:7]), int(date[8:10]), 6)
+                # if time is earlier than 5z, measurement is from previous day still
+                if hour < 6: datetime_prate -= td(days=1)
+                obs_db[location].add( ("imgw", datetime_prate, duration, element, value, 0, scale) )
+            # for all other elements take usual given datetime 
+            else: obs_db[location].add( ("imgw", datetime, duration, element, value, 0, scale) )
 
     obs.to_station_databases(obs_db, scale=True, prio=prio, update=update)
 

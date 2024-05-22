@@ -477,14 +477,14 @@ verticalSignificanceSurfaceObservations:
 cloudAmount:
   020011:
     0:                                [TCDC_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad gesamt
-    C:                                [LCDC_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der niedrigsten Schicht (Nh)
-    L:                                [CDCL_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der niedrigen Wolken
-    M:                                [CDCM_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der mitteleren Wolken
-    H:                                [CDCH_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der hohen Wolken
-    1:                                [CDC1_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad 1. Schicht
-    2:                                [CDC2_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad 2. Schicht
-    3:                                [CDC3_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad 3. Schicht
-    4:                                [CDC4_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad 4. Schicht (Cb oder 4. Automat)
+    C:                                [CCDC_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der niedrigsten Schicht (Nh)
+    L:                                [LCDC_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der niedrigen Wolken
+    M:                                [MCDC_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der mitteleren Wolken
+    H:                                [HCDC_2m_syn,    1s,   1,  0, 0]    # Bedeckungsgrad der hohen Wolken
+    1:                                [CA1_2m_syn,     1s,   1,  0, 0]    # Bedeckungsgrad 1. Schicht
+    2:                                [CA2_2m_syn,     1s,   1,  0, 0]    # Bedeckungsgrad 2. Schicht
+    3:                                [CA3_2m_syn,     1s,   1,  0, 0]    # Bedeckungsgrad 3. Schicht
+    4:                                [CA4_2m_syn,     1s,   1,  0, 0]    # Bedeckungsgrad 4. Schicht (Cb oder 4. Automat)
 
 cloudCoverTotal:
   020010:                             [TCDC_2m_syn, 1s, 0.08, 0, 0]    # Bedeckungsgrad gesamt
@@ -497,10 +497,10 @@ heightOfBaseOfCloud:
 
 # usually not used by DWD
 amountOfLowClouds:
-  020051:                             [CDCL_2m_syn,    1s,   1,   0, 0]   # Bedeckungsgrad der niedrigen Wolken
+  020051:                             [LCDC_2m_syn,    1s,   1,   0, 0]   # Bedeckungsgrad der niedrigen Wolken
 
 amountOfMiddleClouds:
-  020052:                             [CDCM_2m_syn,    1s,   1,   0, 0]   # Bedeckungsgrad der mitteleren Wolken
+  020052:                             [MCDC_2m_syn,    1s,   1,   0, 0]   # Bedeckungsgrad der mitteleren Wolken
 
 amountOfHighClouds:
-  020053:                             [CDCH_2m_syn,    1s,   1,   0, 0]   # Bedeckungsgrad der hohen Wolken
+  020053:                             [HCDC_2m_syn,    1s,   1,   0, 0]   # Bedeckungsgrad der hohen Wolken

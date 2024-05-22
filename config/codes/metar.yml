@@ -1,4 +1,6 @@
+# sources:
 #https://www.weather.gov/media/wrh/mesowest/metar_decode_key.pdf
+#https://wiki.ivao.aero/en/home/training/documentation/METAR_explanation
 
 weather:
   HZ: 10 #haze
@@ -32,9 +34,12 @@ weather:
   GS: 85 #small hail and/or snow pellets 
   GR: 88 #hail
   PL: #ice pellets
+  //: ~
 
-clouds:
+clouds: # https://skybrary.aero/articles/meteorological-aerodrome-report-metar
   CLR: 0
   FEW: 2
-  BKN: 4
+  SCT: 4
+  BKN: 6
   OVC: 8
+  ///: ~

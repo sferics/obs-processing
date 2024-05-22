@@ -2,8 +2,8 @@ duration:
   WIND_10m_syn:
     10min:                  ~
     30min:                  [[10min],                               AVG]
-    1h:                     [[10min, 1h],                           AVG]
-    24h:                    [[10min, 1h],                           AVG]
+    1h:                     [[1h, 10min],                           AVG]
+    24h:                    [[1h, 10min],                           AVG]
   GUST_10m_syn:
     10min:                  ~
     30min:                  [[30min, 10min],                        MAX]
@@ -53,12 +53,12 @@ duration:
     24h:                    [[24h, 12h, 6h, 3h, 1h],                MIN, TMP_2m_syn,  0   ]
   TMAX_2m_syn:
     12h:                    [[12h, 6h, 3h, 1h],                     MAX, TMP_2m_syn,  6   ]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],          MAX, TMP_2m_syn,  0   ]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX, TMP_2m_syn,  0   ]
 
 instant:
   # instantaneous / fixed duration values
-  # if not available on full hour/30mins?, look for close-by values [+-, 10, min]
-  - WDIR_10m_syn # always 10-min average
+  # if not available on full hour / every 30mins, look for close-by values [ +/- 10min ]
+  - WDIR_10m_syn    # always 10-min average
   - TMP_2m_syn
   - DPT_2m_syn
   - TMP_5cm_syn
@@ -73,18 +73,31 @@ instant:
   - PRES_0m_syn
   - PRMSL_ms_syn 
   - PRMSL_ms_met
+  - GWI_2m_met
   - WW_2m_syn 
-  - WWN_2m_met
+  - WW_2m_met
   - W1_2m_syn
   - W2_2m_syn
   - natWW_2n_syn
   - VIS_2m_syn
   - TCDC_2m_syn
+  - CCDC_2m_syn
   - LCDC_2m_syn
+  - MCDC_2m_syn
+  - HCDC_2m_syn
   - HLC_2m_syn
+  - CA1_2m_syn
+  - CA2_2m_syn
+  - CA3_2m_syn
+  - CA4_2m_syn
   - CB1_2m_syn
   - CB2_2m_syn
   - CB3_2m_syn
   - CB4_2m_syn
+  - CL1_2m_syn
+  - CL2_2m_syn
+  - CL3_2m_syn
+  - CL4_2m_syn
+  - CLCMCH_2m_syn
   - SNOD_srf_syn
   - GS_srf_syn

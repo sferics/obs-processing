@@ -6,17 +6,15 @@ import sys
 from datetime import datetime as dt, timedelta as td
 import requests
 import global_functions as gf
+from config import ConfigClass
 
-api_url     = "https://api.dataplatform.knmi.nl/open-data"
-api_version = "v1"
 
 def main(dataset_name, dataset_version, filename):
     
     # Parameters
-    api_key = "eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjA2MTU4MDU3YmM2MDRkMjA5OTExN2ZjOWJkY2IyZThiIiwiaCI6Im11cm11cjEyOCJ9"
     log.debug(f"Dataset file to download: {filename}")
 
-    endpoint = f"{api_url}/{api_version}/datasets/{dataset_name}/versions/{dataset_version}/files/{filename}/url"
+    endpoint = f"{api_url}/{api_ver}/datasets/{dataset_name}/versions/{dataset_version}/files/{filename}/url"
 
     get_file_response = requests.get(endpoint, headers={"Authorization": api_key})
 
@@ -33,6 +31,8 @@ def main(dataset_name, dataset_version, filename):
         deprecation_message = get_file_response.headers.get("X-KNMI-Deprecation")
         log.warning(f"Deprecation message: {deprecation_message}")
 
+    gf.create_dir(output_dir)
+
     download_file_from_temporary_download_url(download_url, filename)
 
 
@@ -40,20 +40,30 @@ def download_file_from_temporary_download_url(download_url, filename):
     try:
         with requests.get(download_url, stream=True) as r:
             r.raise_for_status()
-            with open("KNMI/"+filename, "wb") as f:
+            with open(output_dir+"/"+filename, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
     except Exception:
         log.exception("Unable to download file using download URL")
         sys.exit(1)
-
+    
     log.info(f"Successfully downloaded dataset file to {filename}")
 
 
 if __name__ == "__main__":
 
     script_name = gf.get_script_name(__file__)
-    log = gf.get_logger(script_name)
+    log         = gf.get_logger(script_name)
+    flags       = ("l","v","d","m","o")
+    info        = "Download the latest BUFR and NetCDF files from KNMI Open Data using their API."
+    cf          = ConfigClass(script_name, flags=flags, info=info, sources=True)
+    knmi_cf     = cf.sources["KNMI"]
+    api_cf      = knmi_cf["api"]
+    api_url     = api_cf["url"]
+    api_ver     = api_cf["ver"]
+    api_key     = api_cf["key"]
+
+    output_dir  = cf.script["download_dir"]
 
     # Use get file to retrieve a file from one hour ago.
     date    = dt.utcnow()

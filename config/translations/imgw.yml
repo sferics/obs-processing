@@ -1,5 +1,6 @@
 # WIND SPEED
 ms2kn:  &ms2kn  1.9438444924406046  # m/s to kn
+kn2ms:  &kn2ms  0.5144444444444445  # kn to m/s
 
 meta:
   id_stacji:            location
@@ -8,9 +9,9 @@ meta:
   godzina_pomiaru:      hour
 
 elements:
-  temperatura:          [TMP_2m_syn,    1s,   1,    1 ]
-  predkosc_wiatru:      [WIND_10m_syn,  1h,   1,    0 ]
-  kierunek_wiatru:      [WDIR_10m_syn,  1min, 1,    -1]  
-  wilgotnosc_wzgledna:  [RH_2m_syn,     1s,   1,    1 ] 
-  suma_opadu:           [PRATE_1m_syn,  1h,   1,    1 ]
-  cisnienie:            [PRMSL_ms_syn,  1s,   1,    1 ]
+  temperatura:          [TMP_2m_syn,    1s,     1,    1 ]
+  predkosc_wiatru:      [WIND_10m_syn,  10min,  1,    0 ]
+  kierunek_wiatru:      [WDIR_10m_syn,  10min,  1,    -1]  
+  wilgotnosc_wzgledna:  [RH_2m_syn,     1s,     1,    1 ] 
+  suma_opadu:           [PRATE_1m_syn,  24h,    1,    1 ]
+  cisnienie:            [PRMSL_ms_syn,  1s,     1,    1 ]

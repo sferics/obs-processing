@@ -18,7 +18,7 @@ It is easily extendable via configuration (YAML) files and by adding your own sc
 
 ## Python scripts
 All python scripts offer a -h/--help option which shows their command line arguments with a brief explanation. However, in order to understand them better, you should read the following in-depth information carefully.\
-To be able to run these scripts, the configuration files [general.yml](#general), [sources.yml](#sources) and [clusters.yml](#clusters) are needed. So right before the first usage, you need to make sure to create them by copying the template files named "{file\_name}\_template.yml" to [config/](#config_files) and adding your desired configurations/sources/clusters.
+To be able to run these scripts, the configuration files [sources.yml](#sources) and [clusters.yml](#clusters) are needed. So right before the first usage, you need to make sure to create them by copying the template files named "{file\_name}\_template.yml" to [config/](#config_files) and adding your desired configurations of sources and clusters. The [general.yml](#general) and [scripts.yml](#scripts) files also need to be adjusted with your desired file paths, system-specific settings etc.
 
 ### Note on command line arguments
 
@@ -78,12 +78,12 @@ It can also process intire source/dataset directories which can be provided by t
 - can take several sources, seperated by spaces
 
 ##### -a/--approach $APPROACH
-You may use 5 different approaches to decode the files:
-- pd: Using pdbufr package officially provided by ECMWF (very slow because it uses pandas)
-- pl: Using plbufr package forked from pdbufr by sferics (faster because it uses polars instead)
-- gt: Also using plbufr bufr but instead of creating a dataframe it uses a generator (equally fast)
-- us: Fastest decoding method using bufr keys from ECCODES but lacking some observations like soil temperatures
-- ex: Slower than "us" method but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files and lacking some information from DWD Open Data files
+You may use 5 different approaches to decode the BUFR files:
+- pd: Using [pdbufr package officially provided by ECMWF](#https://github.com/ecmwf/pdbufr) (very slow because it uses pandas).
+- pl: Using [plbufr package forked from pdbufr by sferics](#https://github.com/sferics/plbufr) (faster because it uses polars instead).
+- gt: Also using plbufr package, but instead of creating a dataframe, it uses a generator (should be equally fast.)
+- us: Fastest decoding method using bufr keys from ECCODES, but lacking some observations like soil temperatures.
+- ex: Slower than "us" method, but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files and lacking some information from DWD Open Data files!
 ##### -f/--file $FILE\_PATH
 - process a single file, given by its file path
 ##### -F/--FILES $LIST\_OF\_FILES
@@ -156,7 +156,7 @@ This is a chain script which runs the following scripts in the order of occurren
 > <br/><br/>
 > 
 > ### <a name="aggregate_obs"></a>aggregate\_obs.py
-> Aggregate over certain time periods / durations (like 30min,1h,3h,6h,12,24h) and create new elements with "\_{duration}" suffix.
+> Aggregate over certain time periods / durations (like 30min,1h,3h,6h,12,24h) and create new elements with "{duration}" suffix (like "TMAX12h\_2m\_syn").
 > The information about what elements to aggregate over which durations and which elements need gap filling is contained in [config/element\_aggregation.yml](#element_aggregation).
 >  
 > #### Example usage
@@ -238,29 +238,38 @@ Get latest observations from the Polish Open Data service
 \- conda environment information (environment name, packages to install, conda settings)\
 \- does not contain prefix and variables because they are system-dependent
 
-##### <a name="general"></a>general\_template.yml
-\- needs to be copied to "config/general.yml" in order to be recognized by the python scripts\
+##### <a name="general"></a>general.yml
 \- main configuration file template with the following sections:
 
 > **general:**\
 > \- most general settings which will be overwritten by all following configs\
-> \- order: general -> class -> script -> command line arguments\
+> \- order of priorities: general -> class -> script -> command line arguments\
 > **database:**\
 > \- default configuration for the main database (usually when DatabaseClass is called for main.db)\
 > **bufr:**\
-> \- default configuration for the BufrClass\
+> \- default configuration for the BufrClass, higher priority than "general:" but lower than script config\
 > **obs:**\
-> \- default configuration for the ObsClass
+> \- default configuration for the ObsClass, higher priority than "general:" but lower than script config
 
 ##### <a name="scripts"></a>scripts.yml
 \- just change the settings of all scripts to your desire in here\
 \- sections/keys are always the FULL script name (with .py)!\
-\- some important script configurations in detail:
+\- individual script configurations in detail:
 > **decode_bufr.py:**\
 > \- TODO\
 > **forge_obs.py:**\
 > \- TODO\
+> **reduce_obs.py:**\
+> \- TODO\
+> **derive_obs.py:**\
+> \- TODO\
 > **aggregate_obs.py:**\
+> \- TODO\
+> **audit_obs.py:**\
+> \- TODO\
+> **empty_obs.py:**\
+> \- TODO\
+> **get_obs.py:**\
 > \- TODO\
 > **get_imgw.py:**\
 > \- TODO\
@@ -307,15 +316,15 @@ Install the repository using conda and prepare everything to get started immedia
 <br/>
 
 ### <a name="multi_decode_bufr"></a>multi\_decode\_bufr.sh
-This scripts starts the decode\_bufr.py script multiple times, so you can process a large number of files much faster.\
-NOTE: You have to calculate manually how many files to process for each instance of the script and define max\_files accordingly in the script config's "decode\_by.py:" section.
+This scripts starts the [decode\_bufr.py](#decode_bufr) script multiple times, so you can process a large number of files much faster.\
+NOTE: You have to calculate manually how many files to process for each instance of the script and define "max\_files:" accordingly in the script config's "decode\_by.py:" section.
 <br/>
 
 #### Command line arguments
 ##### $1 $APPROACH
 - set BUFR decoding approach (default: gt)
 ##### $2 $PROCESSES
-- number of processes to use (start decode\_bufr.py N times)
+- number of processes to use (start [decode\_bufr.py](#decode_bufr) N times)
 ##### $3 $SLEEP\_TIME
 - sleep time in between script execution (wait N seconds before starting the next instance)
 
