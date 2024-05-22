@@ -1878,4 +1878,4 @@ class DatabaseClass:
         """
         sql = "SELECT DISTINCT element FROM element_table WHERE role='obs'"
         self.exe(sql)
-        return self.fetch()
+        return set(self.fetch())

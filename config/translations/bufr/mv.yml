@@ -209,21 +209,21 @@ cloudBase:
 
 ### WEATHER / PHENOMENA
 #presentWeather:
-020003:                             [WW_syn,  1min, 1, 0, 0]           # Signifikantes Wetter
+020003:                             [WW_2m_syn,  1min, 1, 0, 0]           # Signifikantes Wetter
 
   #TODO these keys contain characters (CCITT IA5 code), useful?
   #significantWeather:                 [WW_sig_syn,1min, 1, 0, 0]         # Signifikantes Wetter
   #significantRecentWeatherPhenomena:  [WW_sig_syn,1min, 1, 0, 0]         # Signifikantes Wetter
 
 #pastWeather1:
-020004:                             [W1_syn,  ~,    1, 0, 0]           # Wetterverlauf (Typ 1)
+020004:                             [W1_2m_syn,  ~,    1, 0, 0]           # Wetterverlauf (Typ 1)
 
 #pastWeather2:
-020005:                             [W1_syn,  ~,    1, 0, 0]           # Wetterverlauf (Typ 1)
+020005:                             [W1_2m_syn,  ~,    1, 0, 0]           # Wetterverlauf (Typ 1)
 
 #DWD only!!!
 #additionalWeatherPhenomena:
-020193:                             [natWW,   1min, 1, 0, 0]           # Zusätzliches Wetter (Nationale Meldung)
+020193:                             [natWW_2m_syn,   1min, 1, 0, 0]           # Zusätzliches Wetter (Nationale Meldung)
   #TODO some interesting BUFR keys, maybe with potential future usefulness?
   #intensityOfPhenomena:               [PH_int, ~, 1, 0]              #
   #phenomenaOccurrence:                [PH_occ, ~, 1, 0]              #
@@ -232,27 +232,27 @@ cloudBase:
 
 #DWD only!
 #otherWeatherPhenomena:
-020023:                             [PH_oth, ~, 1, 0, 0]              #
+020023:                             [PH_2m_oth, ~, 1, 0, 0]              #
 
 #reason of obscuration
-020025:                             [OBSC_syn, ~, 1, 0, 0]
+020025:                             [OBSC_2m_syn, ~, 1, 0, 0]
 
 #TODO check if this matches!
 #generalWeatherIndicatorTafOrMetar:
-020009:                             [WWN_met, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
+020009:                             [WWN_2m_met, 1min, 1, 0, 0]           # Signifikantes Wetter und Bewölkung
 
 
 ### VISIBILITY
 #TODO which of these visibility/optical range parameters should have priority? how do we order them?
 #meteorologicalOpticalRange:
-015051:                             [VIS_syn,     0s, 0.001, 0, 0]     # Horizontale Sichtweite
-020237:                             [VIS_syn,     0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
+015051:                             [VIS_2m_syn,     0s, 0.001, 0, 0]     # Horizontale Sichtweite
+020237:                             [VIS_2m_syn,     0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
 #minimumMeteorologicalOpticalRange:
 020238:                             [VIS_min_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
 #maximumMeteorologicalOpticalRange:
 020239:                             [VIS_max_syn, 0s, 0.001, 0, 0]     # Horizontale Sichtweite (DWD)
 #horizontalVisibility:
-020001:                             [VIS_syn,     0s, 0.001, 0,-1]     # Horizontale Sichtweite
+020001:                             [VIS_2m_syn,     0s, 0.001, 0,-1]     # Horizontale Sichtweite
 #minimumHorizontalVisibility:
 020059:                             [VIS_min_syn, 0s, 0.001, 0,-1]     # Horizontale Sichtweite
 #prevailingHorizontalVisibility:

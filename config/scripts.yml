@@ -90,3 +90,14 @@ aggregate_obs.py:
   stations:         !!set   [wmo, dwd]
   clusters:         !!set   [germany] # TODO should take setting from sources instead
   aggregat_elems:   !!str   element_aggregation
+
+export_obs.py:
+  conda_env:        !!str   obs
+  pid_file:         !!bool  0 # create and use pid file
+  verbose:          !!bool  0 # verbose output
+  traceback:        !!bool  1 # traceback prints
+  mode:             !!str   dev
+  processes:        !!int   15
+  update:           !!bool  1
+  stations:         !!set   [wmo, dwd]
+  clusters:         !!set   [germany]

@@ -69,7 +69,7 @@ For more details on adding/changing/removing command line arguments, please read
   
 ### <a name="decode_bufr"></a>decode\_bufr.py
 This script decodes one or several BUFR files and inserts all relevant observations into the raw databases.\
-It can also process intire source/dataset directories which can be provided by the source name as arguments or via the "source.yml" configuration file.\
+It can also process intire source/dataset directories which can be provided by the source name as arguments or via the "source.yml" configuration file.
 
 #### Unique command line arguments
 

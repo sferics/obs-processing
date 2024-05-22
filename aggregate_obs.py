@@ -373,9 +373,8 @@ def aggregate_obs(stations, update=False):
                                         
                                         db_loc.exe( sql.replace("?", FUN+"(value)") )
                                         
-                                        fetched = db_loc.fetch1()
-                                        if fetched is not None:
-                                            val_new, dataset = fetched
+                                        val_new = db_loc.fetch1()
+                                        if val_new is not None:
                                             if verbose: print(dt_end, dur, el_new, val_new)
                                             sql_values.add( (dataset, dt_end, dur, el_new, val_new) )
                                             # break the loop when a value is first found

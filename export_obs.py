@@ -61,10 +61,11 @@ if __name__ == "__main__":
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
 
-    obs             = ObsClass( cf, source, stage="forge" )
+    #obs             = ObsClass( cf, source, stage="forge" )
     db              = DatabaseClass( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
-    elements        = tuple(f'{element}' for element in db.get_elements())
+    elements        = tuple(db.get_elements())
+    
     db.close(commit=False)
 
     if processes: # number of processes

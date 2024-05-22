@@ -1,55 +1,58 @@
 duration:
   WIND_10m_syn:
-    #TODO use WIND_5m_syn as fallback element?
     10min:                  ~
-    30min:                  [[10min],                         AVG]
-    1h:                     [[30min, 10min],                  AVG]
+    30min:                  [[10min],                               AVG]
+    1h:                     [[10min, 1h],                           AVG]
+    24h:                    [[10min, 1h],                           AVG]
   GUST_10m_syn:
-    30min:                  [[10min],                         MAX]
-    1h:                     [[30min, 10min],                  MAX]
-    6h:                     [[3h, 1h, 30min, 10min],          MAX]
+    10min:                  ~
+    30min:                  [[30min, 10min],                        MAX]
+    1h:                     [[1h, 30min, 10min],                    MAX]
+    3h:                     [[3h, 1h, 30min, 10min],                MAX]
+    6h:                     [[6h, 3h, 1h, 30min, 10min],            MAX]
+    24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  MAX]
   MAXWIND_10m_syn:
-    #TODO implement fallback element WIND_10m_syn
-    30min:                  [[10min],                         MAX]
-    1h:                     [[30min, 10min],                  MAX]
-    6h:                     [[3h, 1h, 30min, 10min],          MAX, WIND_10m_syn, 0  ]
-  PRATE_srf_syn:
-    30min:                  [[10min],                         SUM]
-    1h:                     [[1h, 30min, 10min],              SUM]
-    24h:                    [[12h, 6h, 3h, 1h, 30min, 10min], SUM]
-  PCPDUR_srf_syn:
-    30min:                  [[10min],                         SUM]
-    1h:                     [[30min, 10min],                  SUM]
-  PCPINT_srf_syn:
-    30min:                  [[10min],                         MAX]
-    1h:                     [[30min, 10min],                  MAX]
+    30min:                  [[30min, 10min],                        MAX, WIND_10m_syn, 0  ]
+    1h:                     [[1h, 30min, 10min],                    MAX, WIND_10m_syn, 0  ]
+    3h:                     [[3h, 1h, 30min, 10min],                MAX, WIND_10m_syn, 0  ]
+    6h:                     [[6h, 3h, 1h, 30min, 10min],            MAX, WIND_10m_syn, 0  ]
+  PRATE_1m_syn:
+    30min:                  [[30min, 10min],                        SUM]
+    1h:                     [[1h, 30min, 10min],                    SUM]
+    24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  SUM]
+  PCPDUR_1m_syn:
+    30min:                  [[30min, 10min],                        SUM]
+    1h:                     [[1h, 30min, 10min],                    SUM]
+  PCPINT_1m_syn:
+    30min:                  [[30min, 10min],                        MAX]
+    1h:                     [[1h, 30min, 10min],                    MAX]
   SUNDUR_srf_syn:
-    30min:                  [[10min],                         SUM]
-    1h:                     [[30min, 10min],                  SUM]
-    24h:                    [[12h, 6h, 3h, 1h, 30min, 10min], SUM]
+    30min:                  [[30min, 10min],                        SUM]
+    1h:                     [[1h, 30min, 10min],                    SUM]
+    24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  SUM]
   GLRAD_srf_syn:
-    30min:                  [[10min],                         SUM]
-    1h:                     [[30min, 10min],                  SUM]
+    30min:                  [[30min, 10min],                        SUM]
+    1h:                     [[1h, 30min, 10min],                    SUM]
   LONGRAD_srf_syn:
-    30min:                  [[10min],                         SUM]
-    1h:                     [[30min, 10min],                  SUM]
+    30min:                  [[30min, 10min],                        SUM]
+    1h:                     [[1h, 30min, 10min],                    SUM]
   DIFFRAD_srf_syn:
-    30min:                  [[10min],                         SUM]
-    1h:                     [[30min, 10min],                  SUM]
+    30min:                  [[30min, 10min],                        SUM]
+    1h:                     [[1h, 30min, 10min],                    SUM]
   NEWSNOD_srf_syn:
-    1h:                     [[30min, 10min],                  SUM]
-    24h:                    [[12h, 6h, 3h, 1h, 30min, 10min], SUM]
+    1h:                     [[1h, 30min, 10min],                    SUM]
+    24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  SUM]
   TMIN_5cm_syn:
-    #TODO implement fallback element TMP_5cm_syn
-    12h:                    [[12h, 6h, 3h, 1h],               MIN, TMP_5cm_syn, -6  ]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],          MIN, TMP_5cm_syn, 0   ]
+    12h:                    [[12h, 6h, 3h, 1h],                     MIN, TMP_5cm_syn, -6  ]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],                MIN, TMP_5cm_syn, 0   ]
+  TMAX_5cm_syn:
+    12h:                    [[12h, 6h, 3h, 1h],                     MAX, TMP_5cm_syn, 6   ]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX, TMP_5cm_syn, 0   ]
   TMIN_2m_syn:
-    #TODO implement fallback element TMP_2m_syn
-    12h:                    [[12h, 6h, 3h, 1h],               MIN, TMP_2m_syn,  -6  ]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],          MIN, TMP_2m_syn,  0   ]
+    12h:                    [[12h, 6h, 3h, 1h],                     MIN, TMP_2m_syn,  -6  ]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],                MIN, TMP_2m_syn,  0   ]
   TMAX_2m_syn:
-    #TODO implement fallback element TMP_2m_syn
-    12h:                    [[12h, 6h, 3h, 1h],               MAX, TMP_2m_syn,  6   ]
+    12h:                    [[12h, 6h, 3h, 1h],                     MAX, TMP_2m_syn,  6   ]
     24h:                    [[24h, 12h, 6h, 3h, 1h],          MAX, TMP_2m_syn,  0   ]
 
 instant:
