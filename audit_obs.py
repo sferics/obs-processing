@@ -51,8 +51,9 @@ def audit_obs(stations):
             element_range                   = range(lower, upper)
 
             # 1 get all 30-min data for this element
-            data = db_loc.exe((f"SELECT dataset,datetime,element,value FROM obs WHERE element='{element}' "
-                f"AND strftime('%M', datetime) IN ('00','30')"))
+            #TODO already check whether value is in range(lower,upper) defined in the element_table
+            data = db_loc.exe((f"SELECT dataset,datetime,element,value FROM obs WHERE element "
+                f"LIKE '{element}' AND strftime('%M', datetime) IN ('00','30')"))
             # 2 check for bad (out-of-range) values
             
             for row in data:

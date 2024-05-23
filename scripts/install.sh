@@ -44,3 +44,5 @@ python -m compileall modules -q
 # execute sql scripts creating file_table in main database and altering station table (baro_height)
 sqlite3 main.db < sql/file_table.sql
 sqlite3 main.db < sql/station_table.sql
+# also delete all entries with role='obs' from element_table and insert all needed obs elements
+sqlite3 main.db < sql/element_table.sql

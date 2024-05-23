@@ -31,7 +31,7 @@ def derive_obs(stations):
             sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn','TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09' AND dataset IN('test','DWD','dwd_germany')"
             sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element REGEXP '(CA._2m_syn|CB._2m_syn)'"
             try:    db_loc.exe(sql)
-            except: continue
+            except: pass
             else:   db_loc.commit()
         
         """
@@ -120,30 +120,49 @@ def derive_obs(stations):
             value_CAx   = value[0]
             value_CBx   = value[1:]
 
-            sql_values.add( (dataset,datetime,element_CAx,value_CAx) )
-            sql_values.add( (dataset,datetime,element_CBx,value_CBx) )
+            sql_values.add( (dataset, datetime, element_CAx, value_CAx) )
+            sql_values.add( (dataset, datetime, element_CBx, value_CBx) )
         
-        try:    db_loc.exemany(sql_insert, sql_values)
-        except: pass
-
+        #try:    db_loc.exemany(sql_insert, sql_values)
+        #except: pass
+        
         # do the opposite of the above:
         # derive cloud levels [CL?_2m_syn] from cloud amounts [CA?_2m_syn] and bases [CB?_2m_syn]
-        sql = (f"SELECT dataset,element,value FROM obs WHERE element REGEXP '(CA._2m_syn|CB._2m_syn)'"
+        sql = (f"SELECT dataset,datetime,element,value FROM obs WHERE element REGEXP '(CA._2m_syn|CB._2m_syn)'"
             f"{dt_30min} ORDER BY datetime asc, element desc")
         db_loc.row_factory = sf.dict_row
         db_loc.exe(sql)
-         
+          
         # set row factory to tuple
         db_loc.row_factory = sf.tuple_row
         
         data = db_loc.fetch()
         print("CL")
+        datetime_prev, element_prev, value_prev = None, None, None
+        
         for i in data:
-            dataset = i[0]
-            element = i[1]
-            value   = str(int(float(i[2])))
-            print(dataset, element, value)
-         
+            dataset     = i[0]
+            datetime    = i[1]
+            element     = i[2]
+            value       = str(int(float(i[3])))
+            print(dataset, datetime, element, value)
+            
+            if datetime==datetime_prev and element[2]==elment_prev[2] and element != element_prev:
+                try:    value_CAx = str(int(round(float(value_prev))))
+                except: continue
+                try:    value_CBx = str(int(round(float(value)))).rjust(3,"0")
+                except: continue
+                value_CLx = value_CAx + value_CBx
+                if len(value_CLx) == 4:
+                    sql_values.add( (dataset, datetime, f"CL{element[2:]}", value_CLx) )
+            
+            datetime_prev   = copy(datetime)
+            element_prev    = copy(element)
+            value_prev      = copy(value)
+        
+        try:    db_loc.exemany(sql_insert, sql_values)
+        except: pass
+        
         # reset row factory to default
         db_loc.row_factory = sf.default_row
 
@@ -347,7 +366,7 @@ def derive_obs(stations):
             #TODO derive precipitation amount from duration and intensity (only if missing)
             # -> then it might be necessary to aggregate again afterwards...
             
-             
+        #db_loc.commit() 
         db_loc.close(commit=True)
         
     return

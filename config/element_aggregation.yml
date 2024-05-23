@@ -19,7 +19,7 @@ duration:
   PRATE_1m_syn:
     30min:                  [[30min, 10min],                        SUM]
     1h:                     [[1h, 30min, 10min],                    SUM]
-    24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  SUM]
+    24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  SUM] #, ~,         6  ] use 6z -> 6z or 0z -> 24z ???
   PCPDUR_1m_syn:
     30min:                  [[30min, 10min],                        SUM]
     1h:                     [[1h, 30min, 10min],                    SUM]
@@ -54,15 +54,26 @@ duration:
   TMAX_2m_syn:
     12h:                    [[12h, 6h, 3h, 1h],                     MAX, TMP_2m_syn,  6   ]
     24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX, TMP_2m_syn,  0   ]
+  W1_2m_syn:
+    3h:                     [[3h, 1h],                              MAX]
+    6h:                     [[6h, 3h, 1h],                          MAX]
+    12h:                    [[12h, 6h, 3h, 1h],                     MAX]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX]
+  W2_2m_syn:
+    3h:                     [[3h, 1h],                              MAX]
+    6h:                     [[6h, 3h, 1h],                          MAX]
+    12h:                    [[12h, 6h, 3h, 1h],                     MAX]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX]
 
 instant:
   # instantaneous / fixed duration values
   # if not available on full hour / every 30mins, look for close-by values [ +/- 10min ]
   - WDIR_10m_syn    # always 10-min average
-  - TMP_2m_syn
   - DPT_2m_syn
-  - TMP_5cm_syn
   - Twater_sst_syn
+    #- TMP_%_syn
+  - TMP_2m_syn
+  - TMP_5cm_syn
   - TMP_srf_syn
   - TMP_n5cm_syn
   - TMP_n10cm_syn
@@ -71,21 +82,25 @@ instant:
   - TMP_n1m_syn
   - TMP_n2m_syn
   - PRES_0m_syn
+    #- PRMSL_ms_%
   - PRMSL_ms_syn 
   - PRMSL_ms_met
   - GWI_2m_met
+    #- W__2m_%
   - WW_2m_syn 
   - WW_2m_met
   - W1_2m_syn
   - W2_2m_syn
   - natWW_2n_syn
   - VIS_2m_syn
+    #- _CDC_2m_syn
   - TCDC_2m_syn
   - CCDC_2m_syn
   - LCDC_2m_syn
   - MCDC_2m_syn
   - HCDC_2m_syn
   - HLC_2m_syn
+    #- C___2m_syn
   - CA1_2m_syn
   - CA2_2m_syn
   - CA3_2m_syn

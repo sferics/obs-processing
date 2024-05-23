@@ -199,7 +199,8 @@ def aggregate_obs(stations, update=False):
                                 
                                 dt_base = dt(int(year), int(month), int(day), int(hour), minute)
                                 
-                                sql = f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) = '{dt_base}'"
+                                sql = (f"SELECT ? FROM obs WHERE element = '{el_old}' AND "
+                                    f"datetime(datetime) = '{dt_base}'")
                                 db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
                                 
                                 # get number of values and dataset name
@@ -213,7 +214,8 @@ def aggregate_obs(stations, update=False):
                                     dt_end      = dt_base + mins_10     
                                     
                                     # this statement is looking for all obs values between dt_start and dt_end
-                                    sql = f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN '{dt_start}' AND '{dt_end}'"
+                                    sql = (f"SELECT ? FROM obs WHERE element = '{el_old}' AND "
+                                        f"datetime(datetime) BETWEEN '{dt_start}' AND '{dt_end}'")
                                     db_loc.exe( sql.replace("?", "COUNT(value)") )
                                      
                                     # if only 1 or 2 values exists
@@ -470,7 +472,8 @@ if __name__ == "__main__":
     duration_elems  = aggregat_elems["duration"]
     instant_elems   = aggregat_elems["instant"]
     sql_in_elems    = dc.sql_in( duration_elems )
-
+    
+    #source         = cf.args.source
     #obs             = ObsClass( cf, source, stage="forge" )
     db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
