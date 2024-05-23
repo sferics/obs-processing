@@ -18,7 +18,7 @@ It is easily extendable via configuration (YAML) files and by adding your own sc
 
 ## Python scripts
 All python scripts offer a -h/--help option which shows their command line arguments with a brief explanation. However, in order to understand them better, you should read the following in-depth information carefully.\
-To be able to run these scripts, the configuration files [sources.yml](#sources) and [clusters.yml](#clusters) are needed. So right before the first usage, you need to make sure to create them by copying the template files named "{file\_name}\_template.yml" to [config/](#config_files) and adding your desired configurations of sources and clusters. The [general.yml](#general) and [scripts.yml](#scripts) files also need to be adjusted with your desired file paths, system-specific settings etc.
+To be able to run these scripts, the configuration files [general.yml](#general), [scripts.yml](#scripts), [sources.yml](#sources) and [clusters.yml](#clusters) are needed. So right before the first usage, you need to make sure to create them by copying the template files from "config/templates/" to [config/](#config_files) and adding your desired configurations of sources and clusters to the respective files. The [general.yml](#general) and [scripts.yml](#scripts) files also need to be adjusted with your desired file paths, system-specific settings etc.
 
 ### Note on command line arguments
 
