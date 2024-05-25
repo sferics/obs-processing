@@ -1,25 +1,25 @@
 duration:
   WIND_10m_syn:
     10min:                  ~
-    30min:                  [[10min],                               AVG]
-    1h:                     [[1h, 10min],                           AVG]
-    24h:                    [[1h, 10min],                           AVG]
+      #30min:                  [[10min],                               AVG]
+      #1h:                     [[1h, 10min],                           AVG]
+      #24h:                    [[1h, 10min],                           AVG]
   GUST_10m_syn:
-    10min:                  ~
+      #10min:                  ~
     30min:                  [[30min, 10min],                        MAX]
     1h:                     [[1h, 30min, 10min],                    MAX]
-    3h:                     [[3h, 1h, 30min, 10min],                MAX]
+      #3h:                     [[3h, 1h, 30min, 10min],                MAX]
     6h:                     [[6h, 3h, 1h, 30min, 10min],            MAX]
-    24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  MAX]
+      #24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  MAX]
   MAXWIND_10m_syn:
-    30min:                  [[30min, 10min],                        MAX, WIND_10m_syn, 0  ]
-    1h:                     [[1h, 30min, 10min],                    MAX, WIND_10m_syn, 0  ]
-    3h:                     [[3h, 1h, 30min, 10min],                MAX, WIND_10m_syn, 0  ]
-    6h:                     [[6h, 3h, 1h, 30min, 10min],            MAX, WIND_10m_syn, 0  ]
+      #30min:                  [[30min, 10min],                        MAX, WIND_10m_syn,  0 ]
+    1h:                     [[1h, 30min, 10min],                    MAX, WIND_10m_syn,  0 ]
+      #3h:                     [[3h, 1h, 30min, 10min],                MAX, WIND_10m_syn,  0 ]
+    6h:                     [[6h, 3h, 1h, 30min, 10min],            MAX, WIND_10m_syn,  0 ]
   PRATE_1m_syn:
     30min:                  [[30min, 10min],                        SUM]
     1h:                     [[1h, 30min, 10min],                    SUM]
-    24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  SUM] #, ~,         6  ] use 6z -> 6z or 0z -> 24z ???
+    24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  SUM, ~,             6 ]
   PCPDUR_1m_syn:
     30min:                  [[30min, 10min],                        SUM]
     1h:                     [[1h, 30min, 10min],                    SUM]
@@ -43,27 +43,27 @@ duration:
     1h:                     [[1h, 30min, 10min],                    SUM]
     24h:                    [[24h, 12h, 6h, 3h, 1h, 30min, 10min],  SUM]
   TMIN_5cm_syn:
-    12h:                    [[12h, 6h, 3h, 1h],                     MIN, TMP_5cm_syn, -6  ]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],                MIN, TMP_5cm_syn, 0   ]
-  TMAX_5cm_syn:
-    12h:                    [[12h, 6h, 3h, 1h],                     MAX, TMP_5cm_syn, 6   ]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX, TMP_5cm_syn, 0   ]
+    12h:                    [[12h, 6h, 3h, 1h],                     MIN, TMP_5cm_syn,   -6]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],                MIN, TMP_5cm_syn,   0 ]
+  #TMAX_5cm_syn:
+  # 12h:                    [[12h, 6h, 3h, 1h],                     MAX, TMP_5cm_syn,   6 ]
+  # 24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX, TMP_5cm_syn,   0 ]
   TMIN_2m_syn:
-    12h:                    [[12h, 6h, 3h, 1h],                     MIN, TMP_2m_syn,  -6  ]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],                MIN, TMP_2m_syn,  0   ]
+    12h:                    [[12h, 6h, 3h, 1h],                     MIN, TMP_2m_syn,    -6]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],                MIN, TMP_2m_syn,    0 ]
   TMAX_2m_syn:
-    12h:                    [[12h, 6h, 3h, 1h],                     MAX, TMP_2m_syn,  6   ]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX, TMP_2m_syn,  0   ]
-  W1_2m_syn:
-    3h:                     [[3h, 1h],                              MAX]
-    6h:                     [[6h, 3h, 1h],                          MAX]
-    12h:                    [[12h, 6h, 3h, 1h],                     MAX]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX]
-  W2_2m_syn:
-    3h:                     [[3h, 1h],                              MAX]
-    6h:                     [[6h, 3h, 1h],                          MAX]
-    12h:                    [[12h, 6h, 3h, 1h],                     MAX]
-    24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX]
+    12h:                    [[12h, 6h, 3h, 1h],                     MAX, TMP_2m_syn,    6 ]
+    24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX, TMP_2m_syn,    0 ]
+  #W1_2m_syn:
+  #  3h:                     [[3h, 1h],                              MAX]
+  #  6h:                     [[6h, 3h, 1h],                          MAX]
+  #  12h:                    [[12h, 6h, 3h, 1h],                     MAX]
+  #  24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX]
+  #W2_2m_syn:
+  #  3h:                     [[3h, 1h],                              MAX]
+  #  6h:                     [[6h, 3h, 1h],                          MAX]
+  #  12h:                    [[12h, 6h, 3h, 1h],                     MAX]
+  #  24h:                    [[24h, 12h, 6h, 3h, 1h],                MAX]
 
 instant:
   # instantaneous / fixed duration values

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 import os, sys, time, requests, argparse
+import http
+import urllib
+from urllib import request, response, parse
 import global_functions as gf
 from config import ConfigClass
 from obs import ObsClass
@@ -18,7 +21,11 @@ def get_obs():
     Return:
     -------
 
-    """ 
+    """
+    #TODO use urllib.request instead of wget: https://docs.python.org/3.11/library/urllib.request.html
+    #urllib:    https://docs.python.org/3.11/library/urllib.html
+    #http:      https://docs.python.org/3.11/library/http.html
+    #requests:  https://pypi.org/project/requests/ | https://requests.readthedocs.io/en/latest/
     return
 
 
@@ -28,8 +35,8 @@ if __name__ == "__main__":
     info        = "Download latest obs from different Open Data sources. Sources need to be configured in config/sources.yml"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","c","d","m","o","u")
-    cf          = ConfigClass(script_name, flags=flags, info=info, sources=True)
-    
+    cf          = ConfigClass(script_name, ["source"], flags=flags, info=info, sources=True)
+
     # get currently active conda environment
     conda_env   = os.environ['CONDA_DEFAULT_ENV']
 
@@ -43,14 +50,35 @@ if __name__ == "__main__":
     started_str, start_time = gf.get_started_str_time(script_name)
     log.info(started_str)
 
-    # define some shorthands from script config 
+    # define some shorthands from script config
     verbose         = cf.script["verbose"]
     debug           = cf.script["debug"]
     traceback       = cf.script["traceback"]
     timeout         = cf.script["timeout"]
     max_retries     = cf.script["max_retries"] 
     
-    #TODO iterate sources and download here
+    args            = cf.args
+
+    # iterate sources and download here
+    if args.source:
+        if len(args.source) > 1:
+            config_sources = {}
+            for s in args.source:
+                config_sources[s] = cf.sources[s]
+            
+        else: config_sources = { args.source[0] : cf.sources[args.source[0]] }
+        
+    else: config_sources = cf.sources
+    
+    for SOURCE in config_sources:
+        if verbose: print(f"Parsing source {SOURCE}...")
+        config_source = cf.sources[SOURCE]
+        if verbose: print(f"CONFIG: {config_source}")
+        if "general" in config_source:
+            config_source = cf.general | cf.script | config_source["general"]
+        else: continue
+        
+        get_obs()
     
     finished_str    = gf.get_finished_str(script_name)
     log.info(finished_str)

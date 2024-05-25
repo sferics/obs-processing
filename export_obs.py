@@ -21,16 +21,17 @@ def export_obs(stations):
     """
     for loc in stations:
         
-        db_file = f"{output_path}/forge/{loc[0]}/{loc}.db"
+        db_file = obs.get_station_db_path(loc, output)
+        #db_file = f"{output}/{mode}/forge/{loc[0]}/{loc}.db"
         try: db_loc = DatabaseClass( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
             if debug:       pdb.set_trace()
             continue
-        
-
-
+         
+        #TODO get all relevant data to export and write it to csv files in legacy output directory
+         
         db_loc.close()
     
     return
@@ -56,12 +57,16 @@ if __name__ == "__main__":
     timeout         = cf.script["timeout"]
     max_retries     = cf.script["max_retries"]
     mode            = cf.script["mode"]
-    output          = cf.script["output"] + "/" + mode
+    output          = cf.script["output"]
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
-
-    #obs             = ObsClass( cf, source, stage="forge" )
+    args            = cf.args
+   
+    # if no source argument is provided, we will use a wildcard to process all sources (using LIKE)
+    if not args.source: args.source = "%"
+    
+    obs             = ObsClass( cf, args.source, mode=mode, stage="forge" )
     db              = DatabaseClass( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     elements        = tuple(db.get_elements())
@@ -82,4 +87,4 @@ if __name__ == "__main__":
             p = mp.Process(target=export_obs, args=(station_group,))
             p.start()
 
-    else: conclude_obs(stations)
+    else: export_obs(stations)

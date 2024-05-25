@@ -4,16 +4,19 @@
 #sudo apt install libeccodes*
 sudo apt install python python-dev wget
 
-#TODO automize miniconda install
+#TODO automize miniconda install, custom installation directory, use zsh instead of bash
 # https://docs.anaconda.com/free/miniconda/
-mkdir -p ~/miniconda3
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
-bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
-rm -rf ~/miniconda3/miniconda.sh
+miniconda_dir="~/miniconda3"
+if [ ! -d "$miniconda_dir" ]; then
+	mkdir -p "$miniconda_dir"
+	wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O "${miniconda_dir}/miniconda.sh"
+	bash "{$miniconda_dir}/miniconda.sh" -b -u -p "$miniconda_dir"
+	rm -rf "${miniconda_dir}/miniconda.sh"
+	${miniconda_dir}/bin/conda init bash
+	#${miniconda_dir}/bin/conda init zsh
+fi
 
-~/miniconda3/bin/conda init bash
-#~/miniconda3/bin/conda init zsh
-
+#TODO custom environment name (default=obs)
 # create new conda environment, using package list
 conda env create -f config/environment.yml
 

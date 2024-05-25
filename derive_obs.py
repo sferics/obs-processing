@@ -59,7 +59,8 @@ def derive_obs(stations):
         print(sql_values)
         db_loc.exemany(sql2, sql_values)
         """    
-         
+        
+        #TODO remove this section if the approach below works better + faster
         sql = ("SELECT dataset,datetime,element,round(value) from obs WHERE element IN "
             "('CA{i}_2m_syn', 'CB{i}_2m_syn'){dt_30min} ORDER BY datetime asc, element desc")
         
