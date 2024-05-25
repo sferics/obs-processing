@@ -27,11 +27,11 @@ metwatch:
   QFE     : [ PRES_srf_syn,       1s,       ~,        ~       ] # air pressure at station height (not barometric?)    | hPa
   QFF     : [ PRMSL_ms_syn,       1s,       ~,        ~       ] # air pressure reduced to mean sea level (MSL)        | hPa
   QNH     : [ PRMSL_ms_met,       1s,       ~,        ~       ] # reduced to MSL (according to standard atmosphere)   | hPa
-  www     : [ WW_2m_syn,          1h,       ~,        ~       ] # significant weather (SYNOP)                         | ww code (020003)
+  www     : [ WW_2m_syn,          1h,       ~,        ~       ] # significant weather (SYNOP)                         | ww code (BUFR 020003)
   MetarWX : [ WW_2m_met,          1h,       ~,        ~       ] # significant weather and cloud status (METAR)        | metar weather code
-  W1      : [ W1TR_2m_syn,        TR,       ~,        ~       ] # past weather 1                                      | W1 code (020005)
-  W2      : [ W2TR_2m_syn,        TR,       ~,        ~       ] # past weather 2                                      | W2 code (020004)
-  WWZ     : [ natWW_2m_syn,       1h,       ~,        ~       ] # additional weather (DWD only)                       | wwz code (020193)
+  W1      : [ W1TR_2m_syn,        TR,       ~,        ~       ] # past weather 1                                      | W1 code (BUFR 020005)
+  W2      : [ W2TR_2m_syn,        TR,       ~,        ~       ] # past weather 2                                      | W2 code (BUFR 020004)
+  WWZ     : [ natWW_2m_syn,       1h,       ~,        ~       ] # additional weather (DWD only)                       | wwz code (BUFR 020193)
   VIS     : [ VIS_2m_syn,         0s,       ~,        ~       ] # horizontal visibility                               | km
   N       : [ TCDC_2m_syn,        1s,       ~,        ~       ] # cloud cover                                         | octas
   L       : [ CCDC_2m_syn,        1s,       ~,        ~       ] # cloud cover of low or middle clouds (ceiling)       | octas
@@ -48,7 +48,7 @@ metwatch:
   RR24h   : [ PRATE_1m_syn,       24h,      ~,        ~       ] # precipitation amount during last 24hours            | mm | l/m**2
   SNO     : [ SNOD_srf_syn,       1s,       ~,        ~       ] # total snow depth                                    | cm
   NEW     : [ NEWSNODTR_srf_syn,  TR,       ~,        ~       ] # new snow depth/amount during reference period (TR)  | cm
-  GS      : [ GS_srf_syn,         1min,     ~,        ~       ] # state of ground                                     | state of ground code
+  GS      : [ GS_srf_syn,         1min,     ~,        ~       ] # state of ground                                     | state of ground code (BUFR 020062)
   SS24    : [ SUNDUR_srf_syn,     24h,      ~,        ~       ] # sunshine duration of previous day                   | min
   Sh      : [ SUNDUR_srf_syn,     1h,       ~,        ~       ] # sunshine duration of last hour                      | min
   GL1h    : [ GLRAD_srf_syn,      1h,       ~,        ~       ] # global radiation of last hour                       | KJ/m**2/hr
