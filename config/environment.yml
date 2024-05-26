@@ -232,6 +232,7 @@ dependencies:
       - pillow==10.2.0
       - pipreqs==0.4.13
       - platformdirs==3.10.0
+      - plbufr==0.1.dev329+g4b7cae2.d20240526
       - pluggy==1.2.0
       - polars==0.20.7
       - py-stackexchange==2.2.7
