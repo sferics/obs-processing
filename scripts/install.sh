@@ -24,7 +24,9 @@ conda env create -f config/environment.yml
 git clone https://github.com/sferics/plbufr/
 
 # install plbufr package (legacy install method!)
-cd plbufr && python setup.py install
+#cd plbufr && python setup.py install && cd ..
+# install plbufr package (new method using pip()
+cd plbufr && python setup.py install && pip install plbufr && cd ..
 
 # permanently add modules directory to PYTHONPATH
 conda env config vars set PYTHONPATH="${PYTHONPATH}:modules"

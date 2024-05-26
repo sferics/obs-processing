@@ -161,9 +161,11 @@ class ConfigClass:
         general_config  = gf.read_yaml("general", file_dir=self.config_dir)
         
         # make all keys of general config dict into class attributes for easier access
-        for key, dic in general_config.items():
-            setattr(self, key, dic)
-        
+        for section in general_config.keys():
+            setattr(self, section, {})
+            for key, val in general_config[section].items():
+                getattr(self, section)[key] = val
+
         # sources and clusters config files will only be read if the respective arguments are set
         if sources:
             self.sources    = gf.read_yaml("sources", file_dir=self.config_dir)
@@ -178,5 +180,7 @@ class ConfigClass:
         self.script     = self.general | self.script_raw
         
         # command line arguments overwrite settings in script config OR can even add new keys
+        #TODO dict comprehension?
         for key, val in self.args.__dict__.items():
+            #self.script[key] = val
             if val is not None: self.script[key] = val

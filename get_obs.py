@@ -71,7 +71,7 @@ if __name__ == "__main__":
     else: config_sources = cf.sources
     
     for SOURCE in config_sources:
-        if verbose: print(f"Parsing source {SOURCE}...")
+        if verbose: print(f"Downloading source {SOURCE}...")
         config_source = cf.sources[SOURCE]
         if verbose: print(f"CONFIG: {config_source}")
         if "general" in config_source:

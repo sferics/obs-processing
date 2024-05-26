@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     script_name = gf.get_script_name(__file__)
     log         = gf.get_logger(script_name)
-    flags       = ("l","v","d","m","o")
+    flags       = ("l","v","d","m","o","p","r","a")
     info        = "Download the latest BUFR and NetCDF files from KNMI Open Data using their API."
     cf          = ConfigClass(script_name, flags=flags, info=info, sources=True)
     knmi_cf     = cf.sources["KNMI"]
@@ -64,6 +64,10 @@ if __name__ == "__main__":
     api_key     = api_cf["key"]
 
     output_dir  = cf.script["download_dir"]
+    parse       = cf.script["parse"]
+    verbose     = cf.script["verbose"]
+    redo        = cf.script["redo"]
+    approach    = cf.script["approach"]
 
     # Use get file to retrieve a file from one hour ago.
     date    = dt.utcnow()
@@ -88,3 +92,14 @@ if __name__ == "__main__":
         except:
             mm -= 10
             main("Actuele10mindataKNMIstations", 2, f"KMDS__OPER_P___10M_OBS_L2_{YY}{MM:02d}{DD:02d}{hh:02d}{mm:02d}.nc")
+
+    if parse:
+        import subprocess
+        call = ["python", "decode_bufr.py", "KNMI"]
+        if redo:
+            call.append("-r")
+        if verbose:
+            call.append("-v")
+        if approach:
+            call += ["-a", approach]
+        subprocess.run(call)

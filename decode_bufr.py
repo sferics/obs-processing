@@ -131,7 +131,6 @@ if __name__ == "__main__":
     flags       = ("a","l","i","E","f","F","D","v","p","c","C","t","k","m","M","n","s","o","O","L",
             "d","r","R","w")
     cf          = cc(script_name, ["source"], flags=flags, info=info, sources=True, clusters=True)
-    # get the right script name by adding approach suffix
     script_name = cf.script_name
     
     # get currently active conda environment
@@ -153,7 +152,7 @@ if __name__ == "__main__":
     
     # define shorthands for command line arguments and config
     args        = cf.args
-    approach    = args.approach 
+    approach    = cf.script["approach"]
     verbose     = cf.script["verbose"]
     traceback   = cf.script["traceback"]
     debug       = cf.script["debug"]

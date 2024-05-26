@@ -107,10 +107,11 @@ class BufrClass:
 
         # initialize bufr class (contains all bufr specifics contants and settings)
         config = cf.general | cf.bufr | cf.script
-        # try to apply the source specific config, if it does exists
+
+        # try to apply the source specific config, if it does exists, else skip
         try:    config = config | cf.sources[source]
         except: pass
-
+        
         # default settings values in case they are not present in the config dict
         self.verbose    = False
         self.traceback  = False
@@ -176,9 +177,9 @@ class BufrClass:
 
         # parse the BUFR translation and bufr flags files into dictionaries
         self.bufr_translation   = gf.read_yaml( "translations/bufr/" + self.approach,
-            file_dir=self.config.config_dir )
+            file_dir=self.config_dir )
         self.bufr_flags         = gf.read_yaml( "codes/bufr/flags_" + self.approach,
-            file_dir=self.config.config_dir )
+            file_dir=self.config_dir )
 
         # remove unit translations (first 5 keys)
         self.bufr_translation_keys  = tuple(self.bufr_translation)[5:]
@@ -252,10 +253,10 @@ class BufrClass:
                 
                 if hasattr(self, "bufr_sequences"):
                     self.bufr_sequences = gf.read_yaml( self.bufr_sequences,
-                        file_dir=self.config.config_dir )
+                        file_dir=self.config_dir )
                 else:
                     self.bufr_sequences = gf.read_yaml( "codes/bufr/sequences",
-                        file_dir=self.config.config_dir )
+                        file_dir=self.config_dir )
 
                 self.sequence_range = range(min(self.bufr_sequences), max(self.bufr_sequences))
                 self.scale_increase = 0

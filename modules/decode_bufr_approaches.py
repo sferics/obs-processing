@@ -18,11 +18,11 @@ def decode_bufr_gt(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
         warnings.simplefilter(action='ignore', category=UserWarning)
         warnings.filterwarnings("ignore", module="plbufr")
         warnings.filterwarnings("ignore", module="ecmwflibs")
-    import plbufr
+    from plbufr import read_bufr
 
     PATH = DIR + FILE
 
-    generator, BufrFile = plbufr.read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys, filter_method=all, return_method="gen", skip_na=True)
+    generator, BufrFile = read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys, filter_method=all, return_method="gt", skip_na=True)
 
     time_period = ""
     obs_bufr    = {}
@@ -93,7 +93,7 @@ def decode_bufr_pl(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
         warnings.simplefilter(action='ignore', category=UserWarning)
         warnings.filterwarnings("ignore", module="plbufr")
         warnings.filterwarnings("ignore", module="ecmwflibs")
-    import plbufr
+    from plbufr import read_bufr
 
     obs_bufr = {}
     file_status = "empty"
@@ -104,7 +104,7 @@ def decode_bufr_pl(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
         filters = bf.filters
     else: filters = {}
 
-    df = plbufr.read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys, filters=filters,filter_method=all)#, skip_na=True)
+    df = read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys, filters=filters,filter_method=all)#, skip_na=True)
     
     if df.width == 0: return {}, file_status
 
@@ -177,7 +177,7 @@ def decode_bufr_pd(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
         warnings.simplefilter(action='ignore', category=UserWarning)
         warnings.filterwarnings("ignore", module="pdbufr")
         warnings.filterwarnings("ignore", module="ecmwflibs")
-    import pdbufr
+    from pdbufr import read_bufr
     import pandas as pd
 
     obs_bufr = {}
@@ -185,7 +185,7 @@ def decode_bufr_pd(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 
     PATH = DIR + FILE
 
-    df = pdbufr.read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys)
+    df = read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys)
 
     # len(df.index) == 0 is much faster than df.empty or len(df) == 0
     # https://stackoverflow.com/questions/19828822/how-to-check-whether-a-pandas-dataframe-is-empty
