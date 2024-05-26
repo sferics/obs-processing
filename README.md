@@ -238,52 +238,57 @@ Get latest observations from the Polish Open Data service
 \- conda environment information (environment name, packages to install, conda settings)\
 \- does not contain prefix and variables because they are system-dependent
 
-##### <a name="general"></a>general.yml
-\- main configuration file template with the following sections:
-
-> **general:**\
-> \- most general settings which will be overwritten by all following configs\
-> \- order of priorities: general -> class -> script -> command line arguments\
-> **database:**\
-> \- default configuration for the main database (usually when DatabaseClass is called for main.db)\
-> **bufr:**\
-> \- default configuration for the BufrClass, higher priority than "general:" but lower than script config\
-> **obs:**\
-> \- default configuration for the ObsClass, higher priority than "general:" but lower than script config
-
-##### <a name="scripts"></a>scripts.yml
-\- just change the settings of all scripts to your desire in here\
-\- sections/keys are always the FULL script name (with .py)!\
-\- individual script configurations in detail:
-> **decode_bufr.py:**\
-> \- TODO\
-> **forge_obs.py:**\
-> \- TODO\
-> **reduce_obs.py:**\
-> \- TODO\
-> **derive_obs.py:**\
-> \- TODO\
-> **aggregate_obs.py:**\
-> \- TODO\
-> **audit_obs.py:**\
-> \- TODO\
-> **empty_obs.py:**\
-> \- TODO\
-> **get_obs.py:**\
-> \- TODO\
-> **get_imgw.py:**\
-> \- TODO\
-> **get_knmi.py:**\
-> \- TODO
-
-##### <a name="sources"></a>sources\_template.yml
-\- needs to be copied to "config/sources.yml" in order to be recognized by the python scripts
-##### <a name="clusters"></a>clusters\_template.yml
-\- needs to be copied to "config/clusters.yml" in order to be recognized by the python scripts
+### templates/
+> ##### <a name="general"></a>general.yml
+> \- needs to be copied to "config/" in order to be recognized by the python scripts\
+> \- main configuration file template with the following sections:
+> 
+> > **general:**\
+> > \- most general settings which will be overwritten by all following configs\
+> > \- order of priorities: general -> class -> script -> command line arguments\
+> > **database:**\
+> > \- default configuration for the main database (usually when DatabaseClass is called for main.db)\
+> > **bufr:**\
+> > \- default configuration for the BufrClass, higher priority than "general:" but lower than script config\
+> > **obs:**\
+> > \- default configuration for the ObsClass, higher priority than "general:" but lower than script config
+> 
+> ##### <a name="scripts"></a>scripts.yml
+> \- needs to be copied to "config/" in order to be recognized by the python scripts\
+> \- just change the settings of all scripts to your desire in here\
+> \- sections/keys are always the FULL script name (with .py)\
+> \- special script configuration entries in detail:
+> > **decode_bufr.py:**\
+> > \- TODO\
+> > **forge_obs.py:**\
+> > \- TODO\
+> > **reduce_obs.py:**\
+> > \- TODO\
+> > **derive_obs.py:**\
+> > \- TODO\
+> > **aggregate_obs.py:**\
+> > \- TODO\
+> > **audit_obs.py:**\
+> > \- TODO\
+> > **empty_obs.py:**\
+> > \- TODO\
+> > **get_obs.py:**\
+> > \- TODO\
+> > **get_imgw.py:**\
+> > \- TODO\
+> > **get_knmi.py:**\
+> > \- TODO
+> 
+> ##### <a name="sources"></a>sources.yml
+> \- needs to be copied to "config/" in order to be recognized by the python scripts\
+> \- define all source-specific settings in here
+> ##### <a name="clusters"></a>clusters.yml
+> \- needs to be copied to "config/" in order to be recognized by the python scripts\
+> \- define blockNumber, stationIdentifier and station types (str) for different clusters 
 
 ### translations/
-> #### bufr/
-> > ##### <a name="bufr_translation"></a>{approach}.yml
+> #### <a name="bufr_translation"></a>bufr/
+> > ##### {approach}.yml
 > > \- BUFR key translations for the different approaches
 > ##### <a name="metwatch_translation"></a>metwatch.yml
 > \- translation for the legacy metwatch element names
