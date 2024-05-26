@@ -69,7 +69,7 @@ For more details on adding/changing/removing command line arguments, please read
   
 ### <a name="decode_bufr"></a>decode\_bufr.py
 This script decodes one or several BUFR files and inserts all relevant observations into the raw databases.\
-It can also process intire source/dataset directories which can be provided by the source name as arguments or via the "source.yml" configuration file.
+It can also process intire source/dataset directories which can be provided by the source name(s) as argument(s) or via the ["sources.yml" configuration file](#sources).
 
 #### Unique command line arguments
 
@@ -80,8 +80,8 @@ It can also process intire source/dataset directories which can be provided by t
 ##### -a/--approach $APPROACH
 You may use 5 different approaches to decode the BUFR files:
 - pd: Using [pdbufr package officially provided by ECMWF](#https://github.com/ecmwf/pdbufr) (very slow because it uses pandas).
-- pl: Using [plbufr package forked from pdbufr by sferics](#https://github.com/sferics/plbufr) (faster because it uses polars instead).
-- gt: Also using plbufr package, but instead of creating a dataframe, it uses a generator (should be equally fast.)
+- pl: Using [plbufr package forked from pdbufr by sferics](#https://github.com/sferics/plbufr) (much faster because it uses polars instead).
+- gt: Also using plbufr package, but instead of creating a polars DataFrame, it uses a generator (should be equally fast).
 - us: Fastest decoding method using bufr keys from ECCODES, but lacking some observations like soil temperatures.
 - ex: Slower than "us" method, but significantly faster than pdbufr/plbufr methods. Not guaranteed to work with all files and lacking some information from DWD Open Data files!
 ##### -f/--file $FILE\_PATH
@@ -313,11 +313,11 @@ Export your custom BUFR table paths to the local and conda environment variables
 <br/>
 
 ### <a name="export_conda_environments"></a>export\_conda\_environment.sh
-Exports conda environment information to [config/environment.yml](#environment). Only skips "path:" and "variables:" section because they depend on the local system.
+Export conda environment information to [config/environment.yml](#environment). Only skip "path:" and "variables:" sections because they depend on the local system.
 <br/>
 
 ### <a name="install"></a>install.sh
-Install the repository using conda and prepare everything to get started immediately. It creates the "obs" environment, installs all needed packages and sets the right environment variables.
+Install the repository using conda and prepare everything to get started immediately. The script creates the "obs" environment, installs all needed packages and sets the right environment variables.
 <br/>
 
 ### <a name="multi_decode_bufr"></a>multi\_decode\_bufr.sh
