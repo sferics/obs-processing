@@ -17,7 +17,8 @@ def derive_obs(stations):
 
         sql_values = set()
         
-        db_file = f"{output}/forge/{loc[0]}/{loc}.db"
+        db_file = obs.get_station_db_path(loc)
+        #db_file = f"{output}/{mode}/forge/{loc[0]}/{loc}.db"
         try: db_loc = dc( db_file, row_factory=sf.list_row )
         except Exception as e:
             gf.print_trace(e)
@@ -393,13 +394,14 @@ if __name__ == "__main__":
     timeout         = cf.script["timeout"]
     max_retries     = cf.script["max_retries"]
     mode            = cf.script["mode"]
-    output          = cf.script["output"] + "/" + mode
+    output          = cf.script["output"]
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
     #replacements    = cf.script["replacements"]
     #combinations    = cf.script["combinations"]
     update          = cf.script["update"]
+    sources         = cf.args.source
 
     if update:
         on_conflict = "UPDATE SET value=excluded.value"
@@ -409,8 +411,16 @@ if __name__ == "__main__":
     if cf.script["aggregated"]:
         dt_30min = " AND strftime('%M', datetime) IN ('00','30')"
     else: dt_30min = ""
-
-    #obs             = oc( cf, source, stage="forge" )
+    
+    #TODO implement WHERE dataset='{source}' or AND dataset='{source}' in all SELECT statements
+    if len(sources) > 0:
+        sql             = dc.sql_equal_or_in(sources)
+        and_dataset     = f" AND dataset {sql}"
+        where_dataset   = f" WHERE dataset {sql}"
+    else:
+        and_dataset, where_dataset = "", ""
+    
+    obs             = oc( cf, mode=mode, stage="forge", verbose=verbose )
     db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)

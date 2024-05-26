@@ -1116,7 +1116,8 @@ class DatabaseClass:
         self.exe( f"PRAGMA wal_checkpoint{mode}" )
 
 
-    # some helper functions (static and classmethods)
+    ### some helper functions (static and classmethods)
+    
     @staticmethod
     def sql_value_list( params, update=False ):
         """
@@ -1144,7 +1145,7 @@ class DatabaseClass:
 
     
     @classmethod
-    def sql_values( self, params ):
+    def sql_values( cls, params ):
         """
         Parameter:
         ----------
@@ -1159,7 +1160,7 @@ class DatabaseClass:
         else:
             param_keys = '", "'.join(params.keys())
             column_list = '"' + param_keys + '"'
-            value_list  = self.sql_value_list(params)
+            value_list  = cls.sql_value_list(params)
 
             return f"({column_list}) VALUES ({value_list})"
     
@@ -1171,6 +1172,25 @@ class DatabaseClass:
         """
         if regexp:      return "REGEXP '(" + "|".join(what) + ")'"
         else:           return "IN('"+"','".join(what)+"')"
+    
+    
+    @classmethod
+    def sql_equal_or_in(cls, what, regexp=False, like=False):
+        """
+        """
+        l = len(what)
+        if l == 1:
+            what = what[0]
+            if regexp:
+                sql = f"REGEXP '{what}'"
+            elif like:
+                sql = f"LIKE '{what}'"
+            else:
+                sql = f"= '{what}'"
+            return sql
+        elif l > 1:
+            return cls.sql_in(what, regexp=regexp)
+    
     
     @staticmethod
     def fix_table_name( table ):

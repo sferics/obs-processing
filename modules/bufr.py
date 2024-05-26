@@ -115,7 +115,7 @@ class BufrClass:
         # default settings values in case they are not present in the config dict
         self.verbose    = False
         self.traceback  = False
-        self.stations   = ["wmo"]
+        self.stations   = ("wmo",)
         
         # parse all keys and values of config dict into namespace, a bit like in database.py
         for i in config:

@@ -22,7 +22,7 @@ def decode_bufr_gt(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
 
     PATH = DIR + FILE
 
-    generator, BufrFile = read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys, filter_method=all, return_method="gt", skip_na=True)
+    generator, bufr_file = read_bufr(PATH, columns=bf.relevant_keys, required_columns=bf.required_keys, filter_method=all, return_method="gt", skip_na=True)
 
     time_period = ""
     obs_bufr    = {}
@@ -76,8 +76,8 @@ def decode_bufr_gt(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
             except: obs_bufr[location][datetime][time_period] = obs_list
             file_status = "parsed"
 
-    # close the file handle of the BufrFile object
-    BufrFile.close()
+    # close the file handle of the plbufr "BufrFile" object
+    bufr_file.close()
     #stop_time = dt.utcnow()
 
     return obs_bufr, file_status

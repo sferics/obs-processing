@@ -2,19 +2,23 @@
 from config import ConfigClass as cc
 from database import DatabaseClass as dc
 from obs import ObsClass as oc
+import global_functions as gf
 
 
-def empty_obs( stations, mode, stage ):
+def empty_obs( stations, sources ):
     
     for loc in stations:
         
-        db_loc_path = oc.get_station_db_path(loc, output, mode, stage) 
+        db_loc_path = obs.get_station_db_path(loc)
         db_loc      = dc(db_loc_path)
         sql         = "DELETE from obs"
         
         if mode == "final" and bad_obs:
             sql += ";\nDELETE from obs_bad"
-
+        
+        if sources:
+            sql += f" WHERE dataset {dc.sql_equal_or_in(sources)}"
+        
         db_loc.exescr(sql)
         db_loc.close(commit=True)
     
@@ -42,14 +46,15 @@ if __name__ == "__main__":
     max_retries     = cf.script["max_retries"]
     mode            = cf.script["mode"]
     stage           = cf.script["stage"]
-    output          = cf.script["output"] + "/" + mode
+    output          = cf.script["output"]
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
-    processes       = cf.script["processes"]
     bad_obs         = cf.script["bad_obs"]
-
+    sources         = cf.args.source
+     
+    obs             = oc( cf, mode=mode, stage=stage, verbose=verbose )
     db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)
     
-    empty_obs(stations, mode, stage)
+    empty_obs( stations, sources )

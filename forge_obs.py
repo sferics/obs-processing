@@ -103,10 +103,8 @@ if __name__ == "__main__":
                 gf.print_trace(e)
                 sys.exit( f"FAILED TO RUN '{script}_obs.py'! STOPPING CHAIN..." )
 
-    stop_time       = dt.utcnow()
-    finished_str    = f"FINISHED {script_name} @ {stop_time}"
+    finished_str    = gf.get_finished_str(script_name) 
     log.info(finished_str)
-
     if verbose: print(finished_str)
     
     gf.print_time_taken(start_time)

@@ -1,6 +1,7 @@
 ### most general (default) settings; can be overwritten by class and script configs (or command line options)
 general:
   mode:           !!str   dev # oper, test, ???
+  config_dir:     !!str   config
   output:         !!str   /path/to/station/databases
   legacy_output:  !!str   /path/to/legacy/output
   log_level:      !!str   INFO

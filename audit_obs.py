@@ -3,9 +3,9 @@ import os
 import sys
 import re
 from datetime import datetime as dt, timedelta as td
-from database import DatabaseClass
-from config import ConfigClass
-from obs import ObsClass
+from database import DatabaseClass as dc
+from config import ConfigClass as cc
+from obs import ObsClass as oc
 import global_functions as gf
 
 
@@ -27,13 +27,13 @@ def audit_obs(stations):
     # 1 take data from forge databases
     for loc in stations:
         db_file = obs.get_station_db_path(loc)
-        try: db_loc = DatabaseClass( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
+        try: db_loc = dc( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
             if debug:       pdb.set_trace()
             continue
-        
+         
         obs.create_station_tables(loc, mode=mode, stage="final")
         db_loc.attach_station_db(loc, output, mode=mode, stage="final")
         
@@ -53,7 +53,7 @@ def audit_obs(stations):
             # 1 get all 30-min data for this element
             #TODO already check whether value is in range(lower,upper) defined in the element_table
             data = db_loc.exe((f"SELECT dataset,datetime,element,value FROM obs WHERE element "
-                f"LIKE '{element}' AND strftime('%M', datetime) IN ('00','30')"))
+                f"LIKE '{element}' AND strftime('%M', datetime) IN ('00','30'){and_dataset}"))
             # 2 check for bad (out-of-range) values
             
             for row in data:
@@ -64,6 +64,7 @@ def audit_obs(stations):
                 # if the value does match the exclude pattern it gets excluded
                 excluded = re.match(exclude, str(val))
                 
+                # if the value is in range OR not numeric this expression will be True
                 #try:    val_in_range = ( int(np.round(val)) in element_range )
                 try:    val_in_range = (lower <= float(val) <= upper)
                 except: val_in_range = True
@@ -109,7 +110,7 @@ if __name__ == "__main__":
     info        = "Reduce the number of observations according to operation mode"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","d","t","P","u")
-    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, clusters=True)
+    cf          = oc(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
     
@@ -128,6 +129,7 @@ if __name__ == "__main__":
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
     update          = cf.script["update"]
+    sources         = cf.args.source
 
     if update:
         on_conflict = "UPDATE SET value=excluded.value"
@@ -136,9 +138,14 @@ if __name__ == "__main__":
 
     element_info    = gf.read_yaml(cf.script["element_info"], file_dir=cf.config_dir)
     elements        = tuple( element_info.keys() )
+    
+    if len(sources) > 0:
+        and_dataset = f" AND dataset {dc.sql_equal_or_in(sources)}"
+    else:
+        and_dataset = ""
 
-    obs             = ObsClass( cf, source="", stage="forge", verbose=verbose )
-    db              = DatabaseClass( config=cf.database, ro=1 )
+    obs             = oc( cf, mode=mode, stage="forge", verbose=verbose )
+    db              = dc( config=cf.database, ro=1 )
 
     stations        = db.get_stations( clusters )
     #elements        = tuple(f'{element}' for element in db.get_elements())

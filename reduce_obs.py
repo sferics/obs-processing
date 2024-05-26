@@ -3,9 +3,9 @@ import os
 import sys
 import sqlite3
 from datetime import datetime as dt, timedelta as td
-from database import DatabaseClass
-from obs import ObsClass
-from config import ConfigClass
+from database import DatabaseClass as dc
+from obs import ObsClass as oc
+from config import ConfigClass as cc
 import global_functions as gf
 import global_variables as gv
 
@@ -28,8 +28,9 @@ def reduce_obs(stations):
     # for st in stations:
     # get only data rows with highest file ID and copy the remaining data to forge databases
     for loc in stations:
-        db_file = f"{output}/raw/{loc[0]}/{loc}.db"
-        try: db_loc = DatabaseClass( db_file, {"verbose":verbose, "traceback":traceback}, ro=False )
+        db_file = obs.get_station_db_path(loc)
+        #db_file = f"{output}/{mode}/raw/{loc[0]}/{loc}.db"
+        try: db_loc = dc( db_file, {"verbose":verbose, "traceback":traceback}, ro=False )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
@@ -39,12 +40,13 @@ def reduce_obs(stations):
         # create tation table in the forge databases directory
         obs.create_station_tables(loc)
         # attach forge database to fill it with reduced observational data
-        db_loc.attach(f"{output}/forge/{loc[0]}/{loc}.db", "forge")
+        db_forge = oc.get_station_db_path(loc, output, mode, "forge")
+        db_loc.attach(db_forge, "forge")
         #db_loc.drop_table("forge.obs", exists=False)
         sql = "DROP TABLE forge.obs;\n"
         
         # if debug: mark all data as not reduced again and thereby process anew
-        if debug: sql += "UPDATE obs SET reduced = 0;\n"
+        if debug: sql += f"UPDATE obs SET reduced = 0{where_dataset};\n"
 
         match mode:
             case "dev":
@@ -55,7 +57,7 @@ def reduce_obs(stations):
                     "dataset,datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
                     "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE "
                     "r.dataset=obs.dataset AND r.datetime=obs.datetime "
-                    "AND r.duration=obs.duration AND r.element=obs.element );\n")
+                    "AND r.duration=obs.duration AND r.element=obs.element{and_dataset});\n")
                 
             case "oper":
                 #TODO debug! this looks crazy and might also not be necessary (just use dev's sql?)
@@ -66,7 +68,7 @@ def reduce_obs(stations):
                     "MAX(cor) FROM main.obs WHERE scale = ( SELECT "
                     "MAX(scale) FROM main.obs WHERE r.dataset=obs.dataset AND "
                     "r.datetime=obs.datetime AND r.duration=obs.duration "
-                    "AND r.element=obs.element ) ) );\n")
+                    "AND r.element=obs.element{and_dataset}) ) );\n")
                 """
                 sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
                     "dataset,datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
@@ -75,7 +77,7 @@ def reduce_obs(stations):
                     "MAX(cor) FROM main.obs WHERE r.dataset=obs.dataset, r.datetime=obs.datetime 
                     "AND r.element=obs.element AND r.duration=obs.duration AND scale = ( SELECT "
                     "MAX(scale) FROM main.obs WHERE r.dataset=obs.dataset AND r.datetime=obs.datetime "
-                    "AND r.duration=obs.duration AND r.element=obs.element ) ) );\n")
+                    "AND r.duration=obs.duration AND r.element=obs.element{and_dataset}) ) );\n")
                 """
                 
             case "test":
@@ -104,7 +106,7 @@ if __name__ == "__main__":
     info        = "Reduce the number of observations according to operation mode"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","d","t","P")
-    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, clusters=True)
+    cf          = cc(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
     
@@ -118,13 +120,21 @@ if __name__ == "__main__":
     timeout         = cf.script["timeout"]
     max_retries     = cf.script["max_retries"]
     mode            = cf.script["mode"]
-    output          = cf.script["output"] + "/" + mode
+    output          = cf.script["output"]
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
-
-    obs             = ObsClass( cf, stage="forge" )
-    db              = DatabaseClass( config=cf.database, ro=1 )
+    sources         = cf.args.source
+    
+    if len(sources) > 0:
+        sql             = dc.sql_equal_or_in(sources)
+        and_dataset     = f" AND dataset {sql}"
+        where_dataset   = f" WHERE dataset {sql}"
+    else:
+        and_dataset, where_dataset = "", ""
+    
+    obs             = oc( cf, mode=mode, stage="forge", verbose=verbose )
+    db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)
 

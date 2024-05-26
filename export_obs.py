@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import sys
 import os
-from obs import ObsClass
-from database import DatabaseClass
-from config import ConfigClass
+from obs import ObsClass as oc
+from database import DatabaseClass as dc
+from config import ConfigClass as cc
 import global_functions as gf
 
 
@@ -21,9 +21,9 @@ def export_obs(stations):
     """
     for loc in stations:
         
-        db_file = obs.get_station_db_path(loc, output)
+        db_file = obs.get_station_db_path(loc)
         #db_file = f"{output}/{mode}/forge/{loc[0]}/{loc}.db"
-        try: db_loc = DatabaseClass( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
+        try: db_loc = dc( db_file, {"verbose":verbose, "traceback":traceback}, ro=True )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     info        = "Export (latest) observations from databases to legacy output format (metwatch csv)"
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","C","m","M","o","O","d","t","P")
-    cf          = ConfigClass(script_name, pos=["source"], flags=flags, info=info, clusters=True)
+    cf          = cc(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
     
@@ -61,13 +61,18 @@ if __name__ == "__main__":
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
-    args            = cf.args
+    sources         = cf.args.sources
    
-    # if no source argument is provided, we will use a wildcard to process all sources (using LIKE)
-    if not args.source: args.source = "%"
+    #TODO implement WHERE dataset='{source}' or AND dataset='{source}' in all SELECT statements
+    if len(sources) > 0:
+        sql             = dc.sql_equal_or_in(sources)
+        and_dataset     = f" AND dataset {sql}"
+        where_dataset   = f" WHERE dataset {sql}"
+    else:
+        and_dataset, where_dataset = "", ""
     
-    obs             = ObsClass( cf, args.source, mode=mode, stage="forge" )
-    db              = DatabaseClass( config=cf.database, ro=1 )
+    obs             = oc( cf, mode=mode, stage="forge", verbose=verbose )
+    db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     elements        = tuple(db.get_elements())
     

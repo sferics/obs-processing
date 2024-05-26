@@ -155,7 +155,8 @@ def aggregate_obs(stations, update=False):
         
         sql_values = set()
         
-        db_file = f"{output}/forge/{loc[0]}/{loc}.db"
+        db_file = obs.get_station_db_path(loc)
+        #db_file = f"{output}/{mode}/forge/{loc[0]}/{loc}.db"
         try: db_loc = dc( db_file, {"verbose":verbose, "traceback":traceback} )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
@@ -462,19 +463,28 @@ if __name__ == "__main__":
     timeout         = cf.script["timeout"]
     max_retries     = cf.script["max_retries"]
     mode            = cf.script["mode"]
-    output          = cf.script["output"] + "/" + mode
+    output          = cf.script["output"]
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
     update          = cf.script["update"]
     aggregat_elems  = cf.script["aggregat_elems"]
+    sources         = cf.args.source
+
     aggregat_elems  = gf.read_yaml(aggregat_elems, file_dir=cf.config_dir)
     duration_elems  = aggregat_elems["duration"]
     instant_elems   = aggregat_elems["instant"]
     sql_in_elems    = dc.sql_in( duration_elems )
     
-    #source         = cf.args.source
-    #obs             = ObsClass( cf, source, stage="forge" )
+    #TODO implement WHERE dataset='{source}' or AND dataset='{source}' in all SELECT statements
+    if len(sources) > 0:
+        sql             = dc.sql_equal_or_in(sources)
+        and_dataset     = f" AND dataset {sql}"
+        where_dataset   = f" WHERE dataset {sql}"
+    else:
+        and_dataset, where_dataset = "", ""
+
+    obs             = ObsClass( cf, mode=mode, stage="forge", verbose=verbose )
     db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)

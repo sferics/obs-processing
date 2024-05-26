@@ -1,38 +1,34 @@
 ### script configurations (key name == script name)
-add_stations_from_bufr.py:
-  conda_env:        !!str   obs
-  pid_file:         !!bool  0 # create and use pid file
-  verbose:          !!bool  1
-  traceback:        !!bool  1
-  max_files:        !!int   0 # 0 or None (~) means no limit
-  max_retries:      !!int   100
-  processes:        !!int   15
-  station_info:     !!str   bufr_station_info
-  null_vals:        !!set   ["null", "NULL", MISSING, XXXX, " ", "", ~]
-  mandatory_keys:   !!set   [stationOrSiteName, latitude, longitude]
-  additional_keys:  !!set   [elevation, heightOfStation, heightOfStationGroundAboveMeanSeaLevel]
-
 decode_bufr.py: # can use any approach
+  conda_env:        !!str   obs       # name of conda environment
+  pid_file:         !!bool  0         # create and use pid file
+  verbose:          !!bool  0         # verbose output
+  log_level:        !!str   INFO      # logging level threshold
+  debug:            !!bool  0         # debugging mode
+  traceback:        !!bool  0         # enable traceback prints
+  timeout:          !!int   3         # timeout for station databases
+  min_ram:          !!int   2048      # minimum amount of RAM script should leave free, if value is reached: restart
+  max_retries:      !!int   1000      # retries when using set_file_statuses (and writing to station databases)
+  max_files:        !!int   5395      #6225 #5046 # zero means no maximum #15: 5395
+  sort_files:       !!bool  1         # sort files (alpha-numerically by default)
+  sort_method:      !!eval  sorted    # sort method (callable to use as sorting algorithm)
+  stations:         !!set   [wmo]     # station types to consider
+  clusters:         !!set   [germany] # clusters to consider
+  mode:             !!str   dev       # operating mode {dev,oper,test}
+  approach:         !!str   pl        # decoding approach as defined in modules/decode_bufr_approaches
+  convert_datetime: !!set   [pd]      # approaches where we need pandas to python dt conversion
+  shift_datetime:   !!set   [us]      # approaches where it is necessary to shift some datetimes
+  scale_info:       !!set   [us,ex]   # approaches which deliver scale info
+
+get_obs.py:
   conda_env:        !!str   obs
-  pid_file:         !!bool  0  # create and use pid file
-  verbose:          !!bool  0 # verbose output
-  log_level:        !!str   INFO
-  debug:            !!bool  0
-  traceback:        !!bool  0 # enable traceback prints
-  timeout:          !!int   3 # timeout for station databases
-  min_ram:          !!int   2048 # minimum amount of RAM script should leave free, if value is reached: restart
-  max_retries:      !!int   1000 # retries when using set_file_statuses (and writing to station databases)
-  max_files:        !!int   5395 #6225 #5046 # zero means no maximum #15: 5395
-  sort_files:       !!bool  1 # sort files alpha-numerically 
-  sort_method:      !!eval  sorted # sort method (callable to use as sorting algorithm)
-  stations:         !!set   [wmo]
-  clusters:         !!set   [germany]
   mode:             !!str   dev
-  approach:         !!str   pl
-  convert_datetime: !!set   [pd]    # approaches where we need pandas to python dt conversion
-  shift_datetime:   !!set   [us]    # approaches where it is necessary to shift some datetimes
-  scale_info:       !!set   [us,ex] # approaches which deliver scale info
-   
+  log_level:        !!str   ERROR
+  verbose:          !!bool  1
+  update:           !!bool  1
+  max_retries:      !!int   10
+  timeout:          !!int   3
+
 get_imgw.py:
   conda_env:        !!str   obs
   mode:             !!str   dev
@@ -48,6 +44,8 @@ get_knmi.py:
   log_level:        !!str   ERROR
   verbose:          !!bool  1
   update:           !!bool  1
+  parse:            !!bool  0
+  redo:             !!bool  0
   max_retries:      !!int   10
   timeout:          !!int   3
   download_dir:     !!str   KNMI
@@ -73,12 +71,6 @@ reduce_obs.py:
   clusters:         !!set   [germany]
   processes:        !!int   15 #4
 
-audit_obs.py:
-  conda_env:        !!str   obs
-  pid_file:         !!bool  0 # create and use pid file
-  update:           !!bool  1
-  element_info:     !!str   element_info
-
 derive_obs.py:
   conda_env:        !!str   obs
   pid_file:         !!bool  0 # create and use pid file
@@ -101,6 +93,20 @@ aggregate_obs.py:
   stations:         !!set   [wmo, dwd]
   clusters:         !!set   [germany] # TODO should take setting from sources instead
   aggregat_elems:   !!str   element_aggregation
+
+audit_obs.py:
+  conda_env:        !!str   obs
+  pid_file:         !!bool  0 # create and use pid file
+  update:           !!bool  1
+  element_info:     !!str   element_info
+
+empty_obs.py:
+  pid_file:         !!bool  0 # create and use pid file
+  verbose:          !!bool  0 # verbose output
+  traceback:        !!bool  0 # traceback prints
+  debug:            !!bool  0
+  bad_obs:          !!bool  0
+  mode:             !!str   dev
 
 export_obs.py:
   conda_env:        !!str   obs
