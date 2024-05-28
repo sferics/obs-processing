@@ -18,7 +18,7 @@ fi
 
 #TODO custom environment name (default=obs)
 # create new conda environment, using package list
-conda env create -f config/environment.yml
+conda env create -f environment.yml
 
 # clone plbufr repository (fork of pdbufr using polars instead of pandas)
 git clone https://github.com/sferics/plbufr/

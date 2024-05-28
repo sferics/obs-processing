@@ -1883,7 +1883,7 @@ class DatabaseClass:
         return True
 
 
-    def get_elements( self ):
+    def get_elements( self, path_identifier=None ):
         #TODO
         """
         Parameter:
@@ -1897,5 +1897,7 @@ class DatabaseClass:
 
         """
         sql = "SELECT DISTINCT element FROM element_table WHERE role='obs'"
+        if path_identifier:
+            sql += f" AND path_identifier LIKE '%{path_identifier}%'"
         self.exe(sql)
         return set(self.fetch())

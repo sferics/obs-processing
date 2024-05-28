@@ -13,6 +13,31 @@ from obs import ObsClass as oc
 
 def derive_obs(stations):
     
+    def correct_duration_9z():
+        # in DWD data we need to correct the duration for 9z Tmin/Tmax obs to 15h
+        sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn','TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09' AND dataset IN('test','DWD','dwd_germany')"
+        try:    db_loc.exe(sql)
+        except: pass
+        else:   db_loc.commit()
+
+    def derive_CL():
+        pass
+
+    def derive_CA_and_CB():
+        pass
+
+    def derive_TR_elements():
+        pass
+
+    def get_baro_height():
+        pass
+
+    def derive_qff_and_qnh():
+        pass
+    
+    def derive_dewpoint():
+        pass
+
     for loc in stations:
 
         sql_values = set()
@@ -26,14 +51,7 @@ def derive_obs(stations):
             if traceback:   gf.print_trace(e)
             continue
        
-        #TODO implement source specific treatment (process by source?) OR keep source information
-        if not dt_30min:
-            # in DWD data we need to correct the duration for 9z Tmin/Tmax obs to 15h
-            sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn','TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09' AND dataset IN('test','DWD','dwd_germany')"
-            sql = "UPDATE OR IGNORE obs SET duration='1s' WHERE element REGEXP '(CA._2m_syn|CB._2m_syn)'"
-            try:    db_loc.exe(sql)
-            except: pass
-            else:   db_loc.commit()
+        if not dt_30min: correct_duration_9z()
         
         """
         sql1=f"SELECT dataset,datetime,duration,element,value FROM obs WHERE element = '%s'{dt_30min}"
@@ -95,8 +113,8 @@ def derive_obs(stations):
                 sql_values.add( (dataset, datetime, k, f"CL{i}_2m_syn", CL[k]) )
 
         # duration is always 1s for cloud observations
-        sql_insert = ("INSERT INTO obs (dataset,datetime,element,value,duration) VALUES(?,?,?,?,'1s') "
-            "ON CONFLICT DO {on_conflict}")
+        sql_insert = (f"INSERT INTO obs (dataset,datetime,element,value,duration) "
+            f"VALUES(?,?,?,?,'1s') ON CONFLICT DO {on_conflict}")
         try:    db_loc.exemany(sql_insert, sql_values)
         except: pass
 
@@ -107,7 +125,8 @@ def derive_obs(stations):
        
         # derive cloud amounts [CA?_2m_syn] and cloud bases in the 4 levels [CB?_2m_syn]
         # from cloud levels [CL?_2m_syn] (usually provided by metwatch CSVs)
-        sql_select = "SELECT dataset,element,value FROM obs WHERE element LIKE 'CL%_2m_syn'"
+        sql_select = (f"SELECT dataset,element,value FROM obs WHERE element LIKE "
+            f"'CL%_2m_syn'{dt_30min}")
         db_loc.exe(sql_select)
         
         data        = db_loc.fetch()
@@ -130,8 +149,8 @@ def derive_obs(stations):
         
         # do the opposite of the above:
         # derive cloud levels [CL?_2m_syn] from cloud amounts [CA?_2m_syn] and bases [CB?_2m_syn]
-        sql = (f"SELECT dataset,datetime,element,value FROM obs WHERE element REGEXP '(CA._2m_syn|CB._2m_syn)'"
-            f"{dt_30min} ORDER BY datetime asc, element desc")
+        sql = (f"SELECT dataset,datetime,element,value FROM obs WHERE element REGEXP "
+            f"'(CA._2m_syn|CB._2m_syn)'{dt_30min} ORDER BY datetime asc, element desc")
         db_loc.row_factory = sf.dict_row
         db_loc.exe(sql)
           
@@ -167,34 +186,14 @@ def derive_obs(stations):
         
         # reset row factory to default
         db_loc.row_factory = sf.default_row
-
-        # try to calculate QFF+QNH if no reduced pressure is present in obs and we have barometer height instead
-        db = dc( config=cf.database, ro=1 )
         
-        # we should actually prefer the barometer elevation over general elevation because they can differ a lot
-        try:
-            baro_height = db.get_station_baro_elev(loc)
-        except sqlite3.OperationalError:
-            baro_height = None
-        
-        #TODO if baro_elev is implemented in amalthea/main incomment this line and delete try/except above
-        #baro_height = db.get_station_baro_elev(loc)
-
-        if baro_height is None:
-            baro_height     = db.get_station_elevation(loc)
-            station_height  = copy(baro_height)
-        else:
-            station_height  = copy(baro_height)
-
-        db.close()
-        
+        """
         # do this for all metwatch elements which can be linked to a TR
         # derive [element, TR] from element and TR
-        # derive [PRATE_1m_syn, TR] from PRATETR_1m_syn and TR
-        
-        # get all datetime where both elements are present and have a NOT NULL value
-        
-        sql = (f"SELECT DISTINCT datetime FROM obs WHERE element LIKE '%TR_%' AND "
+        # derive [PRATE_1m_syn, TR] from PRATE_1m_syn and corresponding TR
+
+        # get all datetime where TR and obs elements are present and have a NOT NULL value
+        sql = (f"SELECT DISTINCT datetime FROM obs WHERE duration = 'TR' AND "
             f"value IS NOT NULL{dt_30min} INTERSECT SELECT DISTINCT datetime FROM obs WHERE "
             f"element = 'TR' AND value IS NOT NULL{dt_30min}")
         db_loc.row_factory = sf.tuple_row
@@ -208,36 +207,68 @@ def derive_obs(stations):
             f"VALUES(?,?,?,?,?) ON CONFLICT DO {on_conflict}")
         prate_vals  = set()
         
-        db_loc.row_factory = sf.dict_row
+        # get result of SELECT statement as a polars LazyFrame
+        db_loc.row_factory = sf.polars_lf_row
+        # get result of SELECT statement as a polars DataFrame
+        db_loc.row_factory = sf.polars_df_row
 
-        for datetime in db_loc.fetch():
-            datetime = datetime[0] 
-            sql = (f"SELECT dataset,element,value FROM obs WHERE datetime = '{datetime}' AND element "
-                f"LIKE '%TR%' ORDER BY element")
-            db_loc.exe(sql)
-            
-            duration    = None
-            value_TR    = None
-            prev_elem   = ""
-
-            for values in db_loc.fetch():
-                
-                dataset, element, value = values
-                
-                if element == "TR": duration    = str(value) + "h"
-                else:               value_obs   = copy(value)
-                
-                # if we had element="TR" and a TR-dependent obs alternating plus value and duration
-                if element != prev_elem and element != "TR" and value_obs and duration:
-                    # add the observation to the sql values set
-                    prate_vals.add( (dataset, datetime, element, value_obs, duration) )
+        # the TR element also has duration='TR' so we can query all needed data with only one SELECT
+        sql = (f"SELECT dataset,datetime,element,value FROM obs WHERE duration = 'TR'{dt_30min}")
+        db_loc.exe(sql)
         
+        obs_df = db_loc.fetch() 
+
+        # in all distinct datetimes, connect element with duration provided by TR (dur=f"{TR}h")
+        obs_lf.select(["datetime","element"]).unique()
+        obs_lf.unique(subset=["datetime"])
+        
+        for name, data in obs_df.group_by(["datetime"]):
+            print(name, data)
+                
+            value_TR = data.select(["TR"])
+             
+
+        for values in obs_dict:
+
+            dataset, element, value = values
+
+            if element == "TR": duration    = str(value) + "h"
+            # if we had element="TR" already
+            elif duration:
+                value_obs   = copy(value)
+                # add the observation to the sql values set
+                prate_vals.add( (dataset, datetime, element, value_obs, duration) )
+
         # reset row factory
         db_loc.row_factory = sf.default_row
         db_loc.exemany(sql_insert, prate_vals)
+        """
+        
+        # try to calculate QFF+QNH if no reduced pressure is present in obs
+        # and we have barometer height instead
+        db = dc( config=cf.database, ro=1 )
+        
+        # we should actually prefer the barometer elevation over general elevation 
+        # because they can differ a lot
+        try:
+            baro_height = db.get_station_baro_elev(loc)
+        except sqlite3.OperationalError:
+            baro_height = None
+        
+        #TODO when baro_elev is implemented in amalthea/main incomment this line
+        # and delete try/except above
+        #baro_height = db.get_station_baro_elev(loc)
+        
+        if baro_height is None:
+            baro_height     = db.get_station_elevation(loc)
+            station_height  = copy(baro_height)
+        else:
+            station_height  = copy(baro_height)
 
+        db.close()
+        
 
-        # derive reduced pressure (QFF or QNH?) if only station pressure was reported
+        # derive reduced pressure (QFF and QNH) if only station pressure was reported
          
         if baro_height is not None:
             
@@ -259,8 +290,8 @@ def derive_obs(stations):
             prmsl_vals  = set()
 
             # try calculate PRMSL for all datetimes where only PRES is available
-            sql = (f"SELECT dataset,datetime,value FROM obs WHERE element = 'PRES_0m_syn' AND value "
-                f"IS NOT NULL{dt_30min}")
+            sql = (f"SELECT dataset,datetime,value FROM obs WHERE element = 'PRES_0m_syn' "
+                f"AND value IS NOT NULL{dt_30min}")
             db_loc.exe(sql)
 
             for row in db_loc.fetch():

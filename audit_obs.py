@@ -61,15 +61,35 @@ def audit_obs(stations):
                 
                 dataset, datetime, element, val = row[0], dt.fromisoformat(row[1]), str(row[2]), row[3]
                 
-                # if the value does match the exclude pattern it gets excluded
-                excluded = re.match(exclude, str(val))
-                
+                # if the value does contain the exclude pattern it gets excluded
+                if exclude is not None:
+                    excluded = re.search(exclude, str(val))
+                else: excluded = False
+
                 # if the value is in range OR not numeric this expression will be True
                 #try:    val_in_range = ( int(np.round(val)) in element_range )
                 try:    val_in_range = (lower <= float(val) <= upper)
                 except: val_in_range = True
                 
-                if not excluded and (val_in_range or val in extra):
+                # for METAR weather code we need to check whether there is any correct sub-string
+                if element = "WW_2m_met":
+                    #val_in_extra = any(substring in val for substring in extra))
+                    # OR we loop through the string in substrings of length 2 and check all values
+                    # first we check whether length of string is even
+                    lv = len(val)
+                    if lv % 2 == 0:
+                        # new value string will be constructed by correct sub-strings
+                        val = ""
+                        val_in_extra = True
+                        for i in range(0, lv, 2):
+                            if val[i:i+2] in extra:
+                                val += val[i:i+2]
+                    # else we assume that the whole METAR code is faulty
+                    else: val_in_extra = False
+                # else we just check whether the value is in list "extra"
+                else: val_in_extra = (val in extra)
+                
+                if not excluded and (val_in_range or val_in_extra:
                     # 3b insert good data into obs table of final database
                     #sql += f"INSERT INTO obs.final (dataset,timestamp,element,value) VALUES ({row[0]},{row[1]},{row[2]},{row[3]})\n"
                     timestamp = int( datetime.timestamp() )
@@ -97,7 +117,8 @@ def audit_obs(stations):
                     # 3b insert bad data into obs_bad table of final database
                     #sql += f"INSERT INTO obs_bad.final (dataset,timestamp,duration,element,value,reason) VALUES ({row[0]},{row[1]},{row[2]},{row[2]},{reason})\n"
                     values_bad.add((dataset, datetime, element, val, reason))
-                        
+        
+        #TODO implement JUMP CHECK (5th column of element_info, dictionary)
             
         db_loc.exemany(sql_good, values_good)
         db_loc.exemany(sql_bad, values_bad)

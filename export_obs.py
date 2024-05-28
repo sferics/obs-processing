@@ -31,7 +31,9 @@ def export_obs(stations):
             continue
          
         #TODO get all relevant data to export and write it to csv files in legacy output directory
-         
+        for element in elements:
+            pass
+
         db_loc.close()
     
     return
@@ -61,7 +63,7 @@ if __name__ == "__main__":
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
-    sources         = cf.args.sources
+    sources         = cf.args.source
    
     #TODO implement WHERE dataset='{source}' or AND dataset='{source}' in all SELECT statements
     if len(sources) > 0:
@@ -74,8 +76,9 @@ if __name__ == "__main__":
     obs             = oc( cf, mode=mode, stage="forge", verbose=verbose )
     db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
-    elements        = tuple(db.get_elements())
-    
+    elements        = tuple(db.get_elements(path_identifier="export"))
+    print(elements); sys.exit()
+
     db.close(commit=False)
 
     if processes: # number of processes

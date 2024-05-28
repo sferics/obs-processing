@@ -56,7 +56,6 @@ if __name__ == "__main__":
     traceback       = cf.script["traceback"]
     timeout         = cf.script["timeout"]
     max_retries     = cf.script["max_retries"] 
-    
     args            = cf.args
 
     # iterate sources and download here

@@ -1,3 +1,7 @@
+#TODO double-check all these sequences with a program and by hand
+
+# source: https://confluence.ecmwf.int/display/ECC/WMO%3D40+sequence+table
+
 ### 300
 300002: &300002 [2, 3]
 300003: &300003 [10, 11, 12]
@@ -549,7 +553,7 @@
   - [8021, 4025, 10004, 12001, 13003, 33038, 8022]
   - [106025, 2020, 1050, 5021, 7021, 15031, 15032]
   - [8060, 15033, 15034, 15035, 201131, 202129, 13016, 202000, 201000, 15011]
-#TODO analyze and implement this sequence in decode_bufr_ex approach
+#TODO analyze and implement this special sequence in decode_bufr_ex approach
 307024: &307024 !flatten
   - *301150
   - [1015, 1040, 8021]
@@ -557,13 +561,13 @@
   - *301013
   - *301022
   - [10036, 25061, 10004, 12001, 13003]
-#TODO how to these nested replications work?
+#TODO how do these deeply-nested replications work?
   - [120000, 31000, 25060, 8021, 4025]
-#TODO recursive implementation needed?
+#TODO recursive implementation needed for this?
   - [115000, 31001, 15079, 15080, 8022, 33093, 15089, 15035]
   - [102002, 8060, 15083]
   - [201131, 202129, 13016, 202000, 201000, 15011]
-#TODO what means 131000 before non-sequence?
+#TODO what means 131000 before non-sequence???
   - [131000, 31000, 25060, 8021, 4025, 3309]
   - [125000, 31001, 2020, 1050, 1150, 202127, 304030]
   - [202000, 5021, 7021, 15038, 15039, 15090, 15081, 15082, 15079, 15089, 15035]

@@ -8,7 +8,8 @@ import global_variables as gv
 
 class ObsClass:
     @classmethod
-    def __init__(self, cf: ConfigClass, source: str="extra", stage: str="raw", verbose: bool=False):
+    def __init__(self, cf: ConfigClass, source: str="extra", mode: str="dev", stage: str="raw",
+            verbose: bool=False):
         """
         Parameter:
         ----------
@@ -20,6 +21,7 @@ class ObsClass:
         -------
         
         """
+        assert( mode in {"dev", "oper"} )
         assert( stage in {"raw", "forge", "final"} )
         
         # in this merge we are adding only already present keys; while again overwriting them

@@ -1,4 +1,8 @@
-#!/bin/bash
+#!/bin/sh
+
+# export environment information without prefix and variables sections
+# and create a requirements.txt
+bash scripts/export_conda_environment.sh
 
 git status
 ls

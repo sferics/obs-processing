@@ -42,4 +42,7 @@ clouds: # https://skybrary.aero/articles/meteorological-aerodrome-report-metar
   SCT: 4
   BKN: 6
   OVC: 8
+  NSC: ~  # no significant clouds
+  HGH: ~  # only high clouds present, but we do not know how many...
+  CAV: ~  # clouds and visibility OK
   ///: ~
