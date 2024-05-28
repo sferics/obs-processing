@@ -89,7 +89,7 @@ def audit_obs(stations):
                 # else we just check whether the value is in list "extra"
                 else: val_in_extra = (val in extra)
                 
-                if not excluded and (val_in_range or val_in_extra:
+                if not excluded and (val_in_range or val_in_extra):
                     # 3b insert good data into obs table of final database
                     #sql += f"INSERT INTO obs.final (dataset,timestamp,element,value) VALUES ({row[0]},{row[1]},{row[2]},{row[3]})\n"
                     timestamp = int( datetime.timestamp() )
