@@ -9,7 +9,7 @@ It is easily extendable via configuration (YAML) files and by adding your own sc
 - OR if the permissions cannot be set/changed:\
 `bash install.sh`
 - The [install.sh script](#install) will install miniconda if not present, create an environment with all necessary packages and install the [plbufr package from sferics' github](https://github.com/sferics/plbufr).
-- It then defines ".githook/" as the directory for git hooks. There is currently only one git hook which automatically compiles alls .py files before each commit, so at least some syntax errors can be easily avoided. It also exports the conda environment information to [config/environment.yml](#environment).
+- It then defines ".githook/" as the directory for git hooks. There are currently two git hooks: The pre-commit git hook automatically compiles alls .py files before each commit, so at least some syntax errors can be easily avoided. The post-commit, on the other hand, calls [scripts/export\_conda\_environment.sh](#export_conda_environment) which exports the conda environment information to "environment.yml" and creates a "requirement.txt" file.
 - Afterwards, it will compile all .py files in the directory in order to speed-up the first run of each script.
 - Lastly, it executes 3 .sql files (in "sql/") which add some essential tables, columns and values to the main database. These changes should be implemented in amalthea/main for a better integration!
 <br/>
@@ -234,10 +234,6 @@ Get latest observations from the Polish Open Data service
 \- exclude is defined as a regular expression (x means no exluded values)\
 \- used for audit\_obs.py script only
 
-##### <a name="environment"></a>environment.yml
-\- conda environment information (environment name, packages to install, conda settings)\
-\- does not contain prefix and variables because they are system-dependent
-
 ### templates/
 > ##### <a name="general"></a>general.yml
 > \- needs to be copied to "config/" in order to be recognized by the python scripts\
@@ -313,7 +309,7 @@ Export your custom BUFR table paths to the local and conda environment variables
 <br/>
 
 ### <a name="export_conda_environments"></a>export\_conda\_environment.sh
-Export conda environment information to [config/environment.yml](#environment). Only skip "path:" and "variables:" sections because they depend on the local system.
+Export conda environment information to "environment.yml". Only skip "path:" and "variables:" sections because they depend on the local system. Then create a "requirement.txt" which contains all needed packages to successfully run the python scripts.
 <br/>
 
 ### <a name="install"></a>install.sh
