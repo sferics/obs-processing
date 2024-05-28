@@ -72,7 +72,7 @@ def audit_obs(stations):
                 except: val_in_range = True
                 
                 # for METAR weather code we need to check whether there is any correct sub-string
-                if element = "WW_2m_met":
+                if element == "WW_2m_met":
                     #val_in_extra = any(substring in val for substring in extra))
                     # OR we loop through the string in substrings of length 2 and check all values
                     # first we check whether length of string is even
