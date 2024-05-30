@@ -4,6 +4,7 @@
 import sys, os, psutil, copy
 #from collections import defaultdict
 from datetime import datetime as dt, timedelta as td
+from config import ConfigClass as cc
 from database import DatabaseClass as dc
 from bufr import BufrClass as bc
 from obs import ObsClass as oc
@@ -11,7 +12,7 @@ import global_functions as gf
 import global_variables as gv
 
 
-def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_file=None, verbose=False ):
+def decode_bufr( cf, input_files_dict={}, SOURCE="extra", approach="gt", pid_file=None, verbose=False ):
     """
     Parameter:
     ----------
@@ -36,9 +37,9 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
     #TODO use defaultdic instead for obs_bufr ???
     obs_bufr, file_statuses = {}, set()
     # initialize obs class (used for saving obs into station databases)
-    obs = oc( cf, source, verbose=verbose )
+    obs = oc( cf, SOURCE, verbose=verbose )
     # initialize bufr class (contains all bufr specifics contants and settings)
-    bf  = bc( cf, source, approach=approach )
+    bf  = bc( cf, SOURCE, approach=approach )
     # get the right conver_keys function depending on approach 
     convert_keys = getattr(bf, f"convert_keys_{approach}")
      
@@ -77,7 +78,7 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
             db.set_file_statuses(file_statuses, retries=bf.max_retries, timeout=bf.timeout)
             db.close()
             
-            obs_db = convert_keys( obs_bufr, source, shift_dt=shift_dt, convert_dt=convert_dt )
+            obs_db = convert_keys( obs_bufr, SOURCE, shift_dt=shift_dt, convert_dt=convert_dt )
             
             if obs_db:      obs.to_station_databases(obs_db, scale=scale_info)
             if pid_file:    os.remove( pid_file )
@@ -109,7 +110,7 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
     db.close(commit=True)
     
     if debug: print(obs_bufr)
-    obs_db = convert_keys( obs_bufr, source, shift_dt=shift_dt, convert_dt=convert_dt )
+    obs_db = convert_keys( obs_bufr, SOURCE, shift_dt=shift_dt, convert_dt=convert_dt )
     
     if debug: print(obs_db)
     if obs_db: obs.to_station_databases(obs_db, scale=scale_info)
@@ -119,8 +120,6 @@ def decode_bufr( cf, input_files_dict={}, source="extra", approach="gt", pid_fil
     
 
 if __name__ == "__main__":
-    
-    from config import ConfigClass as cc
     
     info = """  Decode BUFR file(s) and insert all relevant observation data into station databases.
                 NOTE:

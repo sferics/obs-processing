@@ -28,13 +28,14 @@ class ObsClass:
         config      = gf.merge_list_of_dicts([cf.general, cf.obs, cf.script], add_keys=True)
         # make config and important definitions accessible as class objects
         self.config = config
-        self.source = source
         self.stage  = stage
         
         for key, val in config.items():
             if verbose: print(key, val)
             setattr(self, key, val)
         
+        self.source = source
+
         self.log = gf.get_logger( self.__class__.__name__, self.log_level )
         if verbose: print()
 
@@ -154,7 +155,8 @@ class ObsClass:
                 if update:
                     sql += "UPDATE SET value=excluded.value"
                 else: sql += "NOTHING"
-                
+        
+        print(sql)
         
         for loc in obs_db:
             created = self.create_station_tables(loc, output, mode, stage, max_retries, 1, 1)
