@@ -196,6 +196,7 @@ dependencies:
       - pluggy==1.5.0
       - polars==0.20.7
       - pyarrow==16.1.0
+      - pycparser==2.22
       - pytest==8.2.1
       - pytest-metadata==3.1.1
       - python-dateutil==2.9.0.post0
