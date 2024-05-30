@@ -11,6 +11,17 @@ import global_variables as gv
 # constants
 mins_10 = td(minutes=10)
 
+# SQL statements
+
+# this statement is looking for all obs values between dt_start and dt_end using fallback elements
+"""
+sql_fallback = ("SELECT {FUN}(value) FROM obs WHERE element = '{el_fallback}' "
+    "AND datetime(datetime) BETWEEN '{dt_start}' AND '{dt_end}' AND {sql_add}")
+"""
+sql_fallback = ("SELECT {}(value) FROM obs WHERE element = '{}' "
+    "AND datetime(datetime) BETWEEN '{}' AND '{}' AND {}")
+
+
 def aggregate_obs(stations, update=False):
     """
     Parameter:
@@ -84,8 +95,9 @@ def aggregate_obs(stations, update=False):
         -------
 
         """
-        db_loc.exe((f"SELECT DISTINCT strftime('%H', datetime) FROM obs WHERE element='{el_old}' AND strftime('%Y', "
-            f"datetime) = '{year}' AND strftime('%m', datetime) = '{month}' AND strftime('%d', datetime) = '{day}'"))
+        db_loc.exe((f"SELECT DISTINCT strftime('%H', datetime) FROM obs WHERE element='{el_old}' "
+            f"AND strftime('%Y', datetime) = '{year}' AND strftime('%m', datetime) = '{month}' "
+            f"AND strftime('%d', datetime) = '{day}'"))
         return db_loc.fetch()
 
     def get_copy_vals(year=None, month=None, day=None, offset=0, dur=None):
@@ -276,14 +288,14 @@ def aggregate_obs(stations, update=False):
                                 
                                 dur_h = int( dur.replace("h","") )
                                 
-                                # first try to take the values with the given duration and save into new elem name
+                                # first try to take the values with the given duration and save to new elem name
                                 data = get_copy_vals(year, month, day, offset, dur)
                                 
                                 if data:
                                     for i in data:
                                         sql_values.add( (i[0], i[1], i[2], el_new, i[-1]) )
                                     # if data is complete we can continue
-                                    #TODO how can we smartly omit already present data in next for loop if this is False?
+                                    #TODO how can we omit already present data in next for loop if this is False?
                                     if len(data) == int( 24 // dur_h ):
                                         continue
                                 
@@ -298,11 +310,11 @@ def aggregate_obs(stations, update=False):
                                     subdur_int  = int( subdur.replace("h", "") )
                                     
                                     dt_base     = dt( int(year), int(month), int(day) )
-                                    dt_start    = dt_base - td(hours=dur_int) + td(hours=subdur_int) + td(hours=offset)
+                                    dt_start    = dt_base-td(hours=dur_int)+td(hours=subdur_int)+td(hours=offset)
                                     dt_end      = dt_base + td(hours=offset)
                                     
-                                    sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN "
-                                        f"'{dt_start}' AND '{dt_end}' AND ")
+                                    sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) "
+                                        f"BETWEEN '{dt_start}' AND '{dt_end}' AND ")
                                     
                                     sql_add = get_duration(FUN, dur, subdur)
 
@@ -314,7 +326,7 @@ def aggregate_obs(stations, update=False):
                                     
                                     count_vals, dataset = fetched
 
-                                    # if we want an average make sure there are continous values for each sub-duration
+                                    # if we want an AVG make sure there are continous values for each subduration
                                     if FUN in {"AVG","SUM"} and int(count_vals) != int(dur_int // subdur_int):
                                         continue
                                     db_loc.exe( sql.replace("?", FUN+"(value)") )
@@ -327,12 +339,8 @@ def aggregate_obs(stations, update=False):
                                         # break the loop when a value is first found
                                         break
                                     # only for MIN/MAX and when a fallback element is present, try again
-                                    elif FUN in {"MIN","MAX"} and el_fallback:
-                                            
-                                        sql=(f"SELECT {FUN}(value) FROM obs WHERE element = '{el_fallback}' "
-                                            f"AND datetime(datetime) BETWEEN '{dt_start}' AND "
-                                            f"'{dt_end}' AND {sql_add}")
-                                        
+                                    elif el_fallback and FUN in {"MIN","MAX"}:
+                                        sql = sql_fallback.format( FUN, el_fallback, dt_start, dt_end, sql_add )
                                         db_loc.exe( sql )
                                         val_new = db_loc.fetch1()
                                         
@@ -358,8 +366,9 @@ def aggregate_obs(stations, update=False):
                                             dt_start = dt_end - td(minutes=dur_int) + td(minutes=subdur_int)
                                         
                                         #TODO use IN instead of BETWEEN to be more explicit and failsave? slower?
-                                        sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN "
-                                            f"'{dt_start}' AND '{dt_end}' AND duration='{subdur}'")
+                                        sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND "
+                                            f"datetime(datetime) BETWEEN '{dt_start}' AND '{dt_end}' "
+                                            f"AND duration='{subdur}'")
                                         db_loc.exe( sql.replace("?", "COUNT(value), dataset") )
                                         
                                         fetched = db_loc.fetch1()
@@ -370,8 +379,8 @@ def aggregate_obs(stations, update=False):
                                         # convert 1h into 60mins
                                         if dur == "1h": dur_int *= 60
                                         
-                                        # if we want an average make sure there are continous values for each sub-duration
-                                        if FUN in {"AVG","SUM"} and int(count_vals) != int(dur_int // subdur_int):
+                                        # if we want an AVG make sure there are continous values for each subdur
+                                        if FUN in {"AVG","SUM"} and int(count_vals) != int(dur_int//subdur_int):
                                             continue
                                         
                                         db_loc.exe( sql.replace("?", FUN+"(value)") )
@@ -384,6 +393,17 @@ def aggregate_obs(stations, update=False):
                                             # and break the outer loop as well
                                             break_loop = True
                                             break
+                                        # only for MIN/MAX and when a fallback element is present, try again
+                                        elif el_fallback and FUN in {"MIN","MAX"}:
+                                            sql=sql_fallback.format(FUN, el_fallback, dt_start, dt_end, sql_add)
+                                            db_loc.exe( sql )
+                                            val_new = db_loc.fetch1()
+
+                                            if val_new is not None:
+                                                if verbose: print(dt_base, dur, el_new, val_new)
+                                                sql_values.add( (dataset, dt_base, dur, el_new, val_new) )
+                                                # break the loop when a value is first found
+                                                break
                                 
                                 else: # if dur not in {"1h", "30"} or "h" in subdur
                                     dur_num = float( dur.replace("h", "") )
@@ -393,12 +413,12 @@ def aggregate_obs(stations, update=False):
                                         subdur_num = float( subdur.replace("min", "") )
                                     
                                     dt_base     = dt( int(year), int(month), int(day) )
-                                    dt_start    = dt_base - td(hours=dur_int) + td(hours=subdur_num) + td(hours=offset)
+                                    dt_start    = dt_base-td(hours=dur_int)+td(hours=subdur_num)+td(hours=offset)
                                     dt_end      = dt_base + td(hours=offset)
                                     
                                     #TODO use IN instead of BETWEEN to be more explicit and failsave? slower?
-                                    sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) BETWEEN "
-                                        f"'{dt_start}' AND '{dt_end}' AND ")
+                                    sql=(f"SELECT ? FROM obs WHERE element = '{el_old}' AND datetime(datetime) "
+                                        f"BETWEEN '{dt_start}' AND '{dt_end}' AND ")
                                     
                                     sql_add = get_duration(FUN, dur, subdur)
                                     
@@ -408,7 +428,7 @@ def aggregate_obs(stations, update=False):
                                     fetched = db_loc.fetch1()
                                     if fetched is None: continue
 
-                                    # if we want an average make sure there are continous values for each sub-duration
+                                    # if we want an AVG make sure there are continous values for each subduration
                                     if FUN in {"AVG","SUM"} and int(fetched[0]) != int(dur_num // subdur_num):
                                         continue
                                     db_loc.exe( sql.replace("?", FUN+"(value)") )
@@ -421,12 +441,8 @@ def aggregate_obs(stations, update=False):
                                         # break the loop when a value is first found
                                         break
                                     # only for MIN/MAX and when a fallback element is present, try again
-                                    elif FUN in {"MIN","MAX"} and el_fallback:
-
-                                        sql=(f"SELECT {FUN}(value) FROM obs WHERE element = '{el_fallback}' "
-                                            f"AND datetime(datetime) BETWEEN '{dt_start}' AND "
-                                            f"'{dt_end}' AND {sql_add}")
-                                        
+                                    elif el_fallback and FUN in {"MIN","MAX"}:
+                                        sql = sql_fallback.format( FUN, el_fallback, dt_start, dt_end, sql_add )
                                         db_loc.exe( sql )
                                         val_new = db_loc.fetch1()
                                         

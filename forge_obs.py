@@ -21,6 +21,7 @@ from subprocess import Popen, PIPE
                         move good data in file databases e.g. "/oper/final" (oper mode)
                         move bad data to seperate databases, e.g. "/dev/bad" directory (dev mode)
 6 empty_obs.py      ->  clear forge databases (they are temporary and get rebuilt every chain cycle)
+7 export_obs.py     ->  export data to old / legacy metwatch csv format (only if -e/--export is set)
 """
 
 
@@ -95,7 +96,9 @@ if __name__ == "__main__":
             try:
                 #os.execl( "python", script+"_obs.py", *cli_args )
                 print(["python", script+"_obs.py"] + cli_args)
+                # execute the script as seperate process
                 process = Popen(["python", script+"_obs.py"] + cli_args, stdout=PIPE, stderr=PIPE)
+                # wait for it to finish
                 process.wait()
                 stdout, stderr = process.communicate()
                 print(stdout)

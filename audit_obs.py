@@ -38,9 +38,9 @@ def audit_obs(stations):
         db_loc.attach_station_db(loc, output, mode=mode, stage="final")
         
         #sql = ""
-        sql_good    = (f"INSERT INTO final.obs (dataset,timestamp,element,value) VALUES (?,?,?,?) "
+        sql_good = (f"INSERT INTO final.obs (dataset,timestamp,element,value) VALUES (?,?,?,?) "
             f"ON CONFLICT DO {on_conflict}")
-        sql_bad     = (f"INSERT INTO final.obs_bad (dataset,datetime,element,value,reason) VALUES "
+        sql_bad  = (f"INSERT INTO final.obs_bad (dataset,datetime,element,value,reason) VALUES "
             f"(?,?,?,?,?) ON CONFLICT DO {on_conflict}")
         values_good, values_bad = set(), set()
 
@@ -48,7 +48,9 @@ def audit_obs(stations):
             # element properties and range
             element_info_el                 = element_info[element]
             lower, upper, extra, exclude    = ( element_info_el[i] for i in range(4) )
-            element_range                   = range(lower, upper)
+            #lower                           = int(np.round(float(lower)))
+            #upper                           = int(np.round(float(upper)))
+            #element_range                   = lower, upper
 
             # 1 get all 30-min data for this element
             #TODO already check whether value is in range(lower,upper) defined in the element_table
@@ -59,7 +61,8 @@ def audit_obs(stations):
             for row in data:
                 #sql = ""
                 
-                dataset, datetime, element, val = row[0], dt.fromisoformat(row[1]), str(row[2]), row[3]
+                dataset, datetime, element, val = row[0], dt.fromisoformat(row[1]), row[2], row[3]
+                if not dataset: dataset = "unknown" # extra
                 
                 # if the value does contain the exclude pattern it gets excluded
                 if exclude is not None:
@@ -71,16 +74,18 @@ def audit_obs(stations):
                 try:    val_in_range = (lower <= float(val) <= upper)
                 except: val_in_range = True
                 
-                # for METAR weather code we need to check whether there is any correct sub-string
+                # for METAR weather code we need to check whether code is correct and fully-known
                 if element == "WW_2m_met":
+                    # simple approach: we need to check whether there is any correct sub-string
                     #val_in_extra = any(substring in val for substring in extra))
+
                     # OR we loop through the string in substrings of length 2 and check all values
-                    # first we check whether length of string is even
+                    # first we check whether length of string is even (can be read in pieces of 2)
                     lv = len(val)
                     if lv % 2 == 0:
-                        # new value string will be constructed by correct sub-strings
-                        val = ""
-                        val_in_extra = True
+                        # new value string will be constructed by correct sub-strings only
+                        val_in_extra    = True
+                        val             = ""
                         for i in range(0, lv, 2):
                             if val[i:i+2] in extra:
                                 val += val[i:i+2]
@@ -93,8 +98,7 @@ def audit_obs(stations):
                     # 3b insert good data into obs table of final database
                     #sql += f"INSERT INTO obs.final (dataset,timestamp,element,value) VALUES ({row[0]},{row[1]},{row[2]},{row[3]})\n"
                     timestamp = int( datetime.timestamp() )
-                    row = (timestamp, row[1], row[2]) 
-                    values_good.add(row)
+                    values_good.add( (dataset, timestamp, element, val) )
                 else:
                     try:
                         val = float(val)
@@ -116,13 +120,16 @@ def audit_obs(stations):
                      
                     # 3b insert bad data into obs_bad table of final database
                     #sql += f"INSERT INTO obs_bad.final (dataset,timestamp,duration,element,value,reason) VALUES ({row[0]},{row[1]},{row[2]},{row[2]},{reason})\n"
-                    values_bad.add((dataset, datetime, element, val, reason))
+                    values_bad.add( (dataset, datetime, element, val, reason) )
         
-        #TODO implement JUMP CHECK (5th column of element_info, dictionary)
-            
         db_loc.exemany(sql_good, values_good)
         db_loc.exemany(sql_bad, values_bad)
         #db_loc.exescr(sql)
+        
+        #TODO implement JUMP CHECK (5th column of element_info dictionary); general procedure idea:
+        # if the element changes within {key} hours by {value} drop it from obs database -> obs_bad
+        
+        # only commit changes when all operations are complete
         db_loc.close(commit=True)
 
 if __name__ == "__main__":
@@ -130,8 +137,8 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Reduce the number of observations according to operation mode"
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","C","m","M","o","O","d","t","P","u")
-    cf          = oc(script_name, pos=["source"], flags=flags, info=info, clusters=True)
+    flags       = ("l","v","C","m","M","o","O","d","t","P","u","E")
+    cf          = cc(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
     
@@ -150,6 +157,7 @@ if __name__ == "__main__":
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
     update          = cf.script["update"]
+    extra           = cf.script["extra"]
     sources         = cf.args.source
 
     if update:

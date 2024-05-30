@@ -25,7 +25,7 @@ class ObsClass:
         assert( stage in {"raw", "forge", "final"} )
         
         # in this merge we are adding only already present keys; while again overwriting them
-        config      = gf.merge_list_of_dicts([cf.obs, cf.script], add_keys=False)
+        config      = gf.merge_list_of_dicts([cf.general, cf.obs, cf.script], add_keys=True)
         # make config and important definitions accessible as class objects
         self.config = config
         self.source = source
@@ -264,7 +264,7 @@ class ObsClass:
             if verbose: print("Creating table and adding columns...")
 
             # read yaml structure file for station tables into a dict
-            tables = gf.read_yaml( f"station_tables/{mode}_{stage}", file_dir=self.config.config_dir )
+            tables = gf.read_yaml( f"station_tables/{mode}_{stage}", file_dir=self.config_dir )
 
             for table in tables:
                 retries = copy(max_retries)

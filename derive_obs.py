@@ -15,7 +15,9 @@ def derive_obs(stations):
     
     def correct_duration_9z():
         # in DWD data we need to correct the duration for 9z Tmin/Tmax obs to 15h
-        sql = "UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn','TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09' AND dataset IN('test','DWD','dwd_germany')"
+        sql = ("UPDATE OR IGNORE obs SET duration='15h' WHERE element IN('TMAX_2m_syn',"
+            "'TMIN_2m_syn','TMIN_5cm_syn') AND strftime('%H', datetime) = '09' AND dataset "
+            "IN('test','DWD','dwd_germany')")
         try:    db_loc.exe(sql)
         except: pass
         else:   db_loc.commit()
@@ -168,13 +170,15 @@ def derive_obs(stations):
             value       = str(int(float(i[3])))
             print(dataset, datetime, element, value)
             
-            if datetime==datetime_prev and element[2]==elment_prev[2] and element != element_prev:
+            if datetime==datetime_prev and element[2]==element_prev[2] and element != element_prev:
                 try:    value_CAx = str(int(round(float(value_prev))))
                 except: continue
                 try:    value_CBx = str(int(round(float(value)))).rjust(3,"0")
                 except: continue
                 value_CLx = value_CAx + value_CBx
                 if len(value_CLx) == 4:
+                    print(f"CL{element[2:]}")
+                    print(value_CLx)
                     sql_values.add( (dataset, datetime, f"CL{element[2:]}", value_CLx) )
             
             datetime_prev   = copy(datetime)
@@ -187,6 +191,7 @@ def derive_obs(stations):
         # reset row factory to default
         db_loc.row_factory = sf.default_row
         
+        # this is needed when deriving obs imported from metwatch csv files (import_metwatch.py)
         """
         # do this for all metwatch elements which can be linked to a TR
         # derive [element, TR] from element and TR
@@ -255,7 +260,7 @@ def derive_obs(stations):
         except sqlite3.OperationalError:
             baro_height = None
         
-        #TODO when baro_elev is implemented in amalthea/main incomment this line
+        #TODO when baro_elev is implemented in amalthea/main main.db: incomment this line
         # and delete try/except above
         #baro_height = db.get_station_baro_elev(loc)
         
@@ -323,7 +328,7 @@ def derive_obs(stations):
                     pr_qnh = gf.qnh( value_PRES, baro_height, value_TMP )
                     prmsl_vals.add( (dataset, datetime, "PRMSL_ms_met", pr_qnh) )
                     
-                    # if dewpoint or relative humidity are present: use DWD reduction method
+                    # if dewpoint or relative humidity present: use DWD pressure reduction method
                     #https://www.dwd.de/DE/leistungen/pbfb_verlag_vub/pdf_einzelbaende/vub_2_binaer_barrierefrei.pdf?__blob=publicationFile&v=4 [page 106]
                     if value_DPT is not None or value_RH is not None and baro_height < 750:
                         
