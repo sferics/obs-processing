@@ -63,41 +63,42 @@ def import_metwatch(stations):
             if verbose: print(f"{input_dir}/bufr{loc}.csv.gz")
             # acquire indexes
             # go through file line by line
-            for line in reader:
-                # if we encounter INDEX as the first element, we know it's a header line
-                if line[0].strip() == "INDEX":
-                    continue
-                else:
-                    if verbose: print(line[:-1])
-                    # else we parse the line element by element to save the values
-                    for idx, val in enumerate(line[:-1]):
-                        if verbose:
-                            print("idx, val, len(metwatch_header)")
-                            print(idx, val, len(metwatch_header))
-                        if idx in mw_relevant_pos:
-                            if idx == 8: # datetime
-                                Y, M, D, h, m = val[:4], val[4:6], val[6:8], val[8:10], val[10:12]
-                                datetime = dt(int(Y), int(M), int(D), int(h), int(m))
-                            else:
-                                val = val.strip()
-                                translation = translate_metwatch_IDs(metwatch_header[idx])
-                                element, duration, multiply, add_to, replace = translation
-                                if verbose:
-                                    print("element, duration, multiply, add_to, replace")
-                                    print(element, duration, multiply, add_to, replace)
-                                if val != "/":
-                                    if replace is not None and val in replace:
-                                        val = replace[val]
-                                    else:
-                                        if multiply is not None:
-                                            val = float(val) * multiply
-                                        if add_to is not None:
-                                            val = float(val) + add_to
-                                    print("datetime, duration, element, val")
-                                    print(datetime, duration, element, val)
-                                    sql_values.add( (datetime, duration, element, val) )
-            
-            fhand.close()
+            try:
+                for line in reader:
+                    # if we encounter INDEX as the first element, we know it's a header line
+                    if line[0].strip() == "INDEX":
+                        continue
+                    else:
+                        if verbose: print(line[:-1])
+                        # else we parse the line element by element to save the values
+                        for idx, val in enumerate(line[:-1]):
+                            if verbose:
+                                print("idx, val, len(metwatch_header)")
+                                print(idx, val, len(metwatch_header))
+                            if idx in mw_relevant_pos:
+                                if idx == 8: # datetime
+                                    Y, M, D, h, m = val[:4], val[4:6], val[6:8], val[8:10], val[10:12]
+                                    datetime = dt(int(Y), int(M), int(D), int(h), int(m))
+                                else:
+                                    val = val.strip()
+                                    translation = translate_metwatch_IDs(metwatch_header[idx])
+                                    element, duration, multiply, add_to, replace = translation
+                                    if verbose:
+                                        print("element, duration, multiply, add_to, replace")
+                                        print(element, duration, multiply, add_to, replace)
+                                    if val != "/":
+                                        if replace is not None and val in replace:
+                                            val = replace[val]
+                                        else:
+                                            if multiply is not None:
+                                                val = float(val) * multiply
+                                            if add_to is not None:
+                                                val = float(val) + add_to
+                                        print("datetime, duration, element, val")
+                                        print(datetime, duration, element, val)
+                                        sql_values.add( (datetime, duration, element, val) )
+            except: return None
+            else:   fhand.close()
             
         return sql_values
 
@@ -123,9 +124,11 @@ def import_metwatch(stations):
         
         #TODO import relevant data from csv files in legacy output directory and insert to database
         sql_values = bufr_index_map(loc) 
-        if sql_values is None: continue
-        db_loc.close()
-    
+        if sql_values is not None:
+            db_exemany(sql_insert, sql_values)
+            db_loc.commit()
+        db_loc.close(commit=False)
+        
     return
 
 
