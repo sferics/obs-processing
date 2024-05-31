@@ -78,12 +78,18 @@ def audit_obs(stations):
                 if element == "WW_2m_met":
                     # simple approach: we need to check whether there is any correct sub-string
                     #val_in_extra = any(substring in val for substring in extra))
-
+                    
+                    # remove leading "-" character if present
+                    val = val.lstrip("-")
+                    # remove any "-" character if present
+                    #val.replace("-", "")
+                     
                     # OR we loop through the string in substrings of length 2 and check all values
                     # first we check whether length of string is even (can be read in pieces of 2)
                     lv = len(val)
                     if lv % 2 == 0:
                         # new value string will be constructed by correct sub-strings only
+                        #TODO implement as list comprension, at the end join list as str, benchmark
                         val_in_extra    = True
                         val             = ""
                         for i in range(0, lv, 2):
