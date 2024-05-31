@@ -39,7 +39,7 @@ def import_metwatch(stations):
 
         return metwatch_transl[metwatchID.strip()]
     
-    def bufr_index_map(loc):
+    def parse_metwatch(loc):
         """
         Purpose:
         Provides the index_map that is later used to identify which column to acquire from the bufr files.
@@ -94,18 +94,20 @@ def import_metwatch(stations):
                                                 val = float(val) * multiply
                                             if add_to is not None:
                                                 val = float(val) + add_to
-                                        print("datetime, duration, element, val")
-                                        print(datetime, duration, element, val)
+                                        if verbose:
+                                            print("datetime, duration, element, val")
+                                            print(datetime, duration, element, val)
                                         sql_values.add( (datetime, duration, element, val) )
             except: return None
             else:   fhand.close()
             
         return sql_values
+    
 
     for loc in stations:
         
         db_file = obs.get_station_db_path(loc)
-        print(db_file)
+        if verbose: print(db_file)
         obs.create_station_tables(loc)
         #db_file = f"{output}/{mode}/forge/{loc[0]}/{loc}.db"
         try: db_loc = dc( db_file, {"verbose":verbose, "traceback":traceback}, ro=False )
@@ -123,10 +125,12 @@ def import_metwatch(stations):
             sql_insert += "NOTHING"
         
         #TODO import relevant data from csv files in legacy output directory and insert to database
-        sql_values = bufr_index_map(loc) 
+        sql_values = parse_metwatch(loc) 
+        
         if sql_values is not None:
             db_exemany(sql_insert, sql_values)
             db_loc.commit()
+        
         db_loc.close(commit=False)
         
     return
@@ -158,7 +162,7 @@ if __name__ == "__main__":
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
     update          = cf.script["update"]
-    extra           = cf.script["extra"] if cf.script["extra"] is not None else "metwatch"
+    extra           = cf.script["extra"]
     
     metwatch_transl = gf.read_yaml("translations/metwatch")
     metwatch_header = metwatch_transl["header"]
