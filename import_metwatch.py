@@ -117,7 +117,7 @@ def import_metwatch(stations):
             if debug:       pdb.set_trace()
             continue
          
-        sql_insert = ("INSERT TO INTO obs (dataset,datetime,duration,element,value) "
+        sql_insert = ("INSERT INTO obs (dataset,datetime,duration,element,value) "
             "VALUES('metwatch',?,?,?,?) ON CONFLICT DO ")
         if update: # update flag which forces already existing values to be updated
             sql_insert += "UPDATE SET value = excluded.value, duration = excluded.duration"
@@ -128,7 +128,7 @@ def import_metwatch(stations):
         sql_values = parse_metwatch(loc) 
         
         if sql_values is not None:
-            db_exemany(sql_insert, sql_values)
+            db_loc.exemany(sql_insert, sql_values)
             db_loc.commit()
         
         db_loc.close(commit=False)
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
     update          = cf.script["update"]
-    extra           = cf.script["extra"]
+    extra           = cf.script["extra"] if cf.script["extra"] else "metwatch"
     
     metwatch_transl = gf.read_yaml("translations/metwatch")
     metwatch_header = metwatch_transl["header"]
