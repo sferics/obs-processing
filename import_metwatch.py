@@ -128,6 +128,7 @@ def import_metwatch(stations):
         sql_values = parse_metwatch(loc) 
         
         if sql_values is not None:
+            print(loc, len(sql_values))
             db_loc.exemany(sql_insert, sql_values)
             db_loc.commit()
         
