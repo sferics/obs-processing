@@ -134,7 +134,8 @@ def audit_obs(stations):
         
         #TODO implement JUMP CHECK (5th column of element_info dictionary); general procedure idea:
         # if the element changes within {key} hours by {value} drop it from obs database -> obs_bad
-        
+        # start iterating through datetimes, starting from i+1 and compare with i-1 and i+2
+
         # only commit changes when all operations are complete
         db_loc.close(commit=True)
 

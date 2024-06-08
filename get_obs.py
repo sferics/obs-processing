@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-import os, sys, time, requests, argparse
+import os, sys, time
+import requests
 import http
+import wget
 import urllib
 from urllib import request, response, parse
 import global_functions as gf
@@ -32,7 +34,8 @@ def get_obs():
 if __name__ == "__main__":
     
     # define program info message (--help, -h)
-    info        = "Download latest obs from different Open Data sources. Sources need to be configured in config/sources.yml"
+    info        = ("Download latest obs from various Open Data sources. Sources need to be "
+        "configured in config/sources.yml")
     script_name = gf.get_script_name(__file__)
     flags       = ("l","v","c","d","m","o","u")
     cf          = ConfigClass(script_name, ["source"], flags=flags, info=info, sources=True)

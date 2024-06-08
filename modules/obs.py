@@ -156,8 +156,6 @@ class ObsClass:
                     sql += "UPDATE SET value=excluded.value"
                 else: sql += "NOTHING"
         
-        print(sql)
-        
         for loc in obs_db:
             created = self.create_station_tables(loc, output, mode, stage, max_retries, 1, 1)
             if not created: continue
