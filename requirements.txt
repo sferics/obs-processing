@@ -49,6 +49,7 @@ Jinja2==3.1.2
 jsonpatch @ file:///home/conda/feedstock_root/build_artifacts/jsonpatch_1695536281965/work
 jsonpointer @ file:///home/conda/feedstock_root/build_artifacts/jsonpointer_1695397236330/work
 libmambapy @ file:///home/conda/feedstock_root/build_artifacts/mamba-split_1703178593403/work/libmambapy
+matplotlib-inline==0.1.7
 menuinst @ file:///home/conda/feedstock_root/build_artifacts/menuinst_1705068285750/work
 mkl-random @ file:///croot/mkl_random_1695059800811/work
 numexpr @ file:///croot/numexpr_1696515281613/work
@@ -56,15 +57,21 @@ numpy==1.26.4
 packaging @ file:///home/conda/feedstock_root/build_artifacts/packaging_1696202382185/work
 pandas==2.2.2
 pdbufr==0.11.0
+pexpect==4.9.0
+pickleshare==0.7.5
 pipdeptree==2.21.0
 platformdirs==3.10.0
 plbufr==0.0.0
 pluggy==1.5.0
 polars==0.20.7
+prompt_toolkit==3.0.46
 psutil @ file:///work/ci_py311_2/psutil_1679337388738/work
+ptyprocess==0.7.0
+pure-eval==0.2.2
 pyarrow==16.1.0
 pycosat==0.6.6
 pycparser==2.22
+Pygments==2.18.0
 pytest==8.2.1
 pytest-metadata==3.1.1
 python-dateutil==2.9.0.post0
@@ -73,9 +80,13 @@ requests @ file:///home/conda/feedstock_root/build_artifacts/requests_1684774241
 ruamel.base==1.0.0
 ruamel.yaml @ file:///work/ci_py311/ruamel.yaml_1676838772170/work
 six==1.16.0
+stack-data==0.6.3
 tqdm==4.66.4
+traitlets==5.14.3
 truststore==0.9.1
 tzdata==2024.1
 urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1706638047111/work
+wcwidth==0.2.13
+wget==3.2
 yaml-to-sqlite==1.0
 zstandard==0.22.0
