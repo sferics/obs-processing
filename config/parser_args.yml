@@ -36,7 +36,7 @@ flags:
   P:      [processes,     ~,                                          ~,          ~,          ~,        int,        "number of processes to use (enables multiprocessing mode if set)"    ]
   r:      [redo,          ~,                                          ~,          store_true, ~,        ~,          "decode_bufr again even if already processed / reduce or export again"]
   R:      [restart,       ~,                                          ~,          ~,          ~,        int,        "only parse all files with status=locked_{restart} (R=PID usually)"   ]
-  s:      [sort_files,    ~,                                          ~,          store_true, ~,        ~,          "sort files alpha-numeric before parsing"                             ]
+  s:      [sort_files,    ~,                                          ~,          store_true, ~,        ~,          "sort files alpha-numeric before parsing / sort legacy output files"  ]
   S:      [stage,         [raw,forge,bad,final],                      ~,          ~,          forge,    str,        "name of stage within staging chain processing (default=forge)"       ]
   t:      [traceback,     ~,                                          ~,          store_true, ~,        ~,          "enable traceback debugging prints (using the traceback module)"      ]
   T:      [translation,   ~,                                          ~,          ~,          ~,        str,        "name of custom (bufr) translation file"                              ]

@@ -38,8 +38,8 @@ def audit_obs(stations):
         db_loc.attach_station_db(loc, output, mode=mode, stage="final")
         
         #sql = ""
-        sql_good = (f"INSERT INTO final.obs (dataset,timestamp,element,value) VALUES (?,?,?,?) "
-            f"ON CONFLICT DO {on_conflict}")
+        sql_good = (f"INSERT INTO final.obs (dataset,datetime,timestamp,element,value) VALUES "
+            f"(?,?,?,?,?) ON CONFLICT DO {on_conflict}")
         sql_bad  = (f"INSERT INTO final.obs_bad (dataset,datetime,element,value,reason) VALUES "
             f"(?,?,?,?,?) ON CONFLICT DO {on_conflict}")
         values_good, values_bad = set(), set()

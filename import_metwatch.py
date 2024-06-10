@@ -37,7 +37,7 @@ def import_metwatch(stations):
 
         """
 
-        return metwatch_transl[metwatchID.strip()]
+        return metwatch_import[metwatchID.strip()]
     
     def parse_metwatch(loc):
         """
@@ -166,9 +166,10 @@ if __name__ == "__main__":
     extra           = cf.script["extra"] if cf.script["extra"] else "metwatch"
     
     metwatch_transl = gf.read_yaml("translations/metwatch")
-    metwatch_header = metwatch_transl["header"]
-    # remember all needed elements (keys of metwatch_transl dict + datetime)
-    mw_relevant_ele = set(metwatch_transl.keys()) | {"YYYYMMDDhhmm"}
+    metwatch_header = metwatch_transl["header"].keys()
+    metwatch_import = metwatch_transl["import"]
+    # remember all needed elements (keys of metwatch_import dict + datetime)
+    mw_relevant_ele = set(metwatch_import.keys()) | {"YYYYMMDDhhmm"}
     # get all relevant positions where we encounter a needed header element 
     mw_relevant_pos = { idx for idx, ele in enumerate(metwatch_header) if ele in mw_relevant_ele }
     
