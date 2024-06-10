@@ -7,7 +7,7 @@ from config import ConfigClass as cc
 import global_functions as gf
 
 
-def export_obs(stations):
+def export_obs(stations, datetime_in):
     """
     Parameter:
     ----------
@@ -29,10 +29,22 @@ def export_obs(stations):
             if traceback:   gf.print_trace(e)
             if debug:       pdb.set_trace()
             continue
-         
-        #TODO get all relevant data to export and write it to csv files in legacy output directory
-        for element in elements:
-            pass
+        
+        # get all values of desired datetimes (hourly, 30min etc) which are not exported yet
+        datetime_in = datetime_in.replace("datetime", "timestamp")
+        
+        sql = f"SELECT DISTINCT timestamp FROM obs WHERE {datetime_in}"
+        if not redo:
+            sql += " AND exported = 0"
+        
+        db_loc.exe(sql)
+        
+        # iterated over all these datetimes, starting with the oldest
+        for datetime in sorted(db_loc.fetch()):
+            print(datetime) 
+            #TODO get all relevant data to export and write it to csv files in legacy output directory
+            for element in elements:
+                print(element)
 
         db_loc.close()
     
@@ -44,7 +56,7 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Export (latest) observations from databases to legacy output format (metwatch csv)"
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","C","m","M","o","O","d","t","P")
+    flags       = ("l","v","C","m","M","o","O","d","t","P","V","r")
     cf          = cc(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
@@ -63,8 +75,19 @@ if __name__ == "__main__":
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
+    values          = cf.script["values"]
+    redo            = cf.args.redo
     sources         = cf.args.source
    
+    if "min" in values:
+        frequency   = int( values.replace("min", "") )
+        minutes     = tuple( str(i).rjust(2, "0") for i in range(0, 60, frequency) )
+        datetime_in = f"strftime('%M', datetime) IN {minutes}"
+    elif "h" in values:
+        frequency   = int( values.replace("h", "") )
+        hours       = tuple( str(i).rjust(2, "0") for i in range(0, 24, frequency) )
+        datetime_in = f" strftime('%M', datetime) = '00' AND strftime('%H', datetime) IN {hours}"
+     
     #TODO implement WHERE dataset='{source}' or AND dataset='{source}' in all SELECT statements
     if len(sources) > 0:
         sql             = dc.sql_equal_or_in(sources)
@@ -73,12 +96,11 @@ if __name__ == "__main__":
     else:
         and_dataset, where_dataset = "", ""
     
-    obs             = oc( cf, mode=mode, stage="forge", verbose=verbose )
+    obs             = oc( cf, mode=mode, stage="final", verbose=verbose )
     db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     elements        = tuple(db.get_elements(path_identifier="export"))
-    print(elements); sys.exit()
-
+    
     db.close(commit=False)
 
     if processes: # number of processes
@@ -92,7 +114,7 @@ if __name__ == "__main__":
         station_groups = np.array_split(stations, processes)
 
         for station_group in station_groups:
-            p = mp.Process(target=export_obs, args=(station_group,))
+            p = mp.Process(target=export_obs, args=(station_group,datetime_in))
             p.start()
 
     else: export_obs(stations)

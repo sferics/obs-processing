@@ -104,7 +104,7 @@ def audit_obs(stations):
                     # 3b insert good data into obs table of final database
                     #sql += f"INSERT INTO obs.final (dataset,timestamp,element,value) VALUES ({row[0]},{row[1]},{row[2]},{row[3]})\n"
                     timestamp = int( datetime.timestamp() )
-                    values_good.add( (dataset, timestamp, element, val) )
+                    values_good.add( (dataset, datetime, timestamp, element, val) )
                 else:
                     try:
                         val = float(val)

@@ -9,7 +9,7 @@ model:
 
 obs:
   dataset:    text NOT NULL
-  #datetime:   datetime NOT NULL
+  datetime:   datetime NOT NULL
   timestamp:  integer NOT NULL
   element:    text NOT NULL
   value:      text NOT NULL

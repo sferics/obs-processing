@@ -38,7 +38,7 @@ def reduce_obs(stations):
             continue
 
         # create tation table in the forge databases directory
-        obs.create_station_tables(loc)
+        obs.create_station_tables(loc, stage="forge")
         # attach forge database to fill it with reduced observational data
         db_forge = oc.get_station_db_path(loc, output, mode, "forge")
         db_loc.attach(db_forge, "forge")
@@ -47,37 +47,37 @@ def reduce_obs(stations):
         
         # if debug: mark all data as not reduced again and thereby process anew
         if debug: sql += f"UPDATE obs SET reduced = 0{where_dataset};\n"
-
+        
         match mode:
             case "dev":
                 # in dev mode we only need to reduce to one (datetime,duration,element,value)
                 # by selecting only the highest priority source (and from that the highest scale)
                 
                 sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
-                    "dataset,datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
-                    "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE "
+                    f"dataset,datetime,duration,element,value FROM main.obs r WHERE {reduced}"
+                    "prio = ( SELECT MAX(prio) FROM main.obs WHERE "
                     "r.dataset=obs.dataset AND r.datetime=obs.datetime "
-                    "AND r.duration=obs.duration AND r.element=obs.element{and_dataset});\n")
+                    f"AND r.duration=obs.duration AND r.element=obs.element{and_dataset});\n")
                 
             case "oper":
                 #TODO debug! this looks crazy and might also not be necessary (just use dev's sql?)
                 # select latest COR (correction) of highest scale from source with highest prio
                 sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
-                    "dataset,datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
-                    "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE cor = ( SELECT "
+                    f"dataset,datetime,duration,element,value FROM main.obs r WHERE {reduced}"
+                    "prio = ( SELECT MAX(prio) FROM main.obs WHERE cor = ( SELECT "
                     "MAX(cor) FROM main.obs WHERE scale = ( SELECT "
                     "MAX(scale) FROM main.obs WHERE r.dataset=obs.dataset AND "
                     "r.datetime=obs.datetime AND r.duration=obs.duration "
-                    "AND r.element=obs.element{and_dataset}) ) );\n")
+                    f"AND r.element=obs.element{and_dataset}) ) );\n")
                 """
                 sql += ("CREATE TABLE forge.obs AS SELECT DISTINCT "
-                    "dataset,datetime,duration,element,value FROM main.obs r WHERE reduced=0 "
-                    "AND prio = ( SELECT MAX(prio) FROM main.obs WHERE r.datetime=obs.datetime "
+                    f"dataset,datetime,duration,element,value FROM main.obs r WHERE {reduced}"
+                    "prio = ( SELECT MAX(prio) FROM main.obs WHERE r.datetime=obs.datetime "
                     "AND r.element=obs.element AND r.duration=obs.duration AND cor = ( SELECT "
                     "MAX(cor) FROM main.obs WHERE r.dataset=obs.dataset, r.datetime=obs.datetime 
                     "AND r.element=obs.element AND r.duration=obs.duration AND scale = ( SELECT "
                     "MAX(scale) FROM main.obs WHERE r.dataset=obs.dataset AND r.datetime=obs.datetime "
-                    "AND r.duration=obs.duration AND r.element=obs.element{and_dataset}) ) );\n")
+                    f"AND r.duration=obs.duration AND r.element=obs.element{and_dataset}) ) );\n")
                 """
                 
             case "test":
@@ -88,7 +88,7 @@ def reduce_obs(stations):
         # mark all data as reduced (processed)
         sql += "UPDATE obs SET reduced = 1;"
 
-        #if debug: print(sql)
+        if debug: print(sql)
 
         try: db_loc.exescr(sql)
         except sqlite3.Error as e:
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Reduce the number of observations according to operation mode"
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","C","m","M","o","O","d","t","P")
+    flags       = ("l","v","C","m","M","o","O","d","t","P","r")
     cf          = cc(script_name, pos=["source"], flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
@@ -124,8 +124,14 @@ if __name__ == "__main__":
     clusters        = cf.script["clusters"]
     stations        = cf.script["stations"]
     processes       = cf.script["processes"]
+    redo            = cf.args.redo
     sources         = cf.args.source
     
+    if not redo:
+        reduced = "reduced = 0 AND "
+    else:
+        reduced = ""
+
     if len(sources) > 0:
         sql             = dc.sql_equal_or_in(sources)
         and_dataset     = f" AND dataset {sql}"
@@ -133,7 +139,7 @@ if __name__ == "__main__":
     else:
         and_dataset, where_dataset = "", ""
     
-    obs             = oc( cf, mode=mode, stage="forge", verbose=verbose )
+    obs             = oc( cf, mode=mode, stage="raw", verbose=verbose )
     db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)

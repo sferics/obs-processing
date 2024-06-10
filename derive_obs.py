@@ -41,7 +41,7 @@ def derive_obs(stations):
         pass
 
     for loc in stations:
-
+        print(loc)
         sql_values = set()
         
         db_file = obs.get_station_db_path(loc)
