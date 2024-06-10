@@ -44,4 +44,4 @@ flags:
   v:      [verbose,       ~,                                          ~,          store_true, ~,        ~,          "show more detailed output"                                           ]
   V:      [values,        [10min, 30min, 1h, 3h, 6h],                 ~,          ~,          1h,       str,        "frequency of values for export in legacy / Metwatch CSV format"      ]
   w:      [no_warnings,   ~,                                          ~,          store_true, ~,        ~,          "show warnings instead of surpressing them (default)"                 ]
-  x:      [mark_exported, ~,                                          ~,          store_true, ~,        ~,          "mark exported obs as exported in final databases after completion"   ]
+  x:      [not_exported,  ~,                                          ~,          store_true, ~,        ~,          "do not mark obs as exported in final databases after completion"     ]

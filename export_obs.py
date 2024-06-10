@@ -22,7 +22,7 @@ def decimal_to_degrees(value, direction):
         degrees_rjust   = 3
     
     degrees = int(value)
-    minutes = str(int(np.round((value - degrees) * 0.6)))
+    minutes = str(int(np.round((value - degrees) * 60)))
 
     if degrees >= 0:    cardinal = str(cardinal_pos)
     else:               cardinal = str(cardinal_pos)
@@ -67,7 +67,7 @@ def export_obs(stations, datetime_in):
 
         db_file = obs.get_station_db_path(loc)
         #db_file = f"{output}/{mode}/forge/{loc[0]}/{loc}.db"
-        try: db_loc = dc( db_file, {"verbose":verbose, "traceback":traceback}, ro=mark_exported )
+        try: db_loc = dc( db_file, {"verbose":verbose, "traceback":traceback}, ro=not_exported )
         except Exception as e:
             if verbose:     print( f"Could not connect to database of station '{loc}'" )
             if traceback:   gf.print_trace(e)
@@ -114,7 +114,7 @@ def export_obs(stations, datetime_in):
             value       = row[2]
 
             datetime = dt.fromtimestamp(timestamp)
-            metwatch_obs["YYYYMMDDhhmm"] = datetime.strftime("%Y%M%d%H%m")
+            metwatch_obs["YYYYMMDDhhmm"] = datetime.strftime("%Y%m%d%H%M")
             # get all relevant data to export and write it to csv files in legacy output directory
             element_info        = metwatch_export[element]
             metwatch_element    = element_info[0]
@@ -146,13 +146,11 @@ def export_obs(stations, datetime_in):
                 file_text   = f.read()
                 file_lines  = file_text.split("\n")
                 file_lines.sort( key = lambda x : x[73:85] )
-                print("\n".join(file_lines), file=f)
-        
-        print("\n".join(file_content))
         
         # final output: header line + file_content
         
-        if mark_exported:
+        # if exported should be set to 1
+        if not not_exported:
             # mark all processed obs as exported
             db_loc.exe("UPDATE obs SET exported=1 WHERE exported=0")
 
@@ -189,7 +187,7 @@ if __name__ == "__main__":
     values          = cf.script["values"]
     sort_files      = cf.script["sort_files"]
     redo            = cf.args.redo
-    mark_exported   = cf.args.mark_exported
+    not_exported    = cf.args.not_exported
     sources         = cf.args.source
     
     metwatch_transl = gf.read_yaml("translations/metwatch")
