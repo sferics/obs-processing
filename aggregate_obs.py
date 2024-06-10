@@ -2,7 +2,7 @@
 import os
 import sys
 from datetime import datetime as dt, timedelta as td
-#from obs import ObsClass
+from obs import ObsClass as oc
 from database import DatabaseClass as dc
 from config import ConfigClass as cc
 import global_functions as gf
@@ -500,7 +500,7 @@ if __name__ == "__main__":
     else:
         and_dataset, where_dataset = "", ""
 
-    obs             = ObsClass( cf, mode=mode, stage="forge", verbose=verbose )
+    obs             = oc( cf, mode=mode, stage="forge", verbose=verbose )
     db              = dc( config=cf.database, ro=1 )
     stations        = db.get_stations( clusters )
     db.close(commit=False)
