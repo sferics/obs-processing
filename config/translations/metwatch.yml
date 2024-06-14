@@ -47,7 +47,7 @@ import:
   RR1h    : [ PRATE_1m_syn,     1h,       ~,        ~       , {"~0": 0}       ] # precipitation amount during last hour               | mm | l/m**2
   hh      : [ PCPDUR_1m_syn,    1h,       ~,        ~       , ~               ] # precipitation duration during last hour             | min
   RR24h   : [ PRATE_1m_syn,     24h,      ~,        ~       , {"~0": 0}       ] # precipitation amount during last 24hours            | mm | l/m**2
-  SNO     : [ SNOD_srf_syn,     1s,       0.1,      ~       , {F: 0, <1: 0 }  ] # total snow depth                                    | cm
+  SNO     : [ SNOD_srf_syn,     1s,       0.1,      ~       , {F: 0, <1: 0.1} ] # total snow depth                                    | cm
   NEW     : [ NEWSNOD_srf_syn,  TR,       0.1,      ~       , ~               ] # new snow depth/amount during reference period (TR)  | cm
   GS      : [ GS_srf_syn,       1min,     ~,        ~       , ~               ] # state of ground                                     | state of ground code (BUFR 020062)
   SS24    : [ SUNDUR_srf_syn,   24h,      ~,        ~       , ~               ] # sunshine duration of previous day                   | min
