@@ -63,8 +63,15 @@ def import_metwatch(stations):
             if verbose: print(f"{input_dir}/bufr{loc}.csv.gz")
             # acquire indexes
             # go through file line by line
-            try:
-                for line in reader:
+            while True:
+                try:
+                    line = next(reader)
+                    print(line)
+                    # if we encounter INDEX as the fir (datetime, duration, element, val) )
+                except Exception as e:
+                    print(e)
+                    break
+                else:
                     # if we encounter INDEX as the first element, we know it's a header line
                     if line[0].strip() == "INDEX":
                         continue
@@ -80,8 +87,9 @@ def import_metwatch(stations):
                                     Y, M, D, h, m = val[:4], val[4:6], val[6:8], val[8:10], val[10:12]
                                     datetime = dt(int(Y), int(M), int(D), int(h), int(m))
                                 else:
-                                    val = val.strip()
-                                    translation = translate_metwatch_IDs(metwatch_header[idx])
+                                    val         = val.strip()
+                                    mw_element  = mw_header_keys[idx]
+                                    translation = translate_metwatch_IDs(mw_element)
                                     element, duration, multiply, add_to, replace = translation
                                     if verbose:
                                         print("element, duration, multiply, add_to, replace")
@@ -91,15 +99,16 @@ def import_metwatch(stations):
                                             val = replace[val]
                                         else:
                                             if multiply is not None:
-                                                val = float(val) * multiply
+                                                try:    val = float(val) * multiply
+                                                except: pass
                                             if add_to is not None:
-                                                val = float(val) + add_to
+                                                try:    val = float(val) + add_to
+                                                except: pass
                                         if verbose:
                                             print("datetime, duration, element, val")
                                             print(datetime, duration, element, val)
                                         sql_values.add( (datetime, duration, element, val) )
-            except: return None
-            else:   fhand.close()
+            fhand.close()
             
         return sql_values
     
@@ -128,7 +137,7 @@ def import_metwatch(stations):
         sql_values = parse_metwatch(loc) 
         
         if sql_values is not None:
-            print(loc, len(sql_values))
+            if verbose: print(loc, len(sql_values))
             db_loc.exemany(sql_insert, sql_values)
             db_loc.commit()
         
@@ -142,7 +151,7 @@ if __name__ == "__main__":
     # define program info message (--help, -h)
     info        = "Import legacy observations (metwatch csv) into Amalthea station databases"
     script_name = gf.get_script_name(__file__)
-    flags       = ("l","v","C","m","M","o","O","d","t","P","E","u")
+    flags       = ("l","v","C","m","M","o","O","d","t","P","E","u","r")
     cf          = cc(script_name, flags=flags, info=info, clusters=True)
     log_level   = cf.script["log_level"]
     log         = gf.get_logger(script_name, log_level=log_level)
@@ -164,14 +173,16 @@ if __name__ == "__main__":
     processes       = cf.script["processes"]
     update          = cf.script["update"]
     extra           = cf.script["extra"] if cf.script["extra"] else "metwatch"
-    
+    redo            = cf.args.redo
+
     metwatch_transl = gf.read_yaml("translations/metwatch")
-    metwatch_header = metwatch_transl["header"].keys()
+    metwatch_header = metwatch_transl["header"]
+    mw_header_keys  = tuple(metwatch_header.keys())
     metwatch_import = metwatch_transl["import"]
     # remember all needed elements (keys of metwatch_import dict + datetime)
     mw_relevant_ele = set(metwatch_import.keys()) | {"YYYYMMDDhhmm"}
     # get all relevant positions where we encounter a needed header element 
-    mw_relevant_pos = { idx for idx, ele in enumerate(metwatch_header) if ele in mw_relevant_ele }
+    mw_relevant_pos = { idx for idx, ele in enumerate(mw_header_keys) if ele in mw_relevant_ele }
     
     obs             = oc( cf, source=extra, mode=mode, stage="raw", verbose=verbose )
     db              = dc( config=cf.database, ro=1 )
