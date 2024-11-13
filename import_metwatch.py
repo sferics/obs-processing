@@ -66,7 +66,6 @@ def import_metwatch(stations):
             while True:
                 try:
                     line = next(reader)
-                    print(line)
                     # if we encounter INDEX as the fir (datetime, duration, element, val) )
                 except Exception as e:
                     print(e)
@@ -96,6 +95,9 @@ def import_metwatch(stations):
                                         print(element, duration, multiply, add_to, replace)
                                     if val != "/":
                                         if replace is not None and val in replace:
+                                            if verbose:
+                                                print("val, replace, replace[va]")
+                                                print(val, replace, replace[val])
                                             val = replace[val]
                                         else:
                                             if multiply is not None:

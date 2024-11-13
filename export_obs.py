@@ -2,6 +2,7 @@
 import sys
 import os
 from copy import copy
+from pathlib import Path
 from datetime import datetime as dt
 from obs import ObsClass as oc
 from database import DatabaseClass as dc
@@ -22,7 +23,7 @@ def decimal_to_degrees(value, direction):
         degrees_rjust   = 3
     
     degrees = int(value)
-    minutes = str(int(np.round((value - degrees) * 60)))
+    minutes = str(int(round((value - degrees) * 60)))
 
     if degrees >= 0:    cardinal = str(cardinal_pos)
     else:               cardinal = str(cardinal_pos)
@@ -46,14 +47,14 @@ def export_obs(stations, datetime_in):
     """
     for loc in stations:
         # get all needed station metadata 
-        db = dc( config=cf.database, ro=False )
+        db = dc( config=cf.database, ro=True )
         station_name = db.get_station_name(loc)
         station_icao = db.get_station_icao(loc)
         station_lat  = decimal_to_degrees(db.get_station_latitude(loc), "lat")
         station_lon  = decimal_to_degrees(db.get_station_longitude(loc), "lon")
-        station_elev = int(np.round(db.get_station_elevation(loc)))
+        station_elev = int(round(db.get_station_elevation(loc)))
         db.close(commit=False)
-
+        
         def new_obs():
             metwatch_obs                    = {}
             metwatch_obs["INDEX"]           = loc
@@ -64,7 +65,7 @@ def export_obs(stations, datetime_in):
             metwatch_obs["ELEV"]            = station_elev
             metwatch_obs["TYPE"]            = "SYNO"
             return metwatch_obs
-
+            
         db_file = obs.get_station_db_path(loc)
         #db_file = f"{output}/{mode}/forge/{loc[0]}/{loc}.db"
         try: db_loc = dc( db_file, {"verbose":verbose, "traceback":traceback}, ro=not_exported )
@@ -74,7 +75,45 @@ def export_obs(stations, datetime_in):
             if debug:       pdb.set_trace()
             continue
         
+        # create output directory if it does not exist yet, with parent directories
+        Path(output).mkdir(parents=True, exist_ok=True)
+        # get output file as Path object
         output_file = f"{output}/bufr{loc}.csv"
+        output_path = Path(output_file)
+         
+        # create the output file if it does not exist yet
+        output_path.touch(exist_ok=True)
+        # read the file's content and get all datetimes present
+        with output_path.open("r") as f:
+            file_text       = f.read()
+            file_datetimes  = { i[73:85] for i in file_text.splitlines() }
+         
+        #TODO consider whether such complex treatment is really necessary - usually .csv is a file
+        """
+        # if path is a symlink: resolve it
+        if output_path.is_symlink(): output_path = output_path.resolve()
+        
+        # check if file exists, else create it
+        if output_path.is_file():
+            with output_path.open("r") as f:
+                file_text       = f.read()
+                file_datetimes  = { i[73:85] for i in file_text.split('\n') }
+        else: # path is not pointing to a file
+            # if path of the output file is a directory for some weird reason: just remove it
+            if output_path.is_dir():
+                from shutil import rmtree
+                rmtree(output_path)
+            # if the path exists but is something else (socket, mount, device), log an error message
+            elif output_path.exists():
+                file_stat = output_file.stat()
+                logstr = f"Unknown type of file pointer: '{output_path}' | file stat: '{file_stat}'"
+                log.error(logstr)
+                continue
+            #output_path.open("w").close()
+            output_path.touch()
+            # empty files contains no datetimes (empty set)
+            file_datetimes = set()
+        """
 
         # get all values of desired datetimes (hourly, 30min etc) which are not exported yet
         sql = (f"SELECT timestamp,element,value FROM obs WHERE {datetime_in} AND element "
@@ -82,45 +121,47 @@ def export_obs(stations, datetime_in):
         if not redo:
             sql += " AND exported = 0"
         
-        sql += " ORDER BY datetime"
+        sql += " ORDER BY datetime ASC"
         
         db_loc.exe(sql)
-        file_content = [] 
         
-        timestamp_prev = None
+        timestamp_prev  = None
+        metwatch_obs    = new_obs()
+        line            = ""
         
-        metwatch_obs = new_obs()
-        
-        line = ""
-
         # iterated over all these datetimes, starting with the oldest
         for row in db_loc.fetch():
-            
+                
             timestamp    = row[0]
-
-            # not the first iteration and encountered a new datetime
+            
+            # if not the first iteration and encountered new datetime: write new line for datetime
             if timestamp_prev is not None and timestamp != timestamp_prev:
                 line = ""
                 for mw_element, length in metwatch_header.items():
+                    # if the element name is valid, apppend new value to the line, else value = "/"
                     try:    value = str(metwatch_obs[mw_element])
                     except: value = "/"
                     line += value.rjust(length, " ") + ";"
-                with open(output_file, "a") as f:
-                    print(line, file=f)
-                #file_content.append(line)
+                # open the output file in append mode - so every write will be added as a new line
+                with output_path.open("a") as f:
+                    # only if append line if its datetime does not yet exist in file
+                    if line[73:85] not in file_datetimes:
+                        print(line, file=f)
+                        file_datetimes.add(line[73:85])
+                 
                 metwatch_obs = new_obs()
-
-            element     = row[1]
-            value       = row[2]
-
-            datetime = dt.fromtimestamp(timestamp)
-            metwatch_obs["YYYYMMDDhhmm"] = datetime.strftime("%Y%m%d%H%M")
+                
+            element                         = row[1]
+            value                           = row[2]
+            datetime                        = dt.fromtimestamp(timestamp)
+            metwatch_obs["YYYYMMDDhhmm"]    = datetime.strftime("%Y%m%d%H%M")
+            
             # get all relevant data to export and write it to csv files in legacy output directory
-            element_info        = metwatch_export[element]
-            metwatch_element    = element_info[0]
-            TR                  = element_info[1]
-            factor              = element_info[2]
-            action              = element_info[3]
+            element_info                    = metwatch_export[element]
+            metwatch_element                = element_info[0]
+            TR                              = element_info[1]
+            factor                          = element_info[2]
+            action                          = element_info[3]
             
             # if TR not present yet for this datetime, add it to the dict
             if TR is not None and "TR" not in metwatch_obs:
@@ -128,6 +169,7 @@ def export_obs(stations, datetime_in):
             if factor is not None:
                 try:    value = float(value) * factor
                 except: value = "/"
+            # action column defines a function that will be applied to the value, if possible
             if action is not None:
                 match action:
                     case "round":
@@ -136,27 +178,46 @@ def export_obs(stations, datetime_in):
                     case "round1":
                         try:    value = round(float(value), 1)
                         except: value = "/"
-
+             
             metwatch_obs[metwatch_element]  = value 
             timestamp_prev                  = copy(timestamp)
-
+            
         # if -s/--sort_files flag is set: sort lines of file by datetime (YYYYMMDDhhmm)
+        #https://stackoverflow.com/questions/6648493/how-to-open-a-file-for-both-reading-and-writing
         if sort_files:
-            with open(output_file, "r+") as f:
+            with output_path.open("r+") as f:
+                # read file content and transform it into a list of lines
                 file_text   = f.read()
-                file_lines  = file_text.split("\n")
+                file_lines  = file_text.splitlines()
+                # sort the list of lines (in-place is faster)
                 file_lines.sort( key = lambda x : x[73:85] )
-        
-        # final output: header line + file_content
-        
+                # re-join them as a string devided by line breaks
+                file_text   = "\n".join(file_lines)
+                # overwrite the file content with sorted lines
+                # start writing from beginning of file (first line)
+                f.seek(0)
+                # write sorted lines to file
+                f.write(file_text)
+                # truncation is necessary to make sure the file only contains newly written lines
+                f.truncate()
+                 
         # if exported should be set to 1
         if not not_exported:
             # mark all processed obs as exported
             db_loc.exe("UPDATE obs SET exported=1 WHERE exported=0")
-
+        
         # close database connection without committing
         db_loc.close(commit=False)
-
+        
+        # delete file if it happens to be empty (because no data has been written to it)
+        if output_path.stat().st_size == 0:
+            try:
+                output_path.unlink()
+            except Exception as e:
+                logstr = f"Empty output file '{output_file}' could not be deleted | Error: '{e}'"
+                log.error(logstr)
+                if verbose: print(logstr)
+            
     return
 
 
@@ -233,4 +294,4 @@ if __name__ == "__main__":
             p = mp.Process(target=export_obs, args=(station_group,datetime_in))
             p.start()
 
-    else: export_obs(stations)
+    else: export_obs(stations, datetime_in)

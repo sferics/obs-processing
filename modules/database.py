@@ -1,4 +1,5 @@
 import sys, re, inspect, sqlite3 # sqlite connector python base module
+from contextlib import contextmanager
 import global_functions as gf
 import global_variables as gv
 from datetime import datetime as dt
@@ -7,7 +8,8 @@ from datetime import datetime as dt
 class DatabaseClass:
     
     #@classmethod
-    def __init__(self, db_file="main.db", config={ "timeout":5, "log_level":"NOTSET", "verbose":0, "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
+    def __init__(self, db_file="main.db", config={ "timeout":5, "log_level":"NOTSET", "verbose":0,
+            "traceback":0, "settings":{} }, text_factory=None, row_factory=None, ro=False):
         """
         """
         # make config accessible as class object
@@ -34,7 +36,7 @@ class DatabaseClass:
         if ro: self.db_file = f"file:{self.db_file}?mode=ro"
 
         # Opening database connection (uri needs to be also True if read-only)
-        self.con    = sqlite3.connect(self.db_file, timeout=self.timeout, uri=ro)
+        self.con        = sqlite3.connect(self.db_file, timeout=self.timeout, uri=ro)
         
         if callable(row_factory): self.con.row_factory = row_factory
         # else set to default (get rid of tuple w/ length 1)
@@ -44,25 +46,30 @@ class DatabaseClass:
 
         # use string converter
         if callable(text_factory): self.con.text_factory = text_factory
-
-        # enable REGEXP function
+        
+        # enable the custom REGEXP (regex) function
         def regexp(expr, item):
             reg = re.compile(expr)
             return reg.search(item) is not None
-
+        
+        # define it on the connection object
         self.con.create_function("REGEXP", 2, regexp)
-
+        
         # Set up database cursor
-        self.cur    = self.con.cursor()
+        self.cur        = self.con.cursor()
         # shorthand for cursor rowcount
-        self.rowcnt = self.cur.rowcount
+        self.rowcnt     = self.cur.rowcount
         # shorthand for lastrowid
-        self.lastid = self.cur.lastrowid
-
+        self.lastid     = self.cur.lastrowid
+        # shorthand for description (column names)
+        self.descr      = self.cur.description
+        # alias / shorthand for arraysize (number of rows to return by fetchmany() by default)
+        self.n_rows     = self.cur.arraysize
+        
         # make row and text factory accessible after initiating database object\
         self.row_factory    = self.con.row_factory
         self.text_factory   = self.con.text_factory
-
+        
         # apply all PRAGMA settings from the settings dictionary
         if "settings" in config:
             settings = config["settings"]
@@ -72,18 +79,57 @@ class DatabaseClass:
                 # elif verbose: print current setting
                 elif self.verbose: print( i, setting )
     
-
-    # some useful shorthand definitions
-    commit  = lambda self         : self.con.commit()
-    fetch1  = lambda self         : self.cur.fetchone()
-    fetch   = lambda self         : self.cur.fetchall()
-    exe     = lambda self, *param : self.cur.execute(*param)
-    exemany = lambda self, *param : self.cur.executemany(*param)
-    exescr  = lambda self, *param : self.cur.executescript(*param)
-    attach  = lambda self, DB, AS : self.exe( f"ATTACH DATABASE '{DB}' as '{AS}'" )
-    detach  = lambda self, DB     : self.exe( f"DETACH DATABASE '{DB}'" )
+        #TODO register adapters and converters for custom datatypes defining how they are stored
+        #https://docs.python.org/3.11/library/sqlite3.html#sqlite3.register_adapter
     
-
+    # some useful shorthand definitions
+    commit      = lambda self         : self.con.commit()
+    fetch1      = lambda self         : self.cur.fetchone()
+    fetchmany   = lambda self, n_rows : self.cur.fetchmany(n_rows)
+    fetch       = lambda self         : self.cur.fetchall()
+    exe         = lambda self, *param : self.cur.execute(*param)
+    exemany     = lambda self, *param : self.cur.executemany(*param)
+    exescr      = lambda self, *param : self.cur.executescript(*param)
+    attach      = lambda self, DB, AS : self.exe( f"ATTACH DATABASE '{DB}' as '{AS}'" )
+    detach      = lambda self, DB     : self.exe( f"DETACH DATABASE '{DB}'" )
+    
+    # let the cursor iterate over result rows and yield them
+    # inspired by: thttps://stackoverflow.com/questions/18712772/how-to-return-a-generator-in-python
+    def cursor_iter(self, cur, chunks=None):
+        if chunks is None:
+            rows = cur.fetchall()
+            for row in rows:
+                yield row
+        else:
+            rows = chunks
+            while rows:
+                rows = cur.fetchmany(rows)
+                if not rows: break
+                for row in rows:
+                    yield row
+     
+    # return rows as a generator (useful to create a DataFrame from them)
+    #@contextmanager
+    def fetch_gt(self, cur, *param, chunks=None):
+        cur.execute(*param)
+        return self.cursor_iter(cur, chunks)
+    
+    def fetch_gt_as(self, cur, aswhat, *param, chunks=None):
+        gt = self.fetch_gt(cur, *param, chunks=chunks)
+        return aswhat(gt)
+     
+    def fetch_pandas_df(self, cur, *param, chunks=None):
+        from pandas import DataFrame
+        return self.fetch_gt_as(cur, DataFrame, *param, chunks=chunks)
+    
+    def fetch_polars_df(self, cur, *param, chunks=None):
+        from polars import DataFrame
+        return self.fetch_gt_as(cur, DataFrame, *param, chunks=chunks)
+    
+    def fetch_polars_lf(self, cur, *param, chunks=None):
+        from polars import LazyFrame
+        return self.fetch_gt_as(cur, LazyFrame, *param, chunks=chunks)
+    
     def attach_station_db(self, loc, output, mode="dev", stage="forge"):
         """
         Parameter:
