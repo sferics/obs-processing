@@ -3,17 +3,17 @@
 # great source for these fractions: https://unitchefs.com/speed/
 
 # TEMPERATURE
-K2C:    &K2C    -273.15               # K to C*10
+K2C:    &K2C    -273.15                 # K to C*10
 
 # WIND SPEED
-kn2ms:  &kn2ms  0.5144444444444445  # kn to m/s
-ms2kn:  &ms2kn  1.9438444924406046  # m/s to kn
-kh2kn:  &kh2kn  0.5399568034557235  # km/h to kn
-kh2ms:  &kh2ms  0.2777777777777778  # km/h in m/s
+kn2ms:  &kn2ms  0.5144444444444445      # kn to m/s
+ms2kn:  &ms2kn  1.9438444924406046      # m/s to kn
+kh2kn:  &kh2kn  0.5399568034557235      # km/h to kn
+kh2ms:  &kh2ms  0.2777777777777778      # km/h in m/s
   
 # LENGTH
-#m2ft:   &m2ft   3.2808398950131235   # m to ft
-ft2m:   &ft2m   0.3048
+#m2ft:   &m2ft   3.2808398950131235    # m to ft
+ft2m:   &ft2m   0.3048                 # ft to m
 #m2m30:  &m2m30  0.03333333333333333   # m  to m/30 
 #ft2m30: &ft2m30 0.01016               # ft to m/30
 

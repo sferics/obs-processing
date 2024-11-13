@@ -64,6 +64,7 @@ timePeriod:
     -21600: 6h
     -43200: 12h
     -86400: 24h
+    -90000: 25h
 
 # meaning of columns:
 # element_name, duration, multiply, add, scale

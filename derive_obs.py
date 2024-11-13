@@ -21,7 +21,9 @@ def derive_obs(stations):
         try:    db_loc.exe(sql)
         except: pass
         else:   db_loc.commit()
-
+    
+    #TODO structure this function but using more subroutines like the one above
+    
     def derive_CL():
         pass
 
@@ -38,6 +40,9 @@ def derive_obs(stations):
         pass
     
     def derive_dewpoint():
+        pass
+    
+    def derive_metwatch():
         pass
 
     for loc in stations:
@@ -160,7 +165,7 @@ def derive_obs(stations):
         db_loc.row_factory = sf.tuple_row
         
         data = db_loc.fetch()
-        print("CL")
+        if verbose: print("CL")
         datetime_prev, element_prev, value_prev = None, None, None
         
         for i in data:
@@ -168,7 +173,7 @@ def derive_obs(stations):
             datetime    = i[1]
             element     = i[2]
             value       = str(int(float(i[3])))
-            print(dataset, datetime, element, value)
+            if verbose: print(dataset, datetime, element, value)
             
             if datetime==datetime_prev and element[2]==element_prev[2] and element != element_prev:
                 try:    value_CAx = str(int(round(float(value_prev))))
@@ -177,8 +182,9 @@ def derive_obs(stations):
                 except: continue
                 value_CLx = value_CAx + value_CBx
                 if len(value_CLx) == 4:
-                    print(f"CL{element[2:]}")
-                    print(value_CLx)
+                    if verbose:
+                        print(f"CL{element[2:]}")
+                        print(value_CLx)
                     sql_values.add( (dataset, datetime, f"CL{element[2:]}", value_CLx) )
             
             datetime_prev   = copy(datetime)
@@ -192,7 +198,7 @@ def derive_obs(stations):
         db_loc.row_factory = sf.default_row
         
         # this is needed when deriving obs imported from metwatch csv files (import_metwatch.py)
-        """
+        
         # do this for all metwatch elements which can be linked to a TR
         # derive [element, TR] from element and TR
         # derive [PRATE_1m_syn, TR] from PRATE_1m_syn and corresponding TR
@@ -216,39 +222,58 @@ def derive_obs(stations):
         db_loc.row_factory = sf.polars_lf_row
         # get result of SELECT statement as a polars DataFrame
         db_loc.row_factory = sf.polars_df_row
-
+        
         # the TR element also has duration='TR' so we can query all needed data with only one SELECT
         sql = (f"SELECT dataset,datetime,element,value FROM obs WHERE duration = 'TR'{dt_30min}")
-        db_loc.exe(sql)
+        #db_loc.exe(sql)
         
-        obs_df = db_loc.fetch() 
+        cur     = db_loc.cur
+        # we will retrieve the data directly as a polars DataFrame
+        obs_df  = db_loc.fetch_polars_df(cur, sql)
+        #obs_lf  = db_loc.fetch_polars_lf(cur, sql)
 
-        # in all distinct datetimes, connect element with duration provided by TR (dur=f"{TR}h")
-        obs_lf.select(["datetime","element"]).unique()
-        obs_lf.unique(subset=["datetime"])
+        print("obs_df")
+        print(obs_df)
         
-        for name, data in obs_df.group_by(["datetime"]):
-            print(name, data)
+        #print("obs_lf")
+        #print(obs_lf)
+        
+        # if DataFrame has at least 2 columns (we need TR + one TR-dependent element)
+        if obs_df.width > 1:
+            print( db_loc.desc, cur.description )
+            obs_df.columns = cur.description # ["dataset","datetime","element","value"]
+            
+            # in all distinct datetimes, connect element with duration provided by TR (dur=f"{TR}h")
+            obs_select      = obs_df.select(["datetime","element"]).unique()
+            obs_unique_dt   = obs_df.unique(subset=["datetime"])
+            
+            print("SELECT, UNIQUE")
+            print(obs_select, obs_unique_dt)
+            
+            for name, data in obs_df.group_by(["datetime"]):
+                print(name, data)
+                 
+                value_TR = data.select(["TR"])
+                 
+            
+            for values in obs_dict:
                 
-            value_TR = data.select(["TR"])
-             
-
-        for values in obs_dict:
-
-            dataset, element, value = values
-
-            if element == "TR": duration    = str(value) + "h"
-            # if we had element="TR" already
-            elif duration:
-                value_obs   = copy(value)
-                # add the observation to the sql values set
-                prate_vals.add( (dataset, datetime, element, value_obs, duration) )
-
+                dataset, element, value = values
+                
+                if element == "TR": duration    = str(value) + "h"
+                # if we had element="TR" already
+                elif duration:
+                    value_obs   = copy(value)
+                    # add the observation to the sql values set
+                    prate_vals.add( (dataset, datetime, element, value_obs, duration) )
+            import sys
+            sys.exit()
+        
         # reset row factory
         db_loc.row_factory = sf.default_row
         db_loc.exemany(sql_insert, prate_vals)
-        """
-        
+        continue
+         
         # try to calculate QFF+QNH if no reduced pressure is present in obs
         # and we have barometer height instead
         db = dc( config=cf.database, ro=1 )
@@ -328,8 +353,8 @@ def derive_obs(stations):
                     pr_qnh = gf.qnh( value_PRES, baro_height, value_TMP )
                     prmsl_vals.add( (dataset, datetime, "PRMSL_ms_met", pr_qnh) )
                     
-                    # if dewpoint or relative humidity present: use DWD pressure reduction method
-                    #https://www.dwd.de/DE/leistungen/pbfb_verlag_vub/pdf_einzelbaende/vub_2_binaer_barrierefrei.pdf?__blob=publicationFile&v=4 [page 106]
+                    # if dewpoint or relative humidity present: use DWD reduction method [page 106]
+                    #https://www.dwd.de/DE/leistungen/pbfb_verlag_vub/pdf_einzelbaende/vub_2_binaer_barrierefrei.pdf?__blob=publicationFile&v=4
                     if value_DPT is not None or value_RH is not None and baro_height < 750:
                         
                         if value_RH is None:
@@ -354,7 +379,7 @@ def derive_obs(stations):
             db_loc.exe(sql)
             
             sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) VALUES"
-                f"(?,?,'DPT_2m_syn',?,'1s') ON CONFLICT DO {on_conflict}")
+                f"(?,?,'DPT_2m_syn',?) ON CONFLICT DO {on_conflict}")
             dpt_vals    = set()
             
             for datetime in db_loc.fetch():
@@ -376,11 +401,29 @@ def derive_obs(stations):
                      
                     # dewpoint temperature needs to be smaller than OR equal to temperature
                     if value_DPT <= value_TMP:
-                        dpt_vals.add( (dataset, datetime, value_DPT) )
+                        dpt_vals.add( (dataset, datetime, "DPT_2m_syn", value_DPT) )
                 
             db_loc.exemany(sql_insert, dpt_vals)
             
 
+            # correct durations for W1W2
+            sql_insert = (f"INSERT INTO obs (dataset,datetime,element,value,duration) VALUES"
+                f"(?,?,?,?) ON CONFLICT DO {on_conflict}")
+            
+            W1W2_cors = set()
+            
+            sql = (f"SELECT datetime, element, value FROM obs WHERE element LIKE 'W%_srf_syn' AND "
+                    f"value IS NOT NULL AND strftime('%M', datetime) = '00'")
+            db_loc.exe(sql)
+            
+            for datetime, element, value in db_loc.fetch():
+                hour        = datetime.hour
+                duration    = W1W2_durations[hour]
+                W1W2_cors.add( (datetime, duration, element, value) )
+
+            db_loc.exemany(sql_insert, W1W2_cors)
+                
+                
             ##TODO MEDIUM priority, could be useful for some sources
             
             #TODO derive total sunshine duration in min from % (using astral package; see wetterturnier)
@@ -465,6 +508,10 @@ if __name__ == "__main__":
     #synop_codes     = gf.read_yaml("codes/synop", file_dir=cf.config_dir)
     # get METAR codes conversion dictionary to decode METAR codes
     #metar_codes     = gf.read_yaml("codes/metar", file_dir=cf.config_dir)
+   
+    # W1W2 reference period is 6h for 0,6,12,18z, 3h for 3,9,15,21z and 1h for the other hours
+    W1W2_durations = { 0: 6, 1: 1, 2: 1, 3: 3, 4: 1, 5: 1, 6: 6, 7: 1, 8:1, 9: 3, 10: 1, 11: 1,
+            12: 6, 13:1, 14: 1, 15: 3, 16: 1, 17: 1, 18: 6, 19: 1, 20:1, 21: 3, 22: 1, 23: 1 }
     
     if processes: # number of processes
         import multiprocessing as mp
@@ -481,6 +528,6 @@ if __name__ == "__main__":
             p.start()
 
     else: derive_obs(stations)
-
+    
     finished_str = gf.get_finished_str(script_name)
     if verbose: print(finished_str)

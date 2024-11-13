@@ -79,7 +79,7 @@ It can also process intire source/dataset directories which can be provided by t
 
 ##### -a/--approach $APPROACH
 You may use 5 different approaches to decode the BUFR files:
-- pd: Using [pdbufr package officially provided by ECMWF](#https://github.com/ecmwf/pdbufr) (very slow because it uses pandas).
+- pd: Using [pdbufr package officially provided by ECMWF](#https://github.com/ecmwf/pdbufr) (very slow because it relies on pandas).
 - pl: Using [plbufr package forked from pdbufr by sferics](#https://github.com/sferics/plbufr) (much faster because it uses polars instead).
 - gt: Also using plbufr package, but instead of creating a polars DataFrame, it uses a generator (should be equally fast).
 - us: Fastest decoding method using bufr keys from ECCODES, but lacking some observations like soil temperatures.
