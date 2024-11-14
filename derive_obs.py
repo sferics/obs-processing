@@ -197,6 +197,7 @@ def derive_obs(stations):
         # reset row factory to default
         db_loc.row_factory = sf.default_row
         
+        """
         # this is needed when deriving obs imported from metwatch csv files (import_metwatch.py)
         
         # do this for all metwatch elements which can be linked to a TR
@@ -234,7 +235,7 @@ def derive_obs(stations):
 
         print("obs_df")
         print(obs_df)
-        
+         
         #print("obs_lf")
         #print(obs_lf)
         
@@ -273,7 +274,10 @@ def derive_obs(stations):
         db_loc.row_factory = sf.default_row
         db_loc.exemany(sql_insert, prate_vals)
         continue
-         
+        """
+        sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) "
+            f"VALUES(?,?,?,?,'1s') ON CONFLICT DO {on_conflict}")
+
         # try to calculate QFF+QNH if no reduced pressure is present in obs
         # and we have barometer height instead
         db = dc( config=cf.database, ro=1 )
@@ -379,7 +383,7 @@ def derive_obs(stations):
             db_loc.exe(sql)
             
             sql_insert  = (f"INSERT INTO obs (dataset,datetime,element,value,duration) VALUES"
-                f"(?,?,'DPT_2m_syn',?) ON CONFLICT DO {on_conflict}")
+                f"(?,?,'DPT_2m_syn',?,'1s') ON CONFLICT DO {on_conflict}")
             dpt_vals    = set()
             
             for datetime in db_loc.fetch():
@@ -407,20 +411,19 @@ def derive_obs(stations):
             
 
             # correct durations for W1W2
-            sql_insert = (f"INSERT INTO obs (dataset,datetime,element,value,duration) VALUES"
-                f"(?,?,?,?) ON CONFLICT DO {on_conflict}")
-            
             W1W2_cors = set()
-            
-            sql = (f"SELECT datetime, element, value FROM obs WHERE element LIKE 'W%_srf_syn' AND "
-                    f"value IS NOT NULL AND strftime('%M', datetime) = '00'")
+            sql = (f"SELECT datetime, strftime('%H', datetime) as hour, element, value FROM obs "
+                    f"WHERE element LIKE 'W__2m_syn' AND value IS NOT NULL AND "
+                    f"strftime('%M', datetime) = '00' AND duration NOT LIKE '_h'")
             db_loc.exe(sql)
             
-            for datetime, element, value in db_loc.fetch():
-                hour        = datetime.hour
-                duration    = W1W2_durations[hour]
-                W1W2_cors.add( (datetime, duration, element, value) )
-
+            for datetime, hour, element, value in db_loc.fetch():
+                duration = W1W2_durations[int(hour)]
+                if verbose: print(datetime, duration, element, value)
+                W1W2_cors.add( (dataset, datetime, duration, element, value) )
+            
+            sql_insert = (f"INSERT INTO obs (dataset,datetime,element,value,duration) VALUES"
+                f"(?,?,?,?,?) ON CONFLICT DO {on_conflict}")
             db_loc.exemany(sql_insert, W1W2_cors)
                 
                 
