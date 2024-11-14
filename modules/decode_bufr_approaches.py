@@ -391,6 +391,7 @@ def decode_bufr_us(ID, FILE, DIR, bf, log, traceback=False, debug=False, verbose
                     try:    meta[clear_key] = ec.codes_get(msg, key)
                     except: meta[clear_key] = ec.codes_get_array(msg, key)[0]
                     #TODO some OGIMET-BUFRs seem to contain multiple station numbers in one key (arrays)
+                    # current workaround is to only take the first one so we do not crash
 
                     if meta[clear_key] in bf.null_vals:
                         del meta[clear_key]; continue
