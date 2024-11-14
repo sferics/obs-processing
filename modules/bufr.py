@@ -252,8 +252,10 @@ class BufrClass:
                 self.station_codes  = {1001, 1002} # 1018
                 
                 if hasattr(self, "bufr_sequences"):
-                    self.bufr_sequences = gf.read_yaml( self.bufr_sequences,
-                        file_dir=self.config_dir )
+                    if type(self.bufr_sequences) == str:
+                        self.bufr_sequences = gf.read_yaml( self.bufr_sequences,
+                            file_dir=self.config_dir )
+                    else: pass
                 else:
                     self.bufr_sequences = gf.read_yaml( "codes/bufr/sequences",
                         file_dir=self.config_dir )

@@ -21,6 +21,9 @@ def try_to_datetime(dt_dict):
     try:
         DT = dt(dt_dict["year"],dt_dict["month"],dt_dict["day"],dt_dict["hour"],dt_dict["minute"])
     except:
+        print(ERROR)
+        print(dt_dict)
+        sys.exit()
         DT = None
     return DT
 
@@ -503,7 +506,7 @@ def read_yaml(file_name="obs", file_dir="config", ext="yml", typ="safe", pure=Tr
 
     # this is the important part; load the file read-only with the chosen method and return it as dict
     with open( file_dir + "/" + file_name + "." + ext, "rt" ) as file_handle:
-        
+            
         # if typ == pypyr: use the features from pypyr package and return dictitems a dictionary
         if typ == "pypyr":
             res = loader.load(file_handle)
