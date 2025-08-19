@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#https://tgftp.nws.noaa.gov/SL.us008001/DF.bf/DC.intl/
+#https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.synop/
+
+TARGET_DIR="/home/juri/obs-processing/NOAA"
+mkdir -p $TARGET_DIR
+
+wget -N --no-if-modified-since -nd -np -r -l1 -P $TARGET_DIR -A ".bin" https://tgftp.nws.noaa.gov/SL.us008001/DF.bf/DC.intl/
+wget -N --no-if-modified-since -nd -np -r -l1 -P $TARGET_DIR -A ".txt" https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.synop/

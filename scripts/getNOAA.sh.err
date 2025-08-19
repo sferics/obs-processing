@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Zielverzeichnis
+TARGET_DIR="/home/juri/obs-processing/NOAA"
+mkdir -p "$TARGET_DIR"
+cd "$TARGET_DIR" || exit 1
+
+# Temp-Verzeichnis für neue Downloads
+TMP_DIR=$(mktemp -d)
+
+# Liste der Quellverzeichnisse (URLs) und Filter
+declare -A SOURCES
+SOURCES["https://tgftp.nws.noaa.gov/SL.us008001/DF.bf/DC.intl/"]="*.bin"
+SOURCES["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.synop/"]="*.txt"
+
+# Für jede Quelle:
+for URL in "${!SOURCES[@]}"; do
+    EXT="${SOURCES[$URL]}"
+    
+    # Nur gewünschte Dateien auslisten und herunterladen
+    wget -q -r -np -nd -l1 -A "$EXT" -P "$TMP_DIR" "$URL"
+done
+
+# Nun alle Dateien im TMP_DIR durchgehen
+for FILE in "$TMP_DIR"/*; do
+    [[ -f "$FILE" ]] || continue
+    FILENAME=$(basename "$FILE")
+    NAME="${FILENAME%.*}"
+    EXT="${FILENAME##*.}"
+    
+    # Prüfen, ob bereits frühere Versionen existieren
+    LATEST_FILE=$(ls -1 "$TARGET_DIR"/"$NAME".*."$EXT" 2>/dev/null | sort -V | tail -n 1)
+
+    if [[ -f "$LATEST_FILE" ]] && cmp -s "$FILE" "$LATEST_FILE"; then
+        echo "Keine Änderung an $FILENAME"
+        continue
+    fi
+
+    # Neue Version speichern
+    INDEX=1
+    while [[ -f "$TARGET_DIR/$NAME.$INDEX.$EXT" ]]; do
+        ((INDEX++))
+    done
+
+    cp "$FILE" "$TARGET_DIR/$NAME.$INDEX.$EXT"
+    echo "Neue Version gespeichert als $NAME.$INDEX.$EXT"
+done
+
+# Aufräumen
+rm -rf "$TMP_DIR"
+
