@@ -571,7 +571,6 @@ def get_input_files_dict( config_database, input_files=[], source="extra", confi
     
     files_dict      = {}
     status_locked   = f"locked_{PID}" #if PID else "locked"
-    redo            = config_source.get("redo")
     db              = DatabaseClass(config=config_database)
 
     if input_files:
@@ -622,6 +621,7 @@ def get_input_files_dict( config_database, input_files=[], source="extra", confi
             if redo:    skip_files  = db.get_files_with_status( r"locked_%", source )
             else:       skip_files  = db.get_files_with_status( gv.skip_status, source )
             
+            if verbose: print(f"Files in dir: {files_in_dir}; Files to skip: {skip_files}")
             files_to_parse = list( files_in_dir - skip_files )
             
             #TODO special sort functions for CCA, RRA and stuff in case we dont have sequence key
@@ -661,24 +661,27 @@ def get_input_files_dict( config_database, input_files=[], source="extra", confi
         #TODO if multiprocessing: split files_to_parse by # of processes (e.g. 8) and parse files simultaneously
         #see https://superfastpython.com/restart-a-process-in-python/
 
-    else: raise TypeError("Either source+config_source or input_files args have to be provided!")
+    else: raise TypeError("Either source + config_source or input_files args have to be provided!")
     
     if debug: print(files_dict)
     return files_dict
 
 
 def dt2str( datetime, fmt ):
-    #datetime -> string
     """
     Parameter:
     ----------
-
+    datetime : datetime object
+    fmt : str, format of the datetime object, e.g. "%Y-%m-%d %H:%M:%S"
+    
     Notes:
     ------
-
+    convert datetime object to string with the given format
+    
     Return:
     -------
-
+    str of the datetime object in the given format
+    -----------
     """
     datetime_str = datetime.strftime( fmt )
     return datetime_str
@@ -688,14 +691,19 @@ def dt2ts( datetime, min_time = False, tzinfo=tz.utc ):
     """
     Parameter:
     ----------
+    datetime : datetime object
+    min_time : bool, if True, set time to midnight (00:00:00) of the given date
+    tzinfo : timezone info, default is UTC
 
     Notes:
     ------
     convert today's datetime object to timestamp
+    If min_time is True, set time to midnight (00:00:00) of the given date
+    If tzinfo is not None, set the timezone of the datetime object to the given tzinfo
 
     Return:
     -------
-
+    timestamp as int
     """
     if min_time: dtts = dt.combine( datetime, dt.min.time() )
     else: dtts = datetime

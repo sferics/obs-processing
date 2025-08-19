@@ -124,9 +124,12 @@ class BufrClass:
         
         # make config accessible as class object
         self.config = config
+        
+        if not hasattr(self, "approach"):
+            self.approach = approach
 
         # check for mandatory class attributes
-        mandatory = ("mode", "output", "approach")
+        mandatory = ("mode", "output")
         for attr in mandatory:
             assert( hasattr(self, attr) )
 

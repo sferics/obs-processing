@@ -110,10 +110,10 @@ def decode_bufr( cf, input_files_dict={}, SOURCE="extra", approach="gt", pid_fil
     db.close(commit=True)
     
     if debug: print(obs_bufr)
-    obs_db = convert_keys( obs_bufr, SOURCE, shift_dt=shift_dt, convert_dt=convert_dt )
+    obs_db = convert_keys( obs_bufr, SOURCE, shift_dt=shift_dt, convert_dt=convert_dt, verbose=verbose )
     
     if debug: print(obs_db)
-    if obs_db: obs.to_station_databases(obs_db, scale=scale_info)
+    if obs_db: obs.to_station_databases(obs_db, scale=scale_info, verbose=verbose)
       
     # remove file containing the PID, so the script can be started again
     if pid_file: os.remove( pid_file )
