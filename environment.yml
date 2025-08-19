@@ -212,6 +212,7 @@ dependencies:
       - pyyaml==6.0.1
       - requires==0.10.5
       - ruamel-base==1.0.0
+      - soupsieve==2.7
       - sqlite-fts4==1.0.3
       - sqlite-utils==3.36
       - stack-data==0.6.3

@@ -84,6 +84,7 @@ requires==0.10.5
 ruamel.base==1.0.0
 ruamel.yaml @ file:///work/ci_py311/ruamel.yaml_1676838772170/work
 six==1.16.0
+soupsieve==2.7
 sqlite-fts4==1.0.3
 sqlite-utils==3.36
 stack-data==0.6.3
