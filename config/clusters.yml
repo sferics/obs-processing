@@ -1,0 +1,15 @@
+germany:
+  block:                  10
+  identifier:             616
+  stations:       !!set   [wmo]
+germany_dwd:
+  block:                  ~
+  identifier:             616
+  stations:       !!set   [dwd]
+test:
+  block:                  10
+  blocks:         !!set   [10]
+  numbers:        !!set   [384, 469, 393, 379, 637, 184]
+  identifier:             ~
+  identifiers:    !!set   []
+  stations:       !!set   [dwd]

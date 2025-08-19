@@ -1,0 +1,305 @@
+test: # for testing purposes only; dir contains BUFRs from German station [2022-03 -> 2023-03]
+  bufr:
+    ext:            !!str   bin
+    glob:           !!str   "*" #"*_bda01,synop_bufr_GER_999999_999999__MW_???" # only german BUFR messages
+    prio:           !!int   0
+    #dir:           !!str   /historical/home/mswr/incoming/opendata.dwd.de/weather/weather_reports/synoptic/germany # m23
+    #dir:           !!str   /home/dev/obs-processing/DWD # em24 dev
+    dir:            !!str   /home/juri/data/historical/dwd/bufr # em24 juri
+    #tables:        !!str   /home/juri/amalthea/main/dwd_tables
+    tables:         !str    /home/juri/miniconda3/envs/obs/share/eccodes/definitions/bufr/tables
+    skip1:          !!int   2 
+    skip2:          !!int   11
+    skip3:          !!int   4
+    #filter:        !!set   [WMO_station_id, data_datetime, airTemperature, heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform]
+  general:
+    stations:       !!set   [wmo]
+    clusters:       !!set   [test]
+
+dwd_germany:
+  bufr:
+    ext:            !!str   bin
+    url:            !!str   https://opendata.dwd.de/weather/weather_reports/synoptic/germany/
+    dir:            !!str   /home/juri/data/live/dwd/bufr/germany
+  general:
+    stations:       !!set   [wmo]
+    clusters:       !!set   [germany]
+
+cod:
+  bufr:
+    ext:    bufr
+    url:    https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
+    dir:    /home/juri/data/live/cod/bufr
+  general:
+    stations: [wmo]
+    clusters: [germany]
+
+DWD: # German weather service
+  bufr:
+    ext:    bin
+    prio:   2
+    dir:    /home/dev/obs-processing/DWD # em24 dev
+  general:
+    stations: [wmo, dwd]
+    clusters: [germany, europe, usa]
+
+AEMET: # Spanish weather service
+  bufr:
+    ext:  bufr
+    url:  https://opendata.aemet.es/opendata/api/observacion/convencional/todas/
+    wget: "-e robots=off -nc -nd -np -r"
+    prio: 0
+    dir: /home/juri/obs-processing/AEMET
+  json:
+    ext:  json
+    url:  https://opendata.aemet.es/opendata/api/observacion/convencional/todas/
+    wget: "-e robots=off -nc -nd -np -r"
+    prio: 1
+  general:
+    stations: [wmo]
+    clusters: [spain]
+
+KNMI: # Dutch weather service
+  bufr:
+    ext:  bufr
+    glob: "SYNOP_BUFR_*"
+    prio: 0
+    dir:  /home/juri/obs-processing/KNMI
+  netcdf:
+    ext:  nc
+    url:  https://dataplatform.knmi.nl/dataset/access/actuele10mindataknmistations-2
+  api:
+    url:  https://api.dataplatform.knmi.nl/open-data
+    ver:  v1
+    key:  eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjA2MTU4MDU3YmM2MDRkMjA5OTExN2ZjOWJkY2IyZThiIiwiaCI6Im11cm11cjEyOCJ9
+
+COD: # College of DuPage
+  bufr:
+    ext:  bufr
+    url:  https://weather.cod.edu/digatmos/BUFR/SYNOP/EDZW/
+    wget: "-e robots=off -nc -nd -np -r"
+    prio: 1
+    dir:  /home/dev/obs-processing/COD
+  synop:
+    ext:  syn
+    url:  https://weather.cod.edu/digatmos/syn/
+    wget: "-e robots=off -nc -nd -np -r"
+    prio: 2
+  metar:
+    ext:  sao
+    url:  https://weather.cod.edu/digatmos/sao/
+    wget: "-e robots=off -nc -nd -np -r"
+    prio: 3
+  general:
+    stations: [wmo]
+
+MeteoFrance:
+  url:    https://donneespubliques.meteofrance.fr/?fond=rubrique&id_rubrique=32
+
+RMI: # Belgian meteorological service
+  bufr:
+    ext:  bufr
+    url:  https://opendata.meteo.be/ftp/observations/synop/
+    wget: "-nc -nd -np -r"
+    prio: 0
+    dir:  /home/juri/data/live/rmi/bufr
+
+MeteoLUX:
+  data: https://data.public.lu/en/datasets/?organization=56f54cc20d6ceb552e37f07c
+  obs:  https://data.public.lu/en/datasets/present-weather-condition-at-luxembourg-airport-ellx-decoded-from-metar-message/
+
+SWISS: #TODO import from wetterturnier
+  ext:  csv
+  url:  https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA98.csv
+  prio: 0
+
+ZAMG:
+  api:  https://data.hub.zamg.ac.at/
+  ext:  csv
+  url:  https://data.hub.geosphere.at/dataset/klima-v2-10min
+  prio: 0
+
+MIRA: #TODO import from wetterturnier
+  ext:  csv
+  url:  TODO ftp mira
+  prio: -1
+
+SMHI: #TODO swedish meteorological service
+  ext:  json
+  url:  https://opendata.smhi.se/apidocs/metobs/data.html
+  prio: 1
+
+DMI: # danish weather service
+  ext:      zip
+  info:     https://opendatadocs.dmi.govcloud.dk/en/Data/Meteorological_Observation_Data
+  package:  "pip install dmi-open-data"
+
+FMI: # weather service of Finland
+  url:    https://en.ilmatieteenlaitos.fi/open-data
+  python: https://github.com/pnuu/fmiopendata
+
+frost: # SYNOP from norwegian weather service (national)
+  url:            https://frost.met.no/howto.html
+  client_id:      d6eb4bc9-dda9-43f2-a2e3-1430e6ebd01f
+  client_secret:  e1ab686c-70de-4cf8-8cd8-5a16c2bea6d5
+
+metno: # METAR from norwegian weather service (international)
+  api:  https://api.met.no/weatherapi/tafmetar/1.0/documentation
+  url:  https://api.met.no/weatherapi/tafmetar/1.0
+
+IMGW: # Polish meteo+hydrological service
+  url:    !!str   https://danepubliczne.imgw.pl/api/data/synop
+  prio:   !!int   4
+  #historical data 2017-
+  #https://danepubliczne.imgw.pl/data/arch/ost_meteo/
+  #historical data 1951-
+  #https://danepubliczne.imgw.pl/data/dane_pomiarowo_obserwacyjne/dane_meteorologiczne/
+
+CHMI: # Czech hydrometeorological service TODO request/find open data
+  url:    https://www.chmi.cz/historicka-data/pocasi/zakladni-informace?l=en
+
+SMHU: # Slovakian meteo+hydrological service
+  url:    http://meteo.shmu.sk/customer/home/opendata/
+
+DHMZ: # Croatian weather service TODO find/request open data
+  url:    https://meteo.hr/proizvodi_e.php?section=proizvodi_usluge&param=services
+
+Hidmet: # Serbia
+  url1:   https://www.hidmet.gov.rs/eng/osmotreni/index.php
+  url2:   https://www.hidmet.gov.rs/eng/osmotreni/automatske.php
+
+DM: # Albania TODO
+  url:    https://www.geo.edu.al/Departments/Department_of_Meteorology_DM/
+
+fhmzbih: # Bosnia and Herzegovina (Bosnian part) TODO
+  url:    https://www.fhmzbih.gov.ba/latinica/index.php
+
+rhmzrs: # Bosnia and Herzegovina (Serbian part) TODO
+  url:    https://rhmzrs.com/
+
+MeteoRomania: # Romania
+  url:    https://inspire.meteoromania.ro/geonetwork/srv/api/records/b7e35875-272e-416e-bf85-8f3789c48198
+
+WeatherBG: # Bulgaria TODO request/find open data
+  url:    https://weather.bg/0index.php?koiFail=RM14mes1&lng=1
+
+OMSZ: # Hungary TODO
+  url:    http://www.met.hu/
+
+ILM: # Estonia
+  url:    https://www.ilmateenistus.ee/ilma_andmed/xml/observations.php
+
+MeteoLT: # Lithunia TODO
+  url:    http://www.meteo.lt/
+
+MeteoLV: # Latvia TODO
+  url:    http://www.meteo.lv/
+
+HNMS: # Greece TODO
+  url:    http://www.hnms.gr/
+
+VEDUR: # Iceland TODO
+  url:    http://www.vedur.is/
+
+Meteor: # Turkey TODO
+  url:    http://www.meteor.gov.tr/
+
+IMS: # Israel TODO
+  url:    http://www.ims.gov.il/
+
+IPMA: # Portugal
+  url:    https://www.ipma.pt/en/otempo/obs.superficie/table-top-stations-all.jsp
+
+MeteoAD: # Andorra
+  url:    http://meteo.ad/en/climatology
+
+MeteoCat: # Catalonia TODO request/find open data
+  url1:   https://www.nowcast.de/en/portfolio-item/meteocat-meteorological-service-of-catalonia/
+  url2:   https://catalegs.ide.cat/geonetwork/srv/api/records/estacio-meteo-automatica-v1r0-20211229
+
+MeteoGalicia: # Galicia, MeteoSIX API
+  url:    https://www.meteogalicia.gal/web/proxectos/meteosix.action?request_locale=gl
+
+italy: # TODO
+  urls:
+    - https://www.meteoam.it/it/home
+    - http://www.meteo.it/
+    - http://www.meteo.fvg.it/
+
+OpenWeatherMap: # free API service TODO check whether it offers WMO stations
+  url:    https://openweathermap.org/stations
+
+ESWD:
+  url:    https://eswd.eu/
+
+UKMO: # UK MetOffice, data costs 500-2000€ per year and bulletin
+  info:   https://datahub.metoffice.gov.uk/
+
+MetEireann:
+  url:    https://data.gov.ie/dataset/latest-observations
+  ext:    csv
+
+NWS:  # US weather forecasting service
+  url:    https://www.weather.gov/documentation/services-web-api  
+
+NOAA: # USA weather, climate and ocean service
+  bufr:
+    ext:  bin
+    url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.bf/DC.intl/
+    wget: "-N -nd -np -r -l 1"
+    prio: 0
+    dir:  /home/juri/obs-processing/NOAA
+  synop:
+    ext:  txt
+    url:  https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.synop/
+    wget: "-N -nd -np -r -l 1"
+    prio: 2
+  metar:
+    ext:  txt
+    url:  ["https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/", "https://tgftp.nws.noaa.gov/data/observations/metar/stations/", "http://tgftp.nws.noaa.gov/data/observations/metar/cycles/"]
+    wget: "-N -nd -np -r -l 1"
+    prio: 3
+  general:
+    stations: [wmo]
+
+NCEP: # what is the difference between bufr, bufr_d and prepbufr files?
+  bufr:
+    ext:  "bufr_d" # TODO add .nr
+    url:  https://www.nco.ncep.noaa.gov/pub/data/nccf/com/obsproc/prod/
+    wget: "-N -nd -np -r -l 1"
+    prio: 0
+    dir:  NCEP
+  info:       https://www.nco.ncep.noaa.gov/pmb/products/gfs/
+  bufr_d:     https://nomads.ncep.noaa.gov/pub/data/nccf/com/obsproc/prod/
+  prepbufr:   https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc:C00374
+
+NCAR: # only 6-hourly data available, with delay of a few hours
+  bufr: #TODO strange format - adapt BUFR decoder to it or leave this source out
+    ext:  bufr
+    set:  https://rda.ucar.edu/datasets/ds461.0/
+    url:  "https://data.rda.ucar.edu/ds461.0/bufr/{YYYY}/gdas.adpsfc.t{ZZ}z.{YYYY}{MM}{DD}.bufr"
+    tar:  1
+    prio: 0
+    dir:  NCAR #/home/dev/obs-processing/NCAR
+  general:
+    stations: [wmo]
+
+NCEI: #TODO research .isd file format
+  isd:
+    url:  "https://www.ncei.noaa.gov/metadata/geoportal/rest/metadata/item/gov.noaa.ncdc:C00532/html"
+  tar.gz:
+    url:  https://www.ncei.noaa.gov/data/nws-global-upper-air-bufr/archive/
+
+OGIMET: #TODO
+  bufr:
+    ext:  bufr
+    url:  "http://www.ogimet.com/getbufr.php?res=list&beg=201701290600&end=201701290600"
+    wget: ""
+    prio: 1
+    dir:  /home/juri/obs-processing/OGIMET
+
+NASA:
+  sunspots: #TODO
+  xray:     
+  proton:   
+  magnetic: 

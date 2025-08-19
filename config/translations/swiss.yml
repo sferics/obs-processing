@@ -1,0 +1,180 @@
+ure200s0params:
+  tre200s0:     °C             Lufttemperatur 2 m über Boden; Momentanwert
+  rre150z0:     mm             Niederschlag; Zehnminutensumme
+  sre000z0:     min            Sonnenscheindauer; Zehnminutensumme
+  gre000z0:     W/m²           Globalstrahlung; Zehnminutenmittel
+  ure200s0:     %              Relative Luftfeuchtigkeit 2 m über Boden; Momentanwert
+  tde200s0:     °C             Taupunkt 2 m über Boden; Momentanwert
+  dkl010z0:     °              Windrichtung; Zehnminutenmittel
+  fu3010z0:     km/h           Windgeschwindigkeit; Zehnminutenmittel
+  fu3010z1:     km/h           Böenspitze (Sekundenböe); Maximum
+  prestas0:     hPa            Luftdruck auf Stationshöhe (QFE); Momentanwert
+  pp0qffs0:     hPa            Luftdruck reduziert auf Meeresniveau (QFF); Momentanwert
+  pp0qnhs0:     hPa            Luftdruck reduziert auf Meeresniveau mit Standardatmosphäre (QNH); Momentanwert
+    #ppz850s0:     gpm            Geopotentielle Höhe der 850 hPa-Fläche; Momentanwert
+    #ppz700s0:     gpm            Geopotentielle Höhe der 700 hPa-Fläche; Momentanwert
+  dv1towz0:     °              Windrichtung vektoriell; Zehnminutenmittel; Instrument 1
+  fu3towz0:     km/h           Windgeschwindigkeit Turm; Zehnminutenmittel
+  fu3towz1:     km/h           Böenspitze (Sekundenböe) Turm; Maximum
+  ta1tows0:     °C             Lufttemperatur Instrument 1
+    #uretows0:     %              Relative Luftfeuchtigkeit Turm; Momentanwert
+    #tdetows0:     °C             Taupunkt Turm
+
+stations:
+  0-756-0-PFA: PFA
+  0-756-0-BIA: BIA
+  06679: TAE
+  06756: COM
+  06735: ABO
+  06712: AIG
+  06672: ALT
+  06690: ARH
+  06787: AND
+  06695: ANT
+  06785: ARO
+  06686: RAG
+  06634: BAN
+  06601: BAS
+  06642: LAT
+  06631: BER
+  06646: BEZ
+  06721: BIN
+  06678: BIZ
+  06774: BIV
+  06704: BIE
+  06725: BLA
+  06733: BOL
+  06709: BOU
+  06656: BRZ
+  06633: BUS
+  06778: BUF
+  06619: FRE
+  06752: CEV
+  06674: CHZ
+  06605: CHA
+  06608: CHM
+  06786: CHU
+  06627: CHD
+  06759: CIM
+  06713: CDM
+  06717: GSB
+  06710: COY
+  06688: CMA
+  06606: CRM
+  06784: DAV
+  06602: DEM
+  06782: DIS
+  06693: EBK
+  06739: EGH
+  06648: EGO
+  06675: EIN
+  06682: ELM
+  06655: ENG
+  06715: EVI
+  06722: EVO
+  06616: FAH
+  06652: FLU
+  06625: GRA
+  06613: FRU
+  06700: GVE
+  06653: GES
+  06657: GIH
+  06685: GLA
+  06749: GOR
+  06632: GRE
+  06744: GRH
+  06758: GRO
+  06728: GRC
+  06668: GOS
+  06626: GOE
+  06750: GUE
+  06621: GUT
+  06624: HLL
+  06689: HOE
+  06789: ILZ
+  06734: INT
+  06730: JUN
+  06635: KOP
+  06617: BRL
+  06612: CDF
+  06702: DOL
+  06665: LAC
+  06638: LAG
+  06609: MLS
+  06666: LEI
+  06723: ATT
+  06703: CHB
+  06714: DIA
+  06614: MAR
+  06760: OTL
+  06770: LUG
+  06650: LUZ
+  06669: LAE
+  06762: MAG
+  06640: MAS
+  06618: MAH
+  06754: MTR
+  06637: MER
+  06615: MOB
+  06724: MVE
+  06777: GEN
+  06747: MRP
+  06644: MOA
+  06716: MTE
+  06641: MOE
+  06636: MUB
+  06799: NAS
+  06639: NAP
+  06604: NEU
+  06705: CGI
+  06649: OBR
+  06676: AEG
+  06708: ORO
+  06797: BEH
+  06610: PAY
+  06791: COV
+  06795: PMA
+  06628: PLF
+  06794: ROB
+  06711: PUY
+  06687: QUI
+  06751: ROE
+  06645: RUE
+  06783: SBE
+  06623: HAI
+  06792: SAM
+  06662: SAG
+  06620: SHA
+  06790: SRS
+  06683: SCM
+  06651: SPF
+  06798: SCU
+  06779: SIA
+  06654: SIM
+  06720: SIO
+  06706: PRE
+  06600: STC
+  06681: STG
+  06796: SMM
+  06771: SBO
+  06671: STK
+  06680: SAE
+  06731: THU
+  06740: TIT
+  06677: UEB
+  06745: ULR
+  06990: VAD
+  06793: VAB
+  06663: VLS
+  06603: VEV
+  06788: VIO
+  06707: VIT
+  06727: VIS
+  06780: WFJ
+  06643: WYN
+  06673: WAE
+  06647: PSI
+  06748: ZER
+  06664: REH
+  06660: SMA  
+  06670: KLO
