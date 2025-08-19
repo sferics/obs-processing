@@ -1,4 +1,5 @@
 # This file is used to ignore files and directories in a Git repository.
+other_languages/rust/target/
 TODO.md
 txt/
 unused/
