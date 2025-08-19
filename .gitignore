@@ -1,3 +1,4 @@
+# This file is used to ignore files and directories in a Git repository.
 TODO.md
 txt/
 unused/
@@ -34,6 +35,9 @@ wget-log*
 .bash_profile
 .conda/
 ECCODES.err
+pdbufr/
+plbufr/
+AEMET/
 NCAR/
 OGIMET/
 SWISS/
